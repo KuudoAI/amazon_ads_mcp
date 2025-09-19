@@ -1,6 +1,6 @@
 [project]
 name = "amazon-ads-mcp"
-version = "1.0.2"
+version = "2.0.0"
 description = "Amazon Ads API MCP Server - Implementation for Amazon Advertising API"
 readme = "README.md"
 requires-python = ">=3.10,<4.0"
