@@ -168,7 +168,7 @@ openapi/.cache/
 openapi/resources/
 
 # Build directories
-.build/
+# .build/ contains essential build scripts - DO NOT IGNORE
 build/
 *.tar.gz
 *.whl

@@ -1,0 +1,1 @@
+{"version":"1.0","generated":"2025-08-29T20:18:34.534815Z","namespace":"Locations","tools":[{"operationId":"listLocations","method":"POST","path":"/locations/list","preferred_name":"listLocations","complexity":{"score":0,"factors":{"depth":0,"properties":0,"arrays":false},"threshold_exceeded":false,"reason":""}}]}

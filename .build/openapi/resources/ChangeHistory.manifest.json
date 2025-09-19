@@ -1,0 +1,1 @@
+{"version":"1.0","generated":"2025-08-29T20:18:31.878322Z","namespace":"ChangeHistory","tools":[{"operationId":"getHistory","method":"POST","path":"/history","preferred_name":"getHistory","complexity":{"score":29,"factors":{"depth":1,"properties":7,"arrays":false},"threshold_exceeded":false,"reason":""}}]}

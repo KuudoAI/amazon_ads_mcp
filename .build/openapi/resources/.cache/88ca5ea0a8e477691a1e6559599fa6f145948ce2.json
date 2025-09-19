@@ -1,0 +1,1366 @@
+{
+  "components": {
+    "parameters": {
+      "audienceId": {
+        "description": "The audience identifier.",
+        "in": "path",
+        "name": "audienceId",
+        "required": true,
+        "schema": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "authorizationHeader": {
+        "description": "A valid access token.",
+        "example": "Bearer Atza|IQEBLjAsAhRmHjNgHpi0UDme37rR6CuUpSR",
+        "in": "header",
+        "name": "Authorization",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "clientHeader": {
+        "description": "The identifier of a client associated with a \"Login with Amazon\" account.",
+        "in": "header",
+        "name": "Amazon-Advertising-API-ClientId",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "contentTypeHeader": {
+        "description": "The `Content-Type` is application/json.",
+        "example": "application/json",
+        "in": "header",
+        "name": "Content-Type",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "responses": {
+      "400BadRequest": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "properties": {
+                "error": {
+                  "properties": {
+                    "description": {
+                      "$ref": "#/components/schemas/errorDescription"
+                    },
+                    "errors": {
+                      "$ref": "#/components/schemas/subError"
+                    },
+                    "httpStatusCode": {
+                      "$ref": "#/components/schemas/httpStatusCode"
+                    }
+                  },
+                  "type": "object"
+                },
+                "requestId": {
+                  "$ref": "#/components/schemas/requestId"
+                }
+              },
+              "type": "object"
+            }
+          }
+        },
+        "description": "Bad Request."
+      },
+      "403NotAllowed": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "properties": {
+                "error": {
+                  "properties": {
+                    "description": {
+                      "$ref": "#/components/schemas/errorDescription"
+                    },
+                    "errors": {
+                      "$ref": "#/components/schemas/subError"
+                    },
+                    "httpStatusCode": {
+                      "$ref": "#/components/schemas/httpStatusCode"
+                    }
+                  },
+                  "type": "object"
+                },
+                "requestId": {
+                  "$ref": "#/components/schemas/requestId"
+                }
+              },
+              "type": "object"
+            }
+          }
+        },
+        "description": "The client is not allowed to update the audience."
+      },
+      "404NotFound": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "properties": {
+                "error": {
+                  "properties": {
+                    "description": {
+                      "$ref": "#/components/schemas/errorDescription"
+                    },
+                    "errors": {
+                      "$ref": "#/components/schemas/subError"
+                    },
+                    "httpStatusCode": {
+                      "$ref": "#/components/schemas/httpStatusCode"
+                    }
+                  },
+                  "type": "object"
+                },
+                "requestId": {
+                  "$ref": "#/components/schemas/requestId"
+                }
+              },
+              "type": "object"
+            }
+          }
+        },
+        "description": "The specified identifier was not found."
+      },
+      "429TooManyRequests": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "properties": {
+                "error": {
+                  "properties": {
+                    "description": {
+                      "$ref": "#/components/schemas/errorDescription"
+                    },
+                    "errors": {
+                      "$ref": "#/components/schemas/subError"
+                    },
+                    "httpStatusCode": {
+                      "$ref": "#/components/schemas/httpStatusCode"
+                    }
+                  },
+                  "type": "object"
+                },
+                "requestId": {
+                  "$ref": "#/components/schemas/requestId"
+                }
+              },
+              "type": "object"
+            }
+          }
+        },
+        "description": "The client exceeded the allowed number of requests.."
+      },
+      "500InternalError": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "properties": {
+                "error": {
+                  "properties": {
+                    "description": {
+                      "$ref": "#/components/schemas/errorDescription"
+                    },
+                    "errors": {
+                      "$ref": "#/components/schemas/subError"
+                    },
+                    "httpStatusCode": {
+                      "$ref": "#/components/schemas/httpStatusCode"
+                    }
+                  },
+                  "type": "object"
+                },
+                "requestId": {
+                  "$ref": "#/components/schemas/requestId"
+                }
+              },
+              "type": "object"
+            }
+          }
+        },
+        "description": "Internal error."
+      },
+      "503ServiceUnavailable": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "properties": {
+                "error": {
+                  "properties": {
+                    "description": {
+                      "$ref": "#/components/schemas/errorDescription"
+                    },
+                    "errors": {
+                      "$ref": "#/components/schemas/subError"
+                    },
+                    "httpStatusCode": {
+                      "$ref": "#/components/schemas/httpStatusCode"
+                    }
+                  },
+                  "type": "object"
+                },
+                "requestId": {
+                  "$ref": "#/components/schemas/requestId"
+                }
+              },
+              "type": "object"
+            }
+          }
+        },
+        "description": "The service is unavailable."
+      }
+    },
+    "schemas": {
+      "advertiserId": {
+        "description": "The advertiser identifier.",
+        "format": "int64",
+        "type": "integer"
+      },
+      "amazonConsent": {
+        "example": {
+          "amazonAdStorage": "GRANTED",
+          "amazonUserData": "GRANTED"
+        },
+        "properties": {
+          "amazonAdStorage": {
+            "description": "Set consent for advertising related storage such as cookies(web) or device identifiers(apps).",
+            "enum": [
+              "GRANTED",
+              "DENIED"
+            ],
+            "type": "string"
+          },
+          "amazonUserData": {
+            "description": "Set consent to use personal data for online advertising purposes.",
+            "enum": [
+              "GRANTED",
+              "DENIED"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "amazonAdStorage",
+          "amazonUserData"
+        ],
+        "type": "object"
+      },
+      "audienceDescription": {
+        "description": "The audience description. Must be an alphanumeric, non-null string between 0 to 1000 characters in length.",
+        "type": "string"
+      },
+      "audienceFees": {
+        "items": {
+          "description": "Object describing the audience fee.",
+          "properties": {
+            "cpmCents": {
+              "description": "Cost per thousand impressions (CPM) in cents. For example, $1.00 = 100 cents.",
+              "type": "integer"
+            },
+            "currency": {
+              "description": "Currency key as defined in https://en.wikipedia.org/wiki/ISO_4217. Note that the currency key is required to match the default currency associated with the Amazon DSP account.",
+              "enum": [
+                "USD",
+                "CAD",
+                "JPY",
+                "GBP",
+                "EUR",
+                "AUD",
+                "AED",
+                "SAR",
+                "MXN",
+                "INR",
+                "SEK",
+                "TRY",
+                "BRL"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "cpmCents",
+            "currency"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "audienceId": {
+        "description": "The",
+        "format": "int64",
+        "type": "integer"
+      },
+      "audienceName": {
+        "description": "The audience name. Must be an alphanumeric string between 10 to 128 characters in length.",
+        "type": "string"
+      },
+      "dataSourceCountry": {
+        "description": "A list of country codes describing where data in an audience is collected from. Country code is defined in https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2.",
+        "example": [
+          "US",
+          "CA"
+        ],
+        "items": {
+          "description": "Country code is defined in https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2.",
+          "example": "GB",
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "errorDescription": {
+        "description": "A human-readable description of the error.",
+        "example": "Bad Request",
+        "type": "string"
+      },
+      "externalAudienceId": {
+        "description": "The user-defined audience identifier.",
+        "type": "string"
+      },
+      "gpp": {
+        "description": "GPP(Global Privacy Platform) consent string that wraps privacy consent information from user.",
+        "example": "DBADMZg~CQB2TAAQB2TAAPoABABGA9EAAAAAAAAAAAAAAAAAAAAA.QAAA.IAAA~BQB2TAAQB2TAAPoABABGBZCAAAAAAAgAAAAAAAAAAA.YAAAAAAAAAA~BAAAAAAAAQA.QA",
+        "type": "string"
+      },
+      "httpStatusCode": {
+        "description": "The HTTP status code.",
+        "example": 400,
+        "type": "string"
+      },
+      "metadataType": {
+        "description": "The audience metadata type. Only 'DATA_PROVIDER' is currently supported.",
+        "enum": [
+          "DATA_PROVIDER"
+        ],
+        "type": "string"
+      },
+      "recordTtl": {
+        "description": "Time-to-live (ttl), in seconds. The amount of time the record is associated with the audience.",
+        "maximum": 34300800,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "requestId": {
+        "description": "The request identifier.",
+        "example": "a1b1234c-d11d-4e5f-82gh-c609c22255bd",
+        "type": "string"
+      },
+      "subError": {
+        "items": {
+          "properties": {
+            "errorType": {
+              "description": "The type of error.",
+              "example": "INVALID_INPUT",
+              "type": "string"
+            },
+            "fieldName": {
+              "description": "The field name.",
+              "example": "name",
+              "type": "string"
+            },
+            "message": {
+              "description": "A human-readable description of the error.",
+              "example": "The input field 'name' cannot be updated",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "tcf": {
+        "description": "TCF(Transparency & Consent Framework) consent string that wraps privacy consent information from user.",
+        "example": "CQB4ySFQB4ySFBlAAAENCZCAAAAAAAAAAAAAAAAAAAAA.II7Nd_X__bX9n-_7_6ft0eY1f9_r37uQzDhfNs-8F3L_W_LwX32E7NF36tq4KmR4ku1bBIQNtHMnUDUmxaolVrzHsak2cpyNKJ_JkknsZe2dYGF9Pn9lD-YKZ7_5_9_f52T_9_9_-39z3_9f___dv_-__-vjf_599n_v9fV_78_Kf9______-____________8A",
+        "type": "string"
+      }
+    }
+  },
+  "info": {
+    "contact": {
+      "name": "Amazon Ads API Support",
+      "url": "https://amzn-clicks.atlassian.net/servicedesk/customer/portals"
+    },
+    "description": "Use to create, read, or update audience metadata and to add or remove audience records. For onboarding information, see [_setting up for the Amazon Ads API_](../guides/onboarding/overview).",
+    "license": {
+      "name": "Amazon Ads Data Provider Agreement",
+      "url": "https://advertising.amazon.com/dsp/agreement/dataProviderApi/en"
+    },
+    "title": "Amazon Ads API for Data Providers.",
+    "version": "3.0"
+  },
+  "openapi": "3.0.1",
+  "paths": {
+    "/v2/dp/audience": {
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/authorizationHeader"
+          },
+          {
+            "$ref": "#/components/parameters/clientHeader"
+          },
+          {
+            "$ref": "#/components/parameters/contentTypeHeader"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "patches": {
+                    "items": {
+                      "properties": {
+                        "consent": {
+                          "description": "An object that contains user consent. Only one type of consent(TCF, GPP, amazonConsent) should be provided.",
+                          "discriminator": {
+                            "mapping": {
+                              "Amazon": "#/components/schemas/amazonConsent",
+                              "GPP": "#/components/schemas/gpp",
+                              "TCF": "#/components/schemas/tcf"
+                            },
+                            "propertyName": "consentType"
+                          },
+                          "properties": {
+                            "amazonConsent": {
+                              "$ref": "#/components/schemas/amazonConsent"
+                            },
+                            "consentType": {
+                              "description": "The type of consent provided.",
+                              "enum": [
+                                "TCF",
+                                "GPP",
+                                "Amazon"
+                              ],
+                              "type": "string"
+                            },
+                            "gpp": {
+                              "$ref": "#/components/schemas/gpp"
+                            },
+                            "tcf": {
+                              "$ref": "#/components/schemas/tcf"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "op": {
+                          "description": "Specifies the type of operation. Valid operations are `add` or `remove`.",
+                          "enum": [
+                            "add",
+                            "remove"
+                          ],
+                          "type": "string"
+                        },
+                        "path": {
+                          "description": "A formatted string that specifies the URL of the record. The format of the string is `/<recordIdType>-<recordIdValue>/audiences`, where 'recordIdType' specifies the record's origin and 'recordIdValue' specifies the record's Id. Valid 'recordIdType' values are `COOKIE`, a cookie Id sent from a data provider to Amazon by a cookie sync; `MAID`, a mobile advertising identifier; `EXTERNAL_USER_ID`, an external id defined by data providers.",
+                          "example": "/COOKIE-EMpBAI0GRcK4nBNGpPGg5g/audiences",
+                          "format": "/<recordIdType>-<recordIdValue>/audiences",
+                          "type": "string"
+                        },
+                        "value": {
+                          "items": {
+                            "description": "An integer value representing the Amazon audience identifer. This is the identifier that is returned during audience creation.",
+                            "example": 72057594038053890,
+                            "format": "int64",
+                            "type": "integer"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "jobId": {
+                      "description": "A unique identifier representing the workflow of the submitted request.",
+                      "example": "f076ddd9-3f84-44e8-b5cf-742b08f2bc9f",
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "description": "A unique identifier representing the request.",
+                      "example": "F88750355N-B70JY53CSD",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The request to add or remove an audience was submitted. Note that requests can take up to two hours to be processed."
+          },
+          "400": {
+            "$ref": "#/components/responses/400BadRequest"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "description": "Detailed error messages associated with the request.",
+                      "properties": {
+                        "description": {
+                          "description": "Description of the error.",
+                          "example": "Input Too Large",
+                          "type": "string"
+                        },
+                        "errors": {
+                          "description": "An array of property objects that include more information about the request.",
+                          "items": {
+                            "properties": {
+                              "errorType": {
+                                "description": "Type of error.",
+                                "example": "INPUT_TOO_LARGE",
+                                "type": "string"
+                              },
+                              "message": {
+                                "description": "Error message",
+                                "example": "The input payload exceeds 1MB limit.",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "httpStatusCode": {
+                          "description": "HTTP status code associated with the response.",
+                          "example": 413,
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "requestId": {
+                      "description": "Identifier associated with the request.",
+                      "example": "F88750355N-B70JY53CSD",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Input Too Large."
+          },
+          "429": {
+            "$ref": "#/components/responses/429TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/500InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/503ServiceUnavailable"
+          }
+        },
+        "summary": "Associates or disassociates a record with an audience. Note that the API call rate is limited to 100 transactions per second (TPS). Calls exceeding this rate are throttled. Payload size is limited to a maximum of 6MB or 2000 records. Calls with a payload exceeding limit receive a 413 response.",
+        "tags": [
+          "Add or remove records"
+        ]
+      }
+    },
+    "/v2/dp/audiencemetadata/": {
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/authorizationHeader"
+          },
+          {
+            "$ref": "#/components/parameters/clientHeader"
+          },
+          {
+            "$ref": "#/components/parameters/contentTypeHeader"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "advertiserId": {
+                    "$ref": "#/components/schemas/advertiserId"
+                  },
+                  "description": {
+                    "$ref": "#/components/schemas/audienceDescription"
+                  },
+                  "metadata": {
+                    "properties": {
+                      "audienceFees": {
+                        "$ref": "#/components/schemas/audienceFees"
+                      },
+                      "dataSourceCountry": {
+                        "$ref": "#/components/schemas/dataSourceCountry"
+                      },
+                      "externalAudienceId": {
+                        "$ref": "#/components/schemas/externalAudienceId"
+                      },
+                      "ttl": {
+                        "$ref": "#/components/schemas/recordTtl"
+                      },
+                      "type": {
+                        "$ref": "#/components/schemas/metadataType"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "externalAudienceId",
+                      "dataSourceCountry"
+                    ],
+                    "type": "object"
+                  },
+                  "name": {
+                    "$ref": "#/components/schemas/audienceName"
+                  }
+                },
+                "required": [
+                  "name",
+                  "description",
+                  "advertiserId",
+                  "metadata"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "audience": {
+                      "properties": {
+                        "advertiserId": {
+                          "$ref": "#/components/schemas/advertiserId"
+                        },
+                        "description": {
+                          "$ref": "#/components/schemas/audienceDescription"
+                        },
+                        "id": {
+                          "$ref": "#/components/schemas/audienceId"
+                        },
+                        "metadata": {
+                          "properties": {
+                            "audienceFees": {
+                              "$ref": "#/components/schemas/audienceFees"
+                            },
+                            "dataSourceCountry": {
+                              "$ref": "#/components/schemas/dataSourceCountry"
+                            },
+                            "externalAudienceId": {
+                              "$ref": "#/components/schemas/externalAudienceId"
+                            },
+                            "ttl": {
+                              "$ref": "#/components/schemas/recordTtl"
+                            },
+                            "type": {
+                              "$ref": "#/components/schemas/metadataType"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "name": {
+                          "$ref": "#/components/schemas/audienceName"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "requestId": {
+                      "$ref": "#/components/schemas/requestId"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/400BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/403NotAllowed"
+          },
+          "404": {
+            "$ref": "#/components/responses/404NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/429TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/500InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/503ServiceUnavailable"
+          }
+        },
+        "summary": "Creates a new data provider audience. Note that the API call rate is limited to 1 transaction per second (TPS). Calls exceeding this rate are throttled.",
+        "tags": [
+          "Metadata"
+        ]
+      }
+    },
+    "/v2/dp/audiencemetadata/{audienceId}": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/authorizationHeader"
+          },
+          {
+            "$ref": "#/components/parameters/clientHeader"
+          },
+          {
+            "$ref": "#/components/parameters/contentTypeHeader"
+          },
+          {
+            "$ref": "#/components/parameters/audienceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "audience": {
+                      "properties": {
+                        "advertiserId": {
+                          "$ref": "#/components/schemas/advertiserId"
+                        },
+                        "description": {
+                          "$ref": "#/components/schemas/audienceDescription"
+                        },
+                        "id": {
+                          "$ref": "#/components/schemas/audienceId"
+                        },
+                        "metadata": {
+                          "properties": {
+                            "audienceFees": {
+                              "$ref": "#/components/schemas/audienceFees"
+                            },
+                            "audienceSize": {
+                              "description": "Information about the size of the audience.",
+                              "properties": {
+                                "matchRate": {
+                                  "description": "The match rate.",
+                                  "format": "float",
+                                  "maximum": 1,
+                                  "minimum": 0,
+                                  "type": "number"
+                                },
+                                "matchedRecordSize": {
+                                  "description": "The number of matched records.",
+                                  "type": "integer"
+                                },
+                                "receivedRecordSize": {
+                                  "description": "The number of received records.",
+                                  "type": "integer"
+                                }
+                              },
+                              "type": "object"
+                            },
+                            "dataSourceCountry": {
+                              "$ref": "#/components/schemas/dataSourceCountry"
+                            },
+                            "externalAudienceId": {
+                              "$ref": "#/components/schemas/externalAudienceId"
+                            },
+                            "ttl": {
+                              "$ref": "#/components/schemas/recordTtl"
+                            },
+                            "type": {
+                              "$ref": "#/components/schemas/metadataType"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "name": {
+                          "$ref": "#/components/schemas/audienceName"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "requestId": {
+                      "$ref": "#/components/schemas/requestId"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "403": {
+            "$ref": "#/components/responses/403NotAllowed"
+          },
+          "404": {
+            "$ref": "#/components/responses/404NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/429TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/500InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/503ServiceUnavailable"
+          }
+        },
+        "summary": "Gets metadata for an audience specified by identifier. Note that the API call rate is limited to 1 transaction per second (TPS). Calls exceeding this rate are throttled.",
+        "tags": [
+          "Metadata"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/authorizationHeader"
+          },
+          {
+            "$ref": "#/components/parameters/clientHeader"
+          },
+          {
+            "$ref": "#/components/parameters/contentTypeHeader"
+          },
+          {
+            "$ref": "#/components/parameters/audienceId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "description": "A data provider audience object with updated values.",
+                "properties": {
+                  "description": {
+                    "$ref": "#/components/schemas/audienceDescription"
+                  },
+                  "metadata": {
+                    "properties": {
+                      "audienceFees": {
+                        "$ref": "#/components/schemas/audienceFees"
+                      },
+                      "dataSourceCountry": {
+                        "$ref": "#/components/schemas/dataSourceCountry"
+                      },
+                      "ttl": {
+                        "$ref": "#/components/schemas/recordTtl"
+                      }
+                    },
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "audience": {
+                      "properties": {
+                        "advertiserId": {
+                          "$ref": "#/components/schemas/advertiserId"
+                        },
+                        "description": {
+                          "$ref": "#/components/schemas/audienceDescription"
+                        },
+                        "id": {
+                          "$ref": "#/components/schemas/audienceId"
+                        },
+                        "metadata": {
+                          "properties": {
+                            "audienceFees": {
+                              "$ref": "#/components/schemas/audienceFees"
+                            },
+                            "dataSourceCountry": {
+                              "$ref": "#/components/schemas/dataSourceCountry"
+                            },
+                            "externalAudienceId": {
+                              "$ref": "#/components/schemas/externalAudienceId"
+                            },
+                            "ttl": {
+                              "$ref": "#/components/schemas/recordTtl"
+                            },
+                            "type": {
+                              "$ref": "#/components/schemas/metadataType"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "name": {
+                          "$ref": "#/components/schemas/audienceName"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "requestId": {
+                      "$ref": "#/components/schemas/requestId"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/400BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/403NotAllowed"
+          },
+          "404": {
+            "$ref": "#/components/responses/404NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/429TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/500InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/503ServiceUnavailable"
+          }
+        },
+        "summary": "Updates metadata of an existing audience specified by identifier. Note that the API call rate is limited to 1 transaction per second (TPS). Calls exceeding this rate are throttled.",
+        "tags": [
+          "Metadata"
+        ]
+      }
+    },
+    "/v2/dp/users": {
+      "patch": {
+        "description": "Deletes user data sourced from data providers. Deletes users scoped either to an advertiser or for the data provider. The SLA for data deletion is 30 days.",
+        "parameters": [
+          {
+            "description": "A valid access token. ",
+            "example": "Bearer Atza|IQEBLjAsAhRmHjNgHpi0UDme37rR6CuUpSR",
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The client identifier.",
+            "example": "amzn1.application-oa2-client.8baa9caa3eac48eab89780e73ce03b19",
+            "in": "header",
+            "name": "Amazon-Advertising-API-ClientID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The Content-Type is `application/json`.",
+            "example": "application/json",
+            "in": "header",
+            "name": "Content-Type",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "operation": "DELETE",
+                "users": [
+                  {
+                    "advertiserId": 205759403805,
+                    "consentTime": 1581557890000,
+                    "userId": {
+                      "type": "COOKIE",
+                      "value": "EMpBAI0GRcK4nBNGpPGg5g"
+                    }
+                  },
+                  {
+                    "advertiserId": 305759403805,
+                    "consentTime": 1581557900000,
+                    "userId": {
+                      "type": "COOKIE",
+                      "value": "EMpBAI0GRcK4nBNGpPGg5g"
+                    }
+                  }
+                ]
+              },
+              "schema": {
+                "properties": {
+                  "operation": {
+                    "enum": [
+                      "DELETE"
+                    ],
+                    "type": "string"
+                  },
+                  "users": {
+                    "items": {
+                      "properties": {
+                        "advertiserId": {
+                          "description": "The advertiser identifier. If present, the user data for the specified advertiser is deleted. Otherwise, all data about this user sourced from this client is deleted.",
+                          "example": 205759403805,
+                          "type": "string"
+                        },
+                        "consentTime": {
+                          "description": "User consent time in epoch milliseconds",
+                          "example": 1581557890000,
+                          "format": "int64",
+                          "type": "integer"
+                        },
+                        "userId": {
+                          "properties": {
+                            "type": {
+                              "description": "Specifies the type of the user identifier.",
+                              "enum": [
+                                "COOKIE",
+                                "MAID",
+                                "EXTERNAL_USER_ID"
+                              ],
+                              "type": "string"
+                            },
+                            "value": {
+                              "description": "The user identifer.",
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "requestId": {
+                      "description": "A unique identifier representing the request.",
+                      "example": "F88750355N-B70JY53CSD",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The request to delete user data was submitted."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "description": "Detailed error messages associated with the request.",
+                      "properties": {
+                        "description": {
+                          "description": "Description of the error.",
+                          "example": "Bad Request",
+                          "type": "string"
+                        },
+                        "errors": {
+                          "description": "An array of property objects that include more information about the request.",
+                          "items": {
+                            "properties": {
+                              "errorType": {
+                                "description": "Type of error.",
+                                "example": "INVALID_INPUT",
+                                "type": "string"
+                              },
+                              "message": {
+                                "description": "Error message",
+                                "example": "The inputs that you provided are not valid.",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "httpStatusCode": {
+                          "description": "HTTP status code associated with the response.",
+                          "example": 400,
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "requestId": {
+                      "description": "Identifier associated with the request.",
+                      "example": "F88750355N-B70JY53CSD",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Bad Request."
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "description": "Detailed error messages associated with the request.",
+                      "properties": {
+                        "description": {
+                          "description": "Description of the error.",
+                          "example": "Input Too Large",
+                          "type": "string"
+                        },
+                        "errors": {
+                          "description": "An array of property objects that include more information about the request.",
+                          "items": {
+                            "properties": {
+                              "errorType": {
+                                "description": "Type of error.",
+                                "example": "INPUT_TOO_LARGE",
+                                "type": "string"
+                              },
+                              "message": {
+                                "description": "Error message",
+                                "example": "The input payload exceeds 1MB limit.",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "httpStatusCode": {
+                          "description": "HTTP status code associated with the response.",
+                          "example": 413,
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "requestId": {
+                      "description": "Identifier associated with the request.",
+                      "example": "F88750355N-B70JY53CSD",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Input Too Large."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "description": "Detailed error messages associated with the request.",
+                      "properties": {
+                        "description": {
+                          "description": "Description of the error.",
+                          "example": "Too Many Requests",
+                          "type": "string"
+                        },
+                        "errors": {
+                          "description": "An array of property objects that include more information about the request.",
+                          "items": {
+                            "properties": {
+                              "errorType": {
+                                "description": "Type of error.",
+                                "example": "TOO_MANY_REQUESTS",
+                                "type": "string"
+                              },
+                              "message": {
+                                "description": "Error message",
+                                "example": "The number of requests exceeded 100 TPS.",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "httpStatusCode": {
+                          "description": "HTTP status code associated with the response.",
+                          "example": 429,
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "requestId": {
+                      "description": "Identifier associated with the request.",
+                      "example": "F88750355N-B70JY53CSD",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Too Many Requests."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "description": "Detailed error messages associated with the request.",
+                      "properties": {
+                        "description": {
+                          "description": "Description of the error.",
+                          "example": "Internal Error",
+                          "type": "string"
+                        },
+                        "errors": {
+                          "description": "An array of property objects that include more information about the request.",
+                          "items": {
+                            "properties": {
+                              "errorType": {
+                                "description": "Type of error.",
+                                "example": "INTERNAL_ERROR",
+                                "type": "string"
+                              },
+                              "message": {
+                                "description": "Error message",
+                                "example": "Internal error.",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "httpStatusCode": {
+                          "description": "HTTP status code associated with the response.",
+                          "example": 500,
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "requestId": {
+                      "description": "Identifier associated with the request.",
+                      "example": "F88750355N-B70JY53CSD",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Internal Server Error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "description": "Detailed error messages associated with the request.",
+                      "properties": {
+                        "description": {
+                          "description": "Description of the error.",
+                          "example": "Service unavailable",
+                          "type": "string"
+                        },
+                        "errors": {
+                          "description": "An array of property objects that include more information about the request.",
+                          "items": {
+                            "properties": {
+                              "errorType": {
+                                "description": "Type of error.",
+                                "example": "SERVICE_UNAVAILABLE",
+                                "type": "string"
+                              },
+                              "message": {
+                                "description": "Error message",
+                                "example": "Service unavailable.",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "httpStatusCode": {
+                          "description": "HTTP status code associated with the response.",
+                          "example": 503,
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "requestId": {
+                      "description": "Identifier associated with the request.",
+                      "example": "F88750355N-B70JY53CSD",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Server Unavailable."
+          }
+        },
+        "summary": "Deletes user data originally sourced from the client. The API call rate is limited to 1 transactions per second (TPS). Calls exceeding this rate are throttled. Payload size is limited to 1000 users or 1MB. Calls with a more than 1000 users or 1MB will receive a 413 response.",
+        "tags": [
+          "User deletion"
+        ]
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Metadata"
+    },
+    {
+      "name": "Add or remove records"
+    },
+    {
+      "name": "User deletion"
+    }
+  ]
+}

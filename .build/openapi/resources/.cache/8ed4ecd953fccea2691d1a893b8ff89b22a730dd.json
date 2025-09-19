@@ -1,0 +1,1273 @@
+{
+  "components": {
+    "callbacks": {},
+    "examples": {},
+    "headers": {},
+    "links": {},
+    "parameters": {},
+    "requestBodies": {},
+    "responses": {},
+    "schemas": {
+      "insightsAgeDataset": {
+        "description": "A dataset which provides distribution of customers bucketed by age range.",
+        "items": {
+          "description": "A dataset entry for customers in the specified age range.",
+          "properties": {
+            "label": {
+              "description": "Age range of customers.",
+              "properties": {
+                "maxValue": {
+                  "description": "Maximum age which is represented by this label.",
+                  "type": "integer"
+                },
+                "minValue": {
+                  "description": "Minimum age which is represented by this label.",
+                  "type": "integer"
+                }
+              },
+              "type": "object"
+            },
+            "value": {
+              "description": "Percentage of customers in the specified age range.",
+              "type": "number"
+            }
+          },
+          "required": [
+            "label",
+            "value"
+          ],
+          "type": "object"
+        },
+        "maxItems": 20,
+        "minItems": 2,
+        "type": "array",
+        "uniqueItems": true
+      },
+      "insightsAudiencesOverlapAudienceMetadata": {
+        "description": "Information about any audience included in the response.",
+        "properties": {
+          "audienceId": {
+            "description": "The identifier of an audience.",
+            "type": "string"
+          },
+          "category": {
+            "description": "The type of the overlapping audience.",
+            "type": "string"
+          },
+          "impressionsForecastRange": {
+            "description": "30-day impression forecast provides an estimated range of how many times an ad could be displayed using the audience over the next 30 days. The impression forecast is for the individual audience. It can be defined by both upper and lower bound, or just by one of the bounds.",
+            "properties": {
+              "lowerBound": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "upperBound": {
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          },
+          "name": {
+            "description": "Audience name",
+            "type": "string"
+          },
+          "size": {
+            "description": "Audience size is a relative measure of how large the overlapping audience is compared to all Amazon audiences. A size of 6 indicates that the audience is larger than 60% of all Amazon audiences.",
+            "maximum": 10,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "audienceId",
+          "category",
+          "name",
+          "size"
+        ],
+        "type": "object"
+      },
+      "insightsAudiencesOverlapAudienceMetadataV2": {
+        "description": "Information about any audience included in the response.",
+        "properties": {
+          "audienceForecast": {
+            "properties": {
+              "dailyImpressions": {
+                "description": "The available impressions across all inventory types (e.g. display, video, and mobile). This is an estimate and is not guaranteed. It will take at least 2 weeks for the impressions to become available for new audiences. Note: forecasted daily impressions are not available when SD adType is selected.",
+                "properties": {
+                  "lowerBound": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "upperBound": {
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              },
+              "dailyReach": {
+                "description": "The unique devices reachable across all inventory types (e.g. display, video, and mobile). This is an estimate and is not guaranteed. It will take at least 2 weeks for the reach to become available for new audiences.",
+                "properties": {
+                  "lowerBound": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "upperBound": {
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "type": "object"
+          },
+          "audienceId": {
+            "description": "The identifier of an audience.",
+            "type": "string"
+          },
+          "category": {
+            "description": "The type of the overlapping audience.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Audience name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "audienceId",
+          "category",
+          "name"
+        ],
+        "type": "object"
+      },
+      "insightsAudiencesOverlapEntry": {
+        "description": "Contains information about the overlapping audiences and their affinity with the audience requested.",
+        "properties": {
+          "affinity": {
+            "description": "Affinity is a measure of how similar the overlapping audience is to the audience selected to generate the audience overlap insights. An affinity of 2 indicates that the overlapping audience is twice as likely to fall into the audience selected than the average audience on Amazon.",
+            "minimum": 0,
+            "type": "number"
+          },
+          "audienceMetadata": {
+            "$ref": "#/components/schemas/insightsAudiencesOverlapAudienceMetadata"
+          }
+        },
+        "type": "object"
+      },
+      "insightsAudiencesOverlapEntryV2": {
+        "description": "Contains information about the overlapping audiences and their affinity with the provided audience.",
+        "properties": {
+          "affinity": {
+            "description": "Affinity is a measure of how similar the overlapping audience is to the audience selected to generate the audience overlap insights. An affinity of 2 indicates that the overlapping audience is twice as likely to fall into the audience selected than the average audience on Amazon.",
+            "minimum": 0,
+            "type": "number"
+          },
+          "audienceMetadata": {
+            "$ref": "#/components/schemas/insightsAudiencesOverlapAudienceMetadataV2"
+          }
+        },
+        "type": "object"
+      },
+      "insightsBrand": {
+        "description": "An object describing a brand's properties. The combination of a `transientBrandId` and a `marketplaceId` uniquely identifies a brand, but it is limited to a dataset token. With a different dataset token the combination may not be available or it may represent a different brand. The usage of the `transientBrandId` is limited to the `/insights/...` operations.",
+        "properties": {
+          "marketplaceId": {
+            "description": "The identifier of the marketplace for the brand.",
+            "type": "string"
+          },
+          "name": {
+            "description": "The name of the brand.",
+            "type": "string"
+          },
+          "transientBrandId": {
+            "description": "The identifier of the brand.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "marketplaceId",
+          "name",
+          "transientBrandId"
+        ],
+        "type": "object"
+      },
+      "insightsBrandBrowseNode": {
+        "description": "An object describing a browse node's properties and its mapping to a brand. Therefore, every browse node can be returned multiple times with different brands. The combination of a `browseNodeId` and `marketplaceId` uniquely identifies a browse node, but it is limited to a dataset token. With a different dataset token the combination may not be available or it may represent a different browse node.",
+        "properties": {
+          "browseNodeId": {
+            "description": "The identifier of the browse node.",
+            "type": "string"
+          },
+          "marketplaceId": {
+            "description": "The identifier of the marketplace for the browse node.",
+            "type": "string"
+          },
+          "name": {
+            "description": "The name of the browse node.",
+            "type": "string"
+          },
+          "parentBrowseNodeId": {
+            "description": "Identifier of a parent browse node if there is one.",
+            "type": "string"
+          },
+          "transientBrandId": {
+            "description": "The brand identifier for which the retail browse node is present.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "browseNodeId",
+          "marketplaceId",
+          "name",
+          "transientBrandId"
+        ],
+        "type": "object"
+      },
+      "insightsConsiderationPeriodDataset": {
+        "description": "A dataset which provides consideration period bucketed by the length of the consideration period.",
+        "items": {
+          "properties": {
+            "label": {
+              "properties": {
+                "maxValue": {
+                  "description": "Maximum consideration period in days (exclusive) which is represented by this label.",
+                  "type": "integer"
+                },
+                "minValue": {
+                  "description": "Minimum consideration period in days (inclusive) which is represented by this label.",
+                  "type": "integer"
+                }
+              },
+              "type": "object"
+            },
+            "value": {
+              "description": "Percentage of purchases with consideration period in the specified range.",
+              "type": "number"
+            }
+          },
+          "required": [
+            "label",
+            "value"
+          ],
+          "type": "object"
+        },
+        "maxItems": 10,
+        "minItems": 5,
+        "type": "array",
+        "uniqueItems": true
+      },
+      "insightsConsiderationPeriodInsight": {
+        "description": "The consideration period insight provides reports to help understanding the time period between a customer starts considering a purchase and the actual purchase.",
+        "properties": {
+          "brandBased": {
+            "description": "The brand based consideration period is a distribution of consideration periods for purchases where we consider view of the specified brand in the category as the start of a purchase period. We consider consideration periods only for purchases of the specified brand in the specified browse node that happened in the last 28 days (ending at `reportEndDate`). It provides data for both the specified brand and the baseline determined from similar brands' data.",
+            "properties": {
+              "baselineDataset": {
+                "$ref": "#/components/schemas/insightsConsiderationPeriodDataset"
+              },
+              "brandDataset": {
+                "$ref": "#/components/schemas/insightsConsiderationPeriodDataset"
+              }
+            },
+            "required": [
+              "brandDataset"
+            ],
+            "type": "object"
+          },
+          "browseNodeBased": {
+            "description": "The browse node based consideration period is a distribution of consideration periods for purchases where we consider any view in the category as the start of a purchase period. We consider consideration periods only for purchases of the specified brand in the specified browse node that happened in the last 28 days (ending at `reportEndDate`). It provides data for both the specified brand and the baseline determined from similar brands' data.",
+            "properties": {
+              "baselineDataset": {
+                "$ref": "#/components/schemas/insightsConsiderationPeriodDataset"
+              },
+              "brandDataset": {
+                "$ref": "#/components/schemas/insightsConsiderationPeriodDataset"
+              }
+            },
+            "required": [
+              "brandDataset"
+            ],
+            "type": "object"
+          },
+          "browseNodeId": {
+            "description": "The browse node the report is for. It is a browse node from the specified marketplace.",
+            "type": "string"
+          },
+          "marketplaceId": {
+            "description": "The marketplace the report is for.",
+            "type": "string"
+          },
+          "reportEndDate": {
+            "description": "The end date of data used to generate this report.",
+            "format": "date",
+            "type": "string"
+          },
+          "reportType": {
+            "enum": [
+              "considerationPeriod"
+            ],
+            "type": "string"
+          },
+          "transientBrandId": {
+            "description": "The brand the report is for. It is a brand from the specified marketplace.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "browseNodeId",
+          "marketplaceId",
+          "reportEndDate",
+          "reportType",
+          "transientBrandId"
+        ],
+        "type": "object"
+      },
+      "insightsDayOfWeekDataset": {
+        "description": "A dataset which provides distribution of events bucketed by day of week.",
+        "properties": {
+          "fri": {
+            "description": "Percentage of events that occured on Friday.",
+            "type": "number"
+          },
+          "mon": {
+            "description": "Percentage of events that occured on Monday.",
+            "type": "number"
+          },
+          "sat": {
+            "description": "Percentage of events that occured on Saturday.",
+            "type": "number"
+          },
+          "sun": {
+            "description": "Percentage of events that occured on Sunday.",
+            "type": "number"
+          },
+          "thu": {
+            "description": "Percentage of events that occured on Thursday.",
+            "type": "number"
+          },
+          "tue": {
+            "description": "Percentage of events that occured on Tuesday.",
+            "type": "number"
+          },
+          "wed": {
+            "description": "Percentage of events that occured on Wednesday.",
+            "type": "number"
+          }
+        },
+        "required": [
+          "fri",
+          "mon",
+          "sat",
+          "sun",
+          "thu",
+          "tue",
+          "wed"
+        ],
+        "type": "object"
+      },
+      "insightsDemographicsInsight": {
+        "description": "The demographics insight provides reports for the distributions of customers based on their demographics.",
+        "properties": {
+          "ageMetrics": {
+            "description": "The age metrics provides the distribution based on the age of customers.",
+            "properties": {
+              "orders": {
+                "description": "The distribution of customers that has purchased an item of the specified brand in the specified browse node in the last 28 days (ending at `reportEndDate`). It provides data for both the specified brand and the baseline determined from similar brands' data.",
+                "properties": {
+                  "baselineDataset": {
+                    "$ref": "#/components/schemas/insightsAgeDataset"
+                  },
+                  "brandDataset": {
+                    "$ref": "#/components/schemas/insightsAgeDataset"
+                  }
+                },
+                "required": [
+                  "brandDataset"
+                ],
+                "type": "object"
+              },
+              "views": {
+                "description": "The distribution of customers that has viewed an item of the specified brand in the specified browse node in the last 28 days (ending at `reportEndDate`). It provides data for both the specified brand and the baseline determined from similar brands' data.",
+                "properties": {
+                  "baselineDataset": {
+                    "$ref": "#/components/schemas/insightsAgeDataset"
+                  },
+                  "brandDataset": {
+                    "$ref": "#/components/schemas/insightsAgeDataset"
+                  }
+                },
+                "required": [
+                  "brandDataset"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          },
+          "browseNodeId": {
+            "description": "The browse node the report is for. It is a browse node from the specified marketplace.",
+            "type": "string"
+          },
+          "genderMetrics": {
+            "description": "The gender metrics provides the distribution based on the gender of customers.",
+            "properties": {
+              "orders": {
+                "description": "The distribution of customers that has purchased an item of the specified brand in the specified browse node in the last 28 days (ending at `reportEndDate`). It provides data for both the specified brand and the baseline determined from similar brands' data.",
+                "properties": {
+                  "baselineDataset": {
+                    "$ref": "#/components/schemas/insightsGenderDataset"
+                  },
+                  "brandDataset": {
+                    "$ref": "#/components/schemas/insightsGenderDataset"
+                  }
+                },
+                "required": [
+                  "brandDataset"
+                ],
+                "type": "object"
+              },
+              "views": {
+                "description": "The distribution of customers that has viewed an item of the specified brand in the specified browse node in the last 28 days (ending at `reportEndDate`). It provides data for both the specified brand and the baseline determined from similar brands' data.",
+                "properties": {
+                  "baselineDataset": {
+                    "$ref": "#/components/schemas/insightsGenderDataset"
+                  },
+                  "brandDataset": {
+                    "$ref": "#/components/schemas/insightsGenderDataset"
+                  }
+                },
+                "required": [
+                  "brandDataset"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          },
+          "incomeMetrics": {
+            "description": "The gender metrics provides the distribution based on the income of customers.",
+            "properties": {
+              "currency": {
+                "description": "The ISO 4217 alphabetic code of the currency.",
+                "type": "string"
+              },
+              "orders": {
+                "description": "The distribution of customers that has purchased an item of the specified brand in the specified browse node in the last 28 days (ending at `reportEndDate`). It provides data for both the specified brand and the baseline determined from similar brands' data.",
+                "properties": {
+                  "baselineDataset": {
+                    "$ref": "#/components/schemas/insightsIncomeDataset"
+                  },
+                  "brandDataset": {
+                    "$ref": "#/components/schemas/insightsIncomeDataset"
+                  }
+                },
+                "required": [
+                  "brandDataset"
+                ],
+                "type": "object"
+              },
+              "views": {
+                "description": "The distribution of customers that has viewed an item of the specified brand in the specified browse node in the last 28 days (ending at `reportEndDate`). It provides data for both the specified brand and the baseline determined from similar brands' data.",
+                "properties": {
+                  "baselineDataset": {
+                    "$ref": "#/components/schemas/insightsIncomeDataset"
+                  },
+                  "brandDataset": {
+                    "$ref": "#/components/schemas/insightsIncomeDataset"
+                  }
+                },
+                "required": [
+                  "brandDataset"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "currency"
+            ],
+            "type": "object"
+          },
+          "marketplaceId": {
+            "description": "The marketplace the report is for.",
+            "type": "string"
+          },
+          "relationshipStatus": {
+            "description": "The relationship status metrics provides the distribution based on the relationship status of customers.",
+            "properties": {
+              "orders": {
+                "description": "The distribution of customers that has purchased an item of the specified brand in the specified browse node in the last 28 days (ending at `reportEndDate`). It provides data for both the specified brand and the baseline determined from similar brands' data.",
+                "properties": {
+                  "baselineDataset": {
+                    "$ref": "#/components/schemas/insightsRelationshipStatusDataset"
+                  },
+                  "brandDataset": {
+                    "$ref": "#/components/schemas/insightsRelationshipStatusDataset"
+                  }
+                },
+                "required": [
+                  "brandDataset"
+                ],
+                "type": "object"
+              },
+              "views": {
+                "description": "The distribution of customers that has viewed an item of the specified brand in the specified browse node in the last 28 days (ending at `reportEndDate`). It provides data for both the specified brand and the baseline determined from similar brands' data.",
+                "properties": {
+                  "baselineDataset": {
+                    "$ref": "#/components/schemas/insightsRelationshipStatusDataset"
+                  },
+                  "brandDataset": {
+                    "$ref": "#/components/schemas/insightsRelationshipStatusDataset"
+                  }
+                },
+                "required": [
+                  "brandDataset"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          },
+          "reportEndDate": {
+            "description": "The end date of data used to generate this report.",
+            "format": "date",
+            "type": "string"
+          },
+          "reportType": {
+            "enum": [
+              "demographics"
+            ],
+            "type": "string"
+          },
+          "residentialStatus": {
+            "description": "The residential status metrics provides the distribution based on the residential status of customers.",
+            "properties": {
+              "orders": {
+                "description": "The distribution of customers that has purchased an item of the specified brand in the specified browse node in the last 28 days (ending at `reportEndDate`). It provides data for both the specified brand and the baseline determined from similar brands' data.",
+                "properties": {
+                  "baselineDataset": {
+                    "$ref": "#/components/schemas/insightsResidentialStatusDataset"
+                  },
+                  "brandDataset": {
+                    "$ref": "#/components/schemas/insightsResidentialStatusDataset"
+                  }
+                },
+                "required": [
+                  "brandDataset"
+                ],
+                "type": "object"
+              },
+              "views": {
+                "description": "The distribution of customers that has viewed an item of the specified brand in the specified browse node in the last 28 days (ending at `reportEndDate`). It provides data for both the specified brand and the baseline determined from similar brands' data.",
+                "properties": {
+                  "baselineDataset": {
+                    "$ref": "#/components/schemas/insightsResidentialStatusDataset"
+                  },
+                  "brandDataset": {
+                    "$ref": "#/components/schemas/insightsResidentialStatusDataset"
+                  }
+                },
+                "required": [
+                  "brandDataset"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          },
+          "transientBrandId": {
+            "description": "The brand the report is for. It is a brand from the specified marketplace.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "browseNodeId",
+          "marketplaceId",
+          "reportEndDate",
+          "reportType",
+          "transientBrandId"
+        ],
+        "type": "object"
+      },
+      "insightsError": {
+        "description": "The error returned from the server.",
+        "properties": {
+          "message": {
+            "description": "Detailed information about the error that occurred.",
+            "type": "string"
+          },
+          "requestId": {
+            "description": "A unique value generated by the server to identify the request.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message",
+          "requestId"
+        ],
+        "type": "object"
+      },
+      "insightsGenderDataset": {
+        "description": "A dataset which provides distribution of customers bucketed by their gender.",
+        "properties": {
+          "female": {
+            "description": "Percentage of customers identified as female.",
+            "type": "number"
+          },
+          "male": {
+            "description": "Percentage of customers identified as male.",
+            "type": "number"
+          }
+        },
+        "required": [
+          "female",
+          "male"
+        ],
+        "type": "object"
+      },
+      "insightsHourOfDayDataset": {
+        "description": "A dataset which provides distribution of events bucketed by hour (in customers local time).",
+        "items": {
+          "description": "A dataset entry for events occured in the specified hour of day.",
+          "properties": {
+            "label": {
+              "properties": {
+                "maxValue": {
+                  "description": "End hour (exclusive) of the day which is represented by this label.",
+                  "type": "integer"
+                },
+                "minValue": {
+                  "description": "Starting hour (inclusive) of the day which is represented by this label.",
+                  "type": "integer"
+                }
+              },
+              "type": "object"
+            },
+            "value": {
+              "description": "Percentage of events that occured in the specified hour.",
+              "type": "number"
+            }
+          },
+          "required": [
+            "label",
+            "value"
+          ],
+          "type": "object"
+        },
+        "maxItems": 24,
+        "minItems": 24,
+        "type": "array",
+        "uniqueItems": true
+      },
+      "insightsIncomeDataset": {
+        "description": "A dataset which provides distribution of customers bucketed by their income range.",
+        "items": {
+          "description": "A dataset entry for customers in the specified income range.",
+          "properties": {
+            "label": {
+              "properties": {
+                "maxValue": {
+                  "description": "Maximum income which is represented by this label.",
+                  "type": "integer"
+                },
+                "minValue": {
+                  "description": "Minimum income which is represented by this label.",
+                  "type": "integer"
+                }
+              },
+              "type": "object"
+            },
+            "value": {
+              "description": "Percentage of customers in the specified income range.",
+              "type": "number"
+            }
+          },
+          "required": [
+            "label",
+            "value"
+          ],
+          "type": "object"
+        },
+        "maxItems": 20,
+        "minItems": 2,
+        "type": "array",
+        "uniqueItems": true
+      },
+      "insightsMonthOfYearDataset": {
+        "description": "A dataset which provides distribution of events bucketed into last 12 months (in customers local time).",
+        "items": {
+          "description": "A dataset entry for events occured in the specified month (defined using a date interval).",
+          "properties": {
+            "label": {
+              "description": "A label representing the date interval - defined by minimum and maximum date that fits under the corresponding label. The date does not represent a UTC time but a customer local time of the corresponding action.",
+              "properties": {
+                "maxValue": {
+                  "description": "Maximum date (exclusive) which is represented by this label.",
+                  "pattern": "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]$",
+                  "type": "string"
+                },
+                "minValue": {
+                  "description": "Minimum date (inclusive) which is represented by this label.",
+                  "pattern": "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "maxValue",
+                "minValue"
+              ],
+              "type": "object"
+            },
+            "value": {
+              "description": "Percentage of events that occured in the specified month.",
+              "type": "number"
+            }
+          },
+          "required": [
+            "label",
+            "value"
+          ],
+          "type": "object"
+        },
+        "maxItems": 12,
+        "minItems": 12,
+        "type": "array",
+        "uniqueItems": true
+      },
+      "insightsPurchaseCountDataset": {
+        "description": "A dataset which provides distribution of customers bucketed by the count of purchases that a customer has placed in the last 12 months.",
+        "items": {
+          "properties": {
+            "label": {
+              "description": "There will be one or more buckets with exact purchase count and exactly one bucket representing all other purchase orders.",
+              "properties": {
+                "exactValue": {
+                  "description": "Exact value which is represented by this label.",
+                  "type": "integer"
+                },
+                "minValue": {
+                  "description": "Minimum purchase count which is represented by this label. The label represents any purchase count that is at least the specified value.",
+                  "type": "integer"
+                }
+              },
+              "type": "object"
+            },
+            "value": {
+              "description": "Percentage of customers which count of purchases fits into the specified bucket.",
+              "type": "number"
+            }
+          },
+          "required": [
+            "label",
+            "value"
+          ],
+          "type": "object"
+        },
+        "maxItems": 10,
+        "minItems": 2,
+        "type": "array",
+        "uniqueItems": true
+      },
+      "insightsPurchaseFrequencyInsight": {
+        "description": "The purchase frequency insight provides reports related to customers brand loyalty and repeat purchases.",
+        "properties": {
+          "browseNodeId": {
+            "description": "The browse node the report is for. It is a browse node from the specified marketplace.",
+            "type": "string"
+          },
+          "marketplaceId": {
+            "description": "The marketplace the report is for.",
+            "type": "string"
+          },
+          "purchaseCount": {
+            "description": "The distribution of customers that has purchased an item of the specified brand in the specified browse node in the last 28 days (ending at `reportEndDate`). The customers are bucketed by how many purchases from the same brand and browse node they made in the past year (ending at `reportEndDate`). It provides data for both the specified brand and the baseline determined from similar brands' data.",
+            "properties": {
+              "baselineDataset": {
+                "$ref": "#/components/schemas/insightsPurchaseCountDataset"
+              },
+              "brandDataset": {
+                "$ref": "#/components/schemas/insightsPurchaseCountDataset"
+              }
+            },
+            "required": [
+              "brandDataset"
+            ],
+            "type": "object"
+          },
+          "reportEndDate": {
+            "description": "The end date of data used to generate this report.",
+            "format": "date",
+            "type": "string"
+          },
+          "reportType": {
+            "enum": [
+              "purchaseFrequency"
+            ],
+            "type": "string"
+          },
+          "transientBrandId": {
+            "description": "The brand the report is for. It is a brand from the specified marketplace.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "browseNodeId",
+          "marketplaceId",
+          "reportEndDate",
+          "reportType",
+          "transientBrandId"
+        ],
+        "type": "object"
+      },
+      "insightsRelationshipStatusDataset": {
+        "description": "A dataset which provides distribution of customers bucketed by their relationship status.",
+        "properties": {
+          "couple": {
+            "description": "Percentage of customers identified as living in a relationship.",
+            "type": "number"
+          },
+          "single": {
+            "description": "Percentage of customers identified as living single.",
+            "type": "number"
+          }
+        },
+        "required": [
+          "couple",
+          "single"
+        ],
+        "type": "object"
+      },
+      "insightsResidentialStatusDataset": {
+        "description": "A dataset which provides distribution of customers bucketed by their residential status.",
+        "properties": {
+          "owning": {
+            "description": "Percentage of customers identified as property owners.",
+            "type": "number"
+          },
+          "renting": {
+            "description": "Percentage of customers identified as property renters.",
+            "type": "number"
+          }
+        },
+        "required": [
+          "owning",
+          "renting"
+        ],
+        "type": "object"
+      },
+      "insightsTimingInsight": {
+        "description": "The timing insight provides reports for the distribution of customer views or purchases in different time periods.",
+        "properties": {
+          "browseNodeId": {
+            "description": "The browse node the report is for. It is a browse node from the specified marketplace.",
+            "type": "string"
+          },
+          "dayOfWeek": {
+            "description": "The hour of day of week provides distribution of customer views or purchases bucketed day of week.",
+            "properties": {
+              "orders": {
+                "description": "The distribution of item purchases of the specified brand in the specified browse node in the last 28 days (ending at `reportEndDate`). It provides data for both the specified brand and the baseline determined from similar brands' data.",
+                "properties": {
+                  "baselineDataset": {
+                    "$ref": "#/components/schemas/insightsDayOfWeekDataset"
+                  },
+                  "brandDataset": {
+                    "$ref": "#/components/schemas/insightsDayOfWeekDataset"
+                  }
+                },
+                "required": [
+                  "brandDataset"
+                ],
+                "type": "object"
+              },
+              "views": {
+                "description": "The distribution of item views of the specified brand in the specified browse node in the last 28 days (ending at `reportEndDate`). It provides data for both the specified brand and the baseline determined from similar brands' data.",
+                "properties": {
+                  "baselineDataset": {
+                    "$ref": "#/components/schemas/insightsDayOfWeekDataset"
+                  },
+                  "brandDataset": {
+                    "$ref": "#/components/schemas/insightsDayOfWeekDataset"
+                  }
+                },
+                "required": [
+                  "brandDataset"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          },
+          "hourOfDay": {
+            "description": "The hour of day metrics provides distribution of customer views or purchases bucketed by hour of a day.",
+            "properties": {
+              "orders": {
+                "description": "The distribution of item purchases of the specified brand in the specified browse node in the last 28 days (ending at `reportEndDate`). It provides data for both the specified brand and the baseline determined from similar brands' data.",
+                "properties": {
+                  "baselineDataset": {
+                    "$ref": "#/components/schemas/insightsHourOfDayDataset"
+                  },
+                  "brandDataset": {
+                    "$ref": "#/components/schemas/insightsHourOfDayDataset"
+                  }
+                },
+                "required": [
+                  "brandDataset"
+                ],
+                "type": "object"
+              },
+              "views": {
+                "description": "The distribution of item views of the specified brand in the specified browse node in the last 28 days (ending at `reportEndDate`). It provides data for both the specified brand and the baseline determined from similar brands' data.",
+                "properties": {
+                  "baselineDataset": {
+                    "$ref": "#/components/schemas/insightsHourOfDayDataset"
+                  },
+                  "brandDataset": {
+                    "$ref": "#/components/schemas/insightsHourOfDayDataset"
+                  }
+                },
+                "required": [
+                  "brandDataset"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          },
+          "marketplaceId": {
+            "description": "The marketplace the report is for.",
+            "type": "string"
+          },
+          "monthOfYear": {
+            "description": "The month of year provides distribution of customer views or purchases bucketed into last 12 months.",
+            "properties": {
+              "orders": {
+                "description": "The distribution of item purchases of the specified brand in the specified browse node in the last 12 months (before `reportEndDate`). It provides data for both the specified brand and the baseline determined from similar brands' data.",
+                "properties": {
+                  "baselineDataset": {
+                    "$ref": "#/components/schemas/insightsMonthOfYearDataset"
+                  },
+                  "brandDataset": {
+                    "$ref": "#/components/schemas/insightsMonthOfYearDataset"
+                  }
+                },
+                "required": [
+                  "brandDataset"
+                ],
+                "type": "object"
+              },
+              "views": {
+                "description": "The distribution of item views of the specified brand in the specified browse node in the last 12 months (before `reportEndDate`). It provides data for both the specified brand and the baseline determined from similar brands' data.",
+                "properties": {
+                  "baselineDataset": {
+                    "$ref": "#/components/schemas/insightsMonthOfYearDataset"
+                  },
+                  "brandDataset": {
+                    "$ref": "#/components/schemas/insightsMonthOfYearDataset"
+                  }
+                },
+                "required": [
+                  "brandDataset"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          },
+          "reportEndDate": {
+            "description": "The end date of data used to generate this report.",
+            "format": "date",
+            "type": "string"
+          },
+          "reportType": {
+            "enum": [
+              "timing"
+            ],
+            "type": "string"
+          },
+          "transientBrandId": {
+            "description": "The brand the report is for. It is a brand from the specified marketplace.",
+            "type": "string"
+          },
+          "weekOfYear": {
+            "description": "The week of year provides distribution of customer views or purchases bucketed into last 12 months.",
+            "properties": {
+              "orders": {
+                "description": "The distribution of item purchases of the specified brand in the specified browse node in the last 53 weeks (before `reportEndDate`). It provides data for both the specified brand and the baseline determined from similar brands' data.",
+                "properties": {
+                  "baselineDataset": {
+                    "$ref": "#/components/schemas/insightsWeekOfYearDataset"
+                  },
+                  "brandDataset": {
+                    "$ref": "#/components/schemas/insightsWeekOfYearDataset"
+                  }
+                },
+                "required": [
+                  "brandDataset"
+                ],
+                "type": "object"
+              },
+              "views": {
+                "description": "The distribution of item views of the specified brand in the specified browse node in the last 53 weeks (before `reportEndDate`). It provides data for both the specified brand and the baseline determined from similar brands' data.",
+                "properties": {
+                  "baselineDataset": {
+                    "$ref": "#/components/schemas/insightsWeekOfYearDataset"
+                  },
+                  "brandDataset": {
+                    "$ref": "#/components/schemas/insightsWeekOfYearDataset"
+                  }
+                },
+                "required": [
+                  "brandDataset"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "browseNodeId",
+          "marketplaceId",
+          "reportEndDate",
+          "reportType",
+          "transientBrandId"
+        ],
+        "type": "object"
+      },
+      "insightsWeekOfYearDataset": {
+        "description": "A dataset which provides distribution of events bucketed into last 53 weeks (in customers local time).",
+        "items": {
+          "description": "A dataset entry for events occured in the specified week (defined using a date interval).",
+          "properties": {
+            "label": {
+              "description": "A label representing the date index - defined by minimum and maximum date that fits under the corresponding label. The date does not represent a UTC time but a customer local time of the corresponding action.",
+              "properties": {
+                "maxValue": {
+                  "description": "Maximum date (exclusive) which is represented by this label.",
+                  "pattern": "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]$",
+                  "type": "string"
+                },
+                "minValue": {
+                  "description": "Minimum date (inclusive) which is represented by this label.",
+                  "pattern": "^[1-9][0-9]{3}-[0-1][0-9]-[0-3][0-9]$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "maxValue",
+                "minValue"
+              ],
+              "type": "object"
+            },
+            "value": {
+              "description": "Percentage of events that occured in the specified week.",
+              "type": "number"
+            }
+          },
+          "required": [
+            "label",
+            "value"
+          ],
+          "type": "object"
+        },
+        "maxItems": 53,
+        "minItems": 53,
+        "type": "array",
+        "uniqueItems": true
+      }
+    },
+    "securitySchemes": {}
+  },
+  "info": {
+    "title": "Insights",
+    "version": "3.0"
+  },
+  "openapi": "3.0.1",
+  "paths": {
+    "/insights/audiences/{audienceId}/overlappingAudiences": {
+      "get": {
+        "description": "\n\n**Requires one of these permissions**:\n[\"advertiser_campaign_edit\",\"advertiser_campaign_view\"]",
+        "operationId": "insightsGetAudiencesOverlappingAudiences",
+        "parameters": [
+          {
+            "description": "The identifier of a client associated with a \"Login with Amazon\" account.",
+            "in": "header",
+            "name": "Amazon-Advertising-API-ClientId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The identifier of a profile associated with the advertiser account. Use `GET` method on Profiles resource to list profiles associated with the access token passed in the HTTP Authorization header.",
+            "in": "header",
+            "name": "Amazon-Advertising-API-Scope",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The identifier of an audience.",
+            "in": "path",
+            "name": "audienceId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The advertising program.",
+            "in": "query",
+            "name": "adType",
+            "required": true,
+            "schema": {
+              "enum": [
+                "DSP",
+                "SD"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "The identifier of the advertiser you'd like to retrieve overlapping audiences for. This parameter is required for the DSP adType, but is optional for the SD adType.",
+            "in": "query",
+            "name": "advertiserId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "If specified, the affinities of all returned overlapping audiences will be at least the provided affinity.",
+            "in": "query",
+            "name": "minimumOverlapAffinity",
+            "schema": {
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          {
+            "description": "If specified, the affinities of all returned overlapping audiences will be at most the provided affinity.",
+            "in": "query",
+            "name": "maximumOverlapAffinity",
+            "schema": {
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          {
+            "description": "If specified, the categories of all returned overlapping audiences will be one of the provided categories.",
+            "explode": false,
+            "in": "query",
+            "name": "audienceCategory",
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 20,
+              "minItems": 1,
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Sets the maximum number of overlapping audiences in the response. This parameter is supported only for request to return `application/vnd.insightsaudiencesoverlap.v2+json`.",
+            "in": "query",
+            "name": "maxResults",
+            "schema": {
+              "default": "30",
+              "maximum": 500,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Token to be used to request additional overlapping audiences. If not provided, the top 30 overlapping audiences are returned. Note: subsequent calls must be made using the same parameters as used in previous requests.",
+            "in": "query",
+            "name": "nextToken",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/vnd.insightsaudiencesoverlap.v2+json": {
+                "schema": {
+                  "description": "Contains metadata for the provided audience and its overlapping audiences.",
+                  "properties": {
+                    "marketplace": {
+                      "description": "The locale used to generate the overlapping audiences.",
+                      "type": "string"
+                    },
+                    "nextToken": {
+                      "description": "If present, there are more overlapping audiences than initially returned. Use this token to call the operation again and have the additional overlapping audiences returned. The token is valid for 8 hours from the initial request. Note: subsequent calls must be made using the same parameters as used in previous requests.",
+                      "type": "string"
+                    },
+                    "overlappingAudiences": {
+                      "description": "The list of overlapping audiences.",
+                      "items": {
+                        "$ref": "#/components/schemas/insightsAudiencesOverlapEntryV2"
+                      },
+                      "maxItems": 500,
+                      "minItems": 0,
+                      "type": "array"
+                    },
+                    "requestedAudienceMetadata": {
+                      "$ref": "#/components/schemas/insightsAudiencesOverlapAudienceMetadataV2"
+                    }
+                  },
+                  "required": [
+                    "marketplace",
+                    "overlappingAudiences",
+                    "requestedAudienceMetadata"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successfully retrieved the overlapping audiences."
+          },
+          "400": {
+            "content": {
+              "application/vnd.insightserror.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/insightsError"
+                }
+              }
+            },
+            "description": "Bad request - Failed to retrieve the overlapping audiences because the request parameters are not valid."
+          },
+          "403": {
+            "content": {
+              "application/vnd.insightserror.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/insightsError"
+                }
+              }
+            },
+            "description": "Forbidden - Failed to retrieve the overlapping audiences because the user does not have access to the audience requested."
+          },
+          "404": {
+            "content": {
+              "application/vnd.insightserror.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/insightsError"
+                }
+              }
+            },
+            "description": "Not Found – Overlapping audiences are not available for the audience requested."
+          }
+        },
+        "summary": "Retrieves the top audiences that overlap with the provided audience.",
+        "tags": [
+          "Audience insights"
+        ]
+      }
+    }
+  }
+}

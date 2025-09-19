@@ -1,0 +1,1 @@
+{"requests":{"POST /eligibility/product/list":"application/json","POST /eligibility/programs":"application/json"},"responses":{"POST /eligibility/product/list":["application/json"],"POST /eligibility/programs":["application/json","application/vnd.programeligibility.v2+json"]}}

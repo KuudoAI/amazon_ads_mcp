@@ -1,0 +1,1 @@
+{"requests":{"POST /dsp/audiences":"application/vnd.dspaudiences.v1+json"},"responses":{"POST /dsp/audiences":["application/vnd.dspaudienceserror.v1+json","application/vnd.dspaudiencesresponse.v1+json"]}}

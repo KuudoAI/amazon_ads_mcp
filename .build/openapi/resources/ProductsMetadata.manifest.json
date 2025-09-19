@@ -1,0 +1,1 @@
+{"version":"1.0","generated":"2025-08-29T20:18:32.819069Z","namespace":"ProductsMetadata","tools":[{"operationId":"ProductMetadata","method":"POST","path":"/product/metadata","preferred_name":"ProductMetadata","complexity":{"score":0,"factors":{"depth":0,"properties":0,"arrays":false},"threshold_exceeded":false,"reason":""}}]}

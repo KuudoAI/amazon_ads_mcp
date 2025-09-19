@@ -1,0 +1,1 @@
+{"requests":{"PUT /v2/profiles":"application/json"},"responses":{"GET /v2/profiles":["application/json"],"PUT /v2/profiles":["application/json"],"GET /v2/profiles/{profileId}":["application/json"]}}

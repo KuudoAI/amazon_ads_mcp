@@ -1,0 +1,1 @@
+{"requests":{"POST /product/metadata":"application/vnd.productmetadatarequest.v1+json"},"responses":{"POST /product/metadata":["application/json","application/vnd.productmetadataresponse.v1+json"]}}

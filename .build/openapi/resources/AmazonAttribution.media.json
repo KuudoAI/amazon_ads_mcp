@@ -1,0 +1,1 @@
+{"requests":{"POST /attribution/report":"application/json"},"responses":{"GET /attribution/advertisers":["application/json"],"GET /attribution/publishers":["application/json"],"POST /attribution/report":["application/json"],"GET /attribution/tags/macroTag":["application/json"],"GET /attribution/tags/nonMacroTemplateTag":["application/json"]}}
