@@ -1,0 +1,43 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "AccountsManagerAccounts",
+  "tools": [
+    {
+      "match": {
+        "operationId": "getManagerAccountsForUser"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "createManagerAccount"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "LinkAdvertisingAccountsToManagerAccountPublicAPI"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "UnlinkAdvertisingAccountsToManagerAccountPublicAPI"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    }
+  ]
+}

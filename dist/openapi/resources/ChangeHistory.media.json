@@ -1,0 +1,7 @@
+{
+  "version": "1.0",
+  "namespace": "ChangeHistory",
+  "content_types": [
+    "application/json"
+  ]
+}

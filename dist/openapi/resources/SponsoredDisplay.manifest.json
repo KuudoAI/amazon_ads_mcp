@@ -1,0 +1,821 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "SponsoredDisplay",
+  "tools": [
+    {
+      "operationId": "listAdGroups",
+      "method": "GET",
+      "path": "/sd/adGroups",
+      "preferred_name": "SponsoredDisplay_listAdGroups",
+      "complexity": {
+        "parameters": 8,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "createAdGroups",
+      "method": "POST",
+      "path": "/sd/adGroups",
+      "preferred_name": "SponsoredDisplay_createAdGroups",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "updateAdGroups",
+      "method": "PUT",
+      "path": "/sd/adGroups",
+      "preferred_name": "SponsoredDisplay_updateAdGroups",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "listAdGroupsEx",
+      "method": "GET",
+      "path": "/sd/adGroups/extended",
+      "preferred_name": "SponsoredDisplay_listAdGroupsEx",
+      "complexity": {
+        "parameters": 8,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getAdGroupResponseEx",
+      "method": "GET",
+      "path": "/sd/adGroups/extended/{adGroupId}",
+      "preferred_name": "SponsoredDisplay_getAdGroupResponseEx",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "archiveAdGroup",
+      "method": "DELETE",
+      "path": "/sd/adGroups/{adGroupId}",
+      "preferred_name": "SponsoredDisplay_archiveAdGroup",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getAdGroup",
+      "method": "GET",
+      "path": "/sd/adGroups/{adGroupId}",
+      "preferred_name": "SponsoredDisplay_getAdGroup",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "associateOptimizationRulesWithAdGroup",
+      "method": "POST",
+      "path": "/sd/adGroups/{adGroupId}/optimizationRules",
+      "preferred_name": "SponsoredDisplay_associateOptimizationRulesWithAdGroup",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "disassociateOptimizationRulesFromAdGroup",
+      "method": "POST",
+      "path": "/sd/adGroups/{adGroupId}/optimizationRules/disassociate",
+      "preferred_name": "SponsoredDisplay_disassociateOptimizationRulesFromAdGroup",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "deleteBrandSafetyDenyList",
+      "method": "DELETE",
+      "path": "/sd/brandSafety/deny",
+      "preferred_name": "SponsoredDisplay_deleteBrandSafetyDenyList",
+      "complexity": {
+        "parameters": 2,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "listDomains",
+      "method": "GET",
+      "path": "/sd/brandSafety/deny",
+      "preferred_name": "SponsoredDisplay_listDomains",
+      "complexity": {
+        "parameters": 4,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "createBrandSafetyDenyListDomains",
+      "method": "POST",
+      "path": "/sd/brandSafety/deny",
+      "preferred_name": "SponsoredDisplay_createBrandSafetyDenyListDomains",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "listRequestStatus",
+      "method": "GET",
+      "path": "/sd/brandSafety/status",
+      "preferred_name": "SponsoredDisplay_listRequestStatus",
+      "complexity": {
+        "parameters": 2,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getRequestResults",
+      "method": "GET",
+      "path": "/sd/brandSafety/{requestId}/results",
+      "preferred_name": "SponsoredDisplay_getRequestResults",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getRequestStatus",
+      "method": "GET",
+      "path": "/sd/brandSafety/{requestId}/status",
+      "preferred_name": "SponsoredDisplay_getRequestStatus",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "GetSDBudgetRulesForAdvertiser",
+      "method": "GET",
+      "path": "/sd/budgetRules",
+      "preferred_name": "SponsoredDisplay_GetSDBudgetRulesForAdvertiser",
+      "complexity": {
+        "parameters": 4,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "CreateBudgetRulesForSDCampaigns",
+      "method": "POST",
+      "path": "/sd/budgetRules",
+      "preferred_name": "SponsoredDisplay_CreateBudgetRulesForSDCampaigns",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "UpdateBudgetRulesForSDCampaigns",
+      "method": "PUT",
+      "path": "/sd/budgetRules",
+      "preferred_name": "SponsoredDisplay_UpdateBudgetRulesForSDCampaigns",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "GetBudgetRuleByRuleIdForSDCampaigns",
+      "method": "GET",
+      "path": "/sd/budgetRules/{budgetRuleId}",
+      "preferred_name": "SponsoredDisplay_GetBudgetRuleByRuleIdForSDCampaigns",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "GetCampaignsAssociatedWithSDBudgetRule",
+      "method": "GET",
+      "path": "/sd/budgetRules/{budgetRuleId}/campaigns",
+      "preferred_name": "SponsoredDisplay_GetCampaignsAssociatedWithSDBudgetRule",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "listCampaigns",
+      "method": "GET",
+      "path": "/sd/campaigns",
+      "preferred_name": "SponsoredDisplay_listCampaigns",
+      "complexity": {
+        "parameters": 8,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "createCampaigns",
+      "method": "POST",
+      "path": "/sd/campaigns",
+      "preferred_name": "SponsoredDisplay_createCampaigns",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "updateCampaigns",
+      "method": "PUT",
+      "path": "/sd/campaigns",
+      "preferred_name": "SponsoredDisplay_updateCampaigns",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "sdCampaignsBudgetUsage",
+      "method": "POST",
+      "path": "/sd/campaigns/budget/usage",
+      "preferred_name": "SponsoredDisplay_sdCampaignsBudgetUsage",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getSDBudgetRecommendations",
+      "method": "POST",
+      "path": "/sd/campaigns/budgetRecommendations",
+      "preferred_name": "SponsoredDisplay_getSDBudgetRecommendations",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "listCampaignsEx",
+      "method": "GET",
+      "path": "/sd/campaigns/extended",
+      "preferred_name": "SponsoredDisplay_listCampaignsEx",
+      "complexity": {
+        "parameters": 8,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getCampaignResponseEx",
+      "method": "GET",
+      "path": "/sd/campaigns/extended/{campaignId}",
+      "preferred_name": "SponsoredDisplay_getCampaignResponseEx",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "archiveCampaign",
+      "method": "DELETE",
+      "path": "/sd/campaigns/{campaignId}",
+      "preferred_name": "SponsoredDisplay_archiveCampaign",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getCampaign",
+      "method": "GET",
+      "path": "/sd/campaigns/{campaignId}",
+      "preferred_name": "SponsoredDisplay_getCampaign",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "ListAssociatedBudgetRulesForSDCampaigns",
+      "method": "GET",
+      "path": "/sd/campaigns/{campaignId}/budgetRules",
+      "preferred_name": "SponsoredDisplay_ListAssociatedBudgetRulesForSDCampaigns",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "CreateAssociatedBudgetRulesForSDCampaigns",
+      "method": "POST",
+      "path": "/sd/campaigns/{campaignId}/budgetRules",
+      "preferred_name": "SponsoredDisplay_CreateAssociatedBudgetRulesForSDCampaigns",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "DisassociateAssociatedBudgetRuleForSDCampaigns",
+      "method": "DELETE",
+      "path": "/sd/campaigns/{campaignId}/budgetRules/{budgetRuleId}",
+      "preferred_name": "SponsoredDisplay_DisassociateAssociatedBudgetRuleForSDCampaigns",
+      "complexity": {
+        "parameters": 4,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "listCreatives",
+      "method": "GET",
+      "path": "/sd/creatives",
+      "preferred_name": "SponsoredDisplay_listCreatives",
+      "complexity": {
+        "parameters": 6,
+        "has_body": false,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "createCreatives",
+      "method": "POST",
+      "path": "/sd/creatives",
+      "preferred_name": "SponsoredDisplay_createCreatives",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "updateCreatives",
+      "method": "PUT",
+      "path": "/sd/creatives",
+      "preferred_name": "SponsoredDisplay_updateCreatives",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "postCreativePreview",
+      "method": "POST",
+      "path": "/sd/creatives/preview",
+      "preferred_name": "SponsoredDisplay_postCreativePreview",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "createSDForecast",
+      "method": "POST",
+      "path": "/sd/forecasts",
+      "preferred_name": "SponsoredDisplay_createSDForecast",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "listLocations",
+      "method": "GET",
+      "path": "/sd/locations",
+      "preferred_name": "SponsoredDisplay_listLocations",
+      "complexity": {
+        "parameters": 7,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "createLocations",
+      "method": "POST",
+      "path": "/sd/locations",
+      "preferred_name": "SponsoredDisplay_createLocations",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "archiveLocations",
+      "method": "POST",
+      "path": "/sd/locations/delete",
+      "preferred_name": "SponsoredDisplay_archiveLocations",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "listCreativeModerations",
+      "method": "GET",
+      "path": "/sd/moderation/creatives",
+      "preferred_name": "SponsoredDisplay_listCreativeModerations",
+      "complexity": {
+        "parameters": 7,
+        "has_body": false,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "listNegativeTargetingClauses",
+      "method": "GET",
+      "path": "/sd/negativeTargets",
+      "preferred_name": "SponsoredDisplay_listNegativeTargetingClauses",
+      "complexity": {
+        "parameters": 7,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "createNegativeTargetingClauses",
+      "method": "POST",
+      "path": "/sd/negativeTargets",
+      "preferred_name": "SponsoredDisplay_createNegativeTargetingClauses",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "updateNegativeTargetingClauses",
+      "method": "PUT",
+      "path": "/sd/negativeTargets",
+      "preferred_name": "SponsoredDisplay_updateNegativeTargetingClauses",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "listNegativeTargetingClausesEx",
+      "method": "GET",
+      "path": "/sd/negativeTargets/extended",
+      "preferred_name": "SponsoredDisplay_listNegativeTargetingClausesEx",
+      "complexity": {
+        "parameters": 8,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getNegativeTargetsEx",
+      "method": "GET",
+      "path": "/sd/negativeTargets/extended/{negativeTargetId}",
+      "preferred_name": "SponsoredDisplay_getNegativeTargetsEx",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "archiveNegativeTargetingClause",
+      "method": "DELETE",
+      "path": "/sd/negativeTargets/{negativeTargetId}",
+      "preferred_name": "SponsoredDisplay_archiveNegativeTargetingClause",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getNegativeTargets",
+      "method": "GET",
+      "path": "/sd/negativeTargets/{negativeTargetId}",
+      "preferred_name": "SponsoredDisplay_getNegativeTargets",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "listOptimizationRules",
+      "method": "GET",
+      "path": "/sd/optimizationRules",
+      "preferred_name": "SponsoredDisplay_listOptimizationRules",
+      "complexity": {
+        "parameters": 8,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "createOptimizationRules",
+      "method": "POST",
+      "path": "/sd/optimizationRules",
+      "preferred_name": "SponsoredDisplay_createOptimizationRules",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "updateOptimizationRules",
+      "method": "PUT",
+      "path": "/sd/optimizationRules",
+      "preferred_name": "SponsoredDisplay_updateOptimizationRules",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "listProductAds",
+      "method": "GET",
+      "path": "/sd/productAds",
+      "preferred_name": "SponsoredDisplay_listProductAds",
+      "complexity": {
+        "parameters": 8,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "createProductAds",
+      "method": "POST",
+      "path": "/sd/productAds",
+      "preferred_name": "SponsoredDisplay_createProductAds",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "updateProductAds",
+      "method": "PUT",
+      "path": "/sd/productAds",
+      "preferred_name": "SponsoredDisplay_updateProductAds",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "listProductAdsEx",
+      "method": "GET",
+      "path": "/sd/productAds/extended",
+      "preferred_name": "SponsoredDisplay_listProductAdsEx",
+      "complexity": {
+        "parameters": 8,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getProductAdResponseEx",
+      "method": "GET",
+      "path": "/sd/productAds/extended/{adId}",
+      "preferred_name": "SponsoredDisplay_getProductAdResponseEx",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "archiveProductAd",
+      "method": "DELETE",
+      "path": "/sd/productAds/{adId}",
+      "preferred_name": "SponsoredDisplay_archiveProductAd",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getProductAd",
+      "method": "GET",
+      "path": "/sd/productAds/{adId}",
+      "preferred_name": "SponsoredDisplay_getProductAd",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getHeadlineRecommendationsForSD",
+      "method": "POST",
+      "path": "/sd/recommendations/creative/headline",
+      "preferred_name": "SponsoredDisplay_getHeadlineRecommendationsForSD",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "getSnapshot",
+      "method": "GET",
+      "path": "/sd/snapshots/{snapshotId}",
+      "preferred_name": "SponsoredDisplay_getSnapshot",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "downloadSnapshot",
+      "method": "GET",
+      "path": "/sd/snapshots/{snapshotId}/download",
+      "preferred_name": "SponsoredDisplay_downloadSnapshot",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "listTargetingClauses",
+      "method": "GET",
+      "path": "/sd/targets",
+      "preferred_name": "SponsoredDisplay_listTargetingClauses",
+      "complexity": {
+        "parameters": 8,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "createTargetingClauses",
+      "method": "POST",
+      "path": "/sd/targets",
+      "preferred_name": "SponsoredDisplay_createTargetingClauses",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "updateTargetingClauses",
+      "method": "PUT",
+      "path": "/sd/targets",
+      "preferred_name": "SponsoredDisplay_updateTargetingClauses",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getTargetBidRecommendations",
+      "method": "POST",
+      "path": "/sd/targets/bid/recommendations",
+      "preferred_name": "SponsoredDisplay_getTargetBidRecommendations",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "listTargetingClausesEx",
+      "method": "GET",
+      "path": "/sd/targets/extended",
+      "preferred_name": "SponsoredDisplay_listTargetingClausesEx",
+      "complexity": {
+        "parameters": 8,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getTargetsEx",
+      "method": "GET",
+      "path": "/sd/targets/extended/{targetId}",
+      "preferred_name": "SponsoredDisplay_getTargetsEx",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getTargetRecommendations",
+      "method": "POST",
+      "path": "/sd/targets/recommendations",
+      "preferred_name": "SponsoredDisplay_getTargetRecommendations",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "archiveTargetingClause",
+      "method": "DELETE",
+      "path": "/sd/targets/{targetId}",
+      "preferred_name": "SponsoredDisplay_archiveTargetingClause",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getTargets",
+      "method": "GET",
+      "path": "/sd/targets/{targetId}",
+      "preferred_name": "SponsoredDisplay_getTargets",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "requestReport",
+      "method": "POST",
+      "path": "/sd/{recordType}/report",
+      "preferred_name": "SponsoredDisplay_requestReport",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "createSnapshot",
+      "method": "POST",
+      "path": "/sd/{recordType}/snapshot",
+      "preferred_name": "SponsoredDisplay_createSnapshot",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "getReportStatus",
+      "method": "GET",
+      "path": "/v2/reports/{reportId}",
+      "preferred_name": "SponsoredDisplay_getReportStatus",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "downloadReport",
+      "method": "GET",
+      "path": "/v2/reports/{reportId}/download",
+      "preferred_name": "SponsoredDisplay_downloadReport",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 7
+      }
+    }
+  ]
+}

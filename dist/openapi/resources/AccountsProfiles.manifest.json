@@ -1,0 +1,40 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "AccountsProfiles",
+  "tools": [
+    {
+      "operationId": "listProfiles",
+      "method": "GET",
+      "path": "/v2/profiles",
+      "preferred_name": "AccountsProfiles_listProfiles",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 1
+      }
+    },
+    {
+      "operationId": "updateProfiles",
+      "method": "PUT",
+      "path": "/v2/profiles",
+      "preferred_name": "AccountsProfiles_updateProfiles",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 1
+      }
+    },
+    {
+      "operationId": "getProfileById",
+      "method": "GET",
+      "path": "/v2/profiles/{profileId}",
+      "preferred_name": "AccountsProfiles_getProfileById",
+      "complexity": {
+        "parameters": 2,
+        "has_body": false,
+        "responses": 1
+      }
+    }
+  ]
+}

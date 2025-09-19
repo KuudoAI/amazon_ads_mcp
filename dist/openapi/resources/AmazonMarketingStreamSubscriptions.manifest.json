@@ -1,0 +1,95 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "AmazonMarketingStreamSubscriptions",
+  "tools": [
+    {
+      "operationId": "ListDspStreamSubscriptions",
+      "method": "GET",
+      "path": "/dsp/streams/subscriptions",
+      "preferred_name": "AmazonMarketingStreamSubscriptions_ListDspStreamSubscriptions",
+      "complexity": {
+        "parameters": 4,
+        "has_body": false,
+        "responses": 5
+      }
+    },
+    {
+      "operationId": "CreateDspStreamSubscription",
+      "method": "POST",
+      "path": "/dsp/streams/subscriptions",
+      "preferred_name": "AmazonMarketingStreamSubscriptions_CreateDspStreamSubscription",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "GetDspStreamSubscription",
+      "method": "GET",
+      "path": "/dsp/streams/subscriptions/{subscriptionId}",
+      "preferred_name": "AmazonMarketingStreamSubscriptions_GetDspStreamSubscription",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "UpdateDspStreamSubscription",
+      "method": "PUT",
+      "path": "/dsp/streams/subscriptions/{subscriptionId}",
+      "preferred_name": "AmazonMarketingStreamSubscriptions_UpdateDspStreamSubscription",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "ListStreamSubscriptions",
+      "method": "GET",
+      "path": "/streams/subscriptions",
+      "preferred_name": "AmazonMarketingStreamSubscriptions_ListStreamSubscriptions",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "CreateStreamSubscription",
+      "method": "POST",
+      "path": "/streams/subscriptions",
+      "preferred_name": "AmazonMarketingStreamSubscriptions_CreateStreamSubscription",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "GetStreamSubscription",
+      "method": "GET",
+      "path": "/streams/subscriptions/{subscriptionId}",
+      "preferred_name": "AmazonMarketingStreamSubscriptions_GetStreamSubscription",
+      "complexity": {
+        "parameters": 4,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "UpdateStreamSubscription",
+      "method": "PUT",
+      "path": "/streams/subscriptions/{subscriptionId}",
+      "preferred_name": "AmazonMarketingStreamSubscriptions_UpdateStreamSubscription",
+      "complexity": {
+        "parameters": 4,
+        "has_body": true,
+        "responses": 8
+      }
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "RecommendationsInsightsPartnerOpportunities",
+  "tools": [
+    {
+      "operationId": "partnerOpportunitiesListOpportunities",
+      "method": "GET",
+      "path": "/partnerOpportunities",
+      "preferred_name": "RecommendationsInsightsPartnerOpportunities_partnerOpportunitiesListOpportunities",
+      "complexity": {
+        "parameters": 11,
+        "has_body": false,
+        "responses": 1
+      }
+    },
+    {
+      "operationId": "partnerOpportunitiesSummarizeOpportunities",
+      "method": "GET",
+      "path": "/partnerOpportunities/summary",
+      "preferred_name": "RecommendationsInsightsPartnerOpportunities_partnerOpportunitiesSummarizeOpportunities",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 1
+      }
+    },
+    {
+      "operationId": "partnerOpportunitiesApplicationStatus",
+      "method": "POST",
+      "path": "/partnerOpportunities/{partnerOpportunityId}/applicationStatus",
+      "preferred_name": "RecommendationsInsightsPartnerOpportunities_partnerOpportunitiesApplicationStatus",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 5
+      }
+    },
+    {
+      "operationId": "partnerOpportunitiesApply",
+      "method": "POST",
+      "path": "/partnerOpportunities/{partnerOpportunityId}/apply",
+      "preferred_name": "RecommendationsInsightsPartnerOpportunities_partnerOpportunitiesApply",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "partnerOpportunitiesGetOpportunityFile",
+      "method": "GET",
+      "path": "/partnerOpportunities/{partnerOpportunityId}/file",
+      "preferred_name": "RecommendationsInsightsPartnerOpportunities_partnerOpportunitiesGetOpportunityFile",
+      "complexity": {
+        "parameters": 4,
+        "has_body": false,
+        "responses": 3
+      }
+    }
+  ]
+}

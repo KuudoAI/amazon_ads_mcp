@@ -1,0 +1,194 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "AMCWorkflow",
+  "tools": [
+    {
+      "operationId": "listDataSources",
+      "method": "GET",
+      "path": "/amc/reporting/{instanceId}/dataSources",
+      "preferred_name": "AMCWorkflow_listDataSources",
+      "complexity": {
+        "parameters": 7,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getDataSource",
+      "method": "GET",
+      "path": "/amc/reporting/{instanceId}/dataSources/{dataSourceId}",
+      "preferred_name": "AMCWorkflow_getDataSource",
+      "complexity": {
+        "parameters": 6,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "listSchedules",
+      "method": "GET",
+      "path": "/amc/reporting/{instanceId}/schedules",
+      "preferred_name": "AMCWorkflow_listSchedules",
+      "complexity": {
+        "parameters": 9,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "createSchedule",
+      "method": "POST",
+      "path": "/amc/reporting/{instanceId}/schedules",
+      "preferred_name": "AMCWorkflow_createSchedule",
+      "complexity": {
+        "parameters": 6,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "deleteSchedule",
+      "method": "DELETE",
+      "path": "/amc/reporting/{instanceId}/schedules/{scheduleId}",
+      "preferred_name": "AMCWorkflow_deleteSchedule",
+      "complexity": {
+        "parameters": 8,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getSchedule",
+      "method": "GET",
+      "path": "/amc/reporting/{instanceId}/schedules/{scheduleId}",
+      "preferred_name": "AMCWorkflow_getSchedule",
+      "complexity": {
+        "parameters": 8,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "updateSchedule",
+      "method": "PUT",
+      "path": "/amc/reporting/{instanceId}/schedules/{scheduleId}",
+      "preferred_name": "AMCWorkflow_updateSchedule",
+      "complexity": {
+        "parameters": 7,
+        "has_body": true,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "listWorkflowExecutions",
+      "method": "GET",
+      "path": "/amc/reporting/{instanceId}/workflowExecutions",
+      "preferred_name": "AMCWorkflow_listWorkflowExecutions",
+      "complexity": {
+        "parameters": 14,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "createWorkflowExecution",
+      "method": "POST",
+      "path": "/amc/reporting/{instanceId}/workflowExecutions",
+      "preferred_name": "AMCWorkflow_createWorkflowExecution",
+      "complexity": {
+        "parameters": 5,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getWorkflowExecution",
+      "method": "GET",
+      "path": "/amc/reporting/{instanceId}/workflowExecutions/{workflowExecutionId}",
+      "preferred_name": "AMCWorkflow_getWorkflowExecution",
+      "complexity": {
+        "parameters": 7,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "UpdateWorkflowExecution",
+      "method": "PUT",
+      "path": "/amc/reporting/{instanceId}/workflowExecutions/{workflowExecutionId}",
+      "preferred_name": "AMCWorkflow_UpdateWorkflowExecution",
+      "complexity": {
+        "parameters": 6,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getWorkflowExecutionDownloadUrls",
+      "method": "GET",
+      "path": "/amc/reporting/{instanceId}/workflowExecutions/{workflowExecutionId}/downloadUrls",
+      "preferred_name": "AMCWorkflow_getWorkflowExecutionDownloadUrls",
+      "complexity": {
+        "parameters": 6,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "listWorkflows",
+      "method": "GET",
+      "path": "/amc/reporting/{instanceId}/workflows",
+      "preferred_name": "AMCWorkflow_listWorkflows",
+      "complexity": {
+        "parameters": 7,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "createWorkflow",
+      "method": "POST",
+      "path": "/amc/reporting/{instanceId}/workflows",
+      "preferred_name": "AMCWorkflow_createWorkflow",
+      "complexity": {
+        "parameters": 5,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "deleteWorkflow",
+      "method": "DELETE",
+      "path": "/amc/reporting/{instanceId}/workflows/{workflowId}",
+      "preferred_name": "AMCWorkflow_deleteWorkflow",
+      "complexity": {
+        "parameters": 6,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getWorkflow",
+      "method": "GET",
+      "path": "/amc/reporting/{instanceId}/workflows/{workflowId}",
+      "preferred_name": "AMCWorkflow_getWorkflow",
+      "complexity": {
+        "parameters": 6,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "updateWorkflow",
+      "method": "PUT",
+      "path": "/amc/reporting/{instanceId}/workflows/{workflowId}",
+      "preferred_name": "AMCWorkflow_updateWorkflow",
+      "complexity": {
+        "parameters": 6,
+        "has_body": true,
+        "responses": 8
+      }
+    }
+  ]
+}

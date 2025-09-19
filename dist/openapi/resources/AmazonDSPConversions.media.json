@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "namespace": "AmazonDSPConversions",
+  "content_types": [
+    "application/vnd.dspamazonadtagevents.v1+json",
+    "application/vnd.dspamazonadtags.v1+json",
+    "application/vnd.dspassociatedmobilemeasurementpartnerappregistration.v1+json",
+    "application/vnd.dspbatchgetconversiondefinitions.v1+json",
+    "application/vnd.dspconversionadtageventassociation.v1+json",
+    "application/vnd.dspconversiondefinition.v1+json",
+    "application/vnd.dspconversiondefinition.v2+json",
+    "application/vnd.dspconversioneventimport.v1+json",
+    "application/vnd.dspmobilemeasurementpartnerappregistration.v1+json",
+    "application/vnd.dsporderconversionassociation.v1+json",
+    "application/vnd.dsporderconversionassociation.v2+json",
+    "application/vnd.dspuserdeletionrequest.v1+json"
+  ]
+}

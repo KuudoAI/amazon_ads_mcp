@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "namespace": "RecommendationsInsightsPersonaBuilder",
+  "content_types": [
+    "application/json",
+    "application/vnd.bandedsizeinputexpression.v1+json",
+    "application/vnd.bandedsizeinsights.v1+json",
+    "application/vnd.demographicinputexpressions.v1+json",
+    "application/vnd.demographicinsights.v1+json",
+    "application/vnd.primevideoinputexpressions.v1+json",
+    "application/vnd.primevideoinsights.v1+json",
+    "application/vnd.topcategoriespurchasedinputexpression.v1+json",
+    "application/vnd.topcategoriespurchasedinsights.v1+json",
+    "application/vnd.topoverlappingaudiencesinputexpression.v1+json",
+    "application/vnd.topoverlappingaudiencesinsights.v1+json"
+  ]
+}

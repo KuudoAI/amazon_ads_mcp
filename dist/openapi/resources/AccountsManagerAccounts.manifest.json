@@ -1,0 +1,51 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "AccountsManagerAccounts",
+  "tools": [
+    {
+      "operationId": "getManagerAccountsForUser",
+      "method": "GET",
+      "path": "/managerAccounts",
+      "preferred_name": "AccountsManagerAccounts_getManagerAccountsForUser",
+      "complexity": {
+        "parameters": 1,
+        "has_body": false,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "createManagerAccount",
+      "method": "POST",
+      "path": "/managerAccounts",
+      "preferred_name": "AccountsManagerAccounts_createManagerAccount",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 5
+      }
+    },
+    {
+      "operationId": "LinkAdvertisingAccountsToManagerAccountPublicAPI",
+      "method": "POST",
+      "path": "/managerAccounts/{managerAccountId}/associate",
+      "preferred_name": "AccountsManagerAccounts_LinkAdvertisingAccountsToManagerAccountPublicAPI",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "UnlinkAdvertisingAccountsToManagerAccountPublicAPI",
+      "method": "POST",
+      "path": "/managerAccounts/{managerAccountId}/disassociate",
+      "preferred_name": "AccountsManagerAccounts_UnlinkAdvertisingAccountsToManagerAccountPublicAPI",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "version": "1.0",
+  "namespace": "AmazonDSPTargetKPIRecommendations",
+  "content_types": [
+    "application/vnd.gsbtargetkpirecommendation.v1+json",
+    "application/vnd.spinitialbudgetrecommendation.v3.4+json"
+  ]
+}

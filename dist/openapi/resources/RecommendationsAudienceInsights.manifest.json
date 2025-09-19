@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "RecommendationsAudienceInsights",
+  "tools": [
+    {
+      "operationId": "insightsGetAudiencesOverlappingAudiences",
+      "method": "GET",
+      "path": "/insights/audiences/{audienceId}/overlappingAudiences",
+      "preferred_name": "RecommendationsAudienceInsights_insightsGetAudiencesOverlappingAudiences",
+      "complexity": {
+        "parameters": 10,
+        "has_body": false,
+        "responses": 4
+      }
+    }
+  ]
+}

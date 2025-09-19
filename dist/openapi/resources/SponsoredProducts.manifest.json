@@ -1,0 +1,876 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "SponsoredProducts",
+  "tools": [
+    {
+      "operationId": "CreateSponsoredProductsAdGroups",
+      "method": "POST",
+      "path": "/sp/adGroups",
+      "preferred_name": "SponsoredProducts_CreateSponsoredProductsAdGroups",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "UpdateSponsoredProductsAdGroups",
+      "method": "PUT",
+      "path": "/sp/adGroups",
+      "preferred_name": "SponsoredProducts_UpdateSponsoredProductsAdGroups",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "DeleteSponsoredProductsAdGroups",
+      "method": "POST",
+      "path": "/sp/adGroups/delete",
+      "preferred_name": "SponsoredProducts_DeleteSponsoredProductsAdGroups",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "ListSponsoredProductsAdGroups",
+      "method": "POST",
+      "path": "/sp/adGroups/list",
+      "preferred_name": "SponsoredProducts_ListSponsoredProductsAdGroups",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "GetSPBudgetRulesForAdvertiser",
+      "method": "GET",
+      "path": "/sp/budgetRules",
+      "preferred_name": "SponsoredProducts_GetSPBudgetRulesForAdvertiser",
+      "complexity": {
+        "parameters": 4,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "CreateBudgetRulesForSPCampaigns",
+      "method": "POST",
+      "path": "/sp/budgetRules",
+      "preferred_name": "SponsoredProducts_CreateBudgetRulesForSPCampaigns",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "UpdateBudgetRulesForSPCampaigns",
+      "method": "PUT",
+      "path": "/sp/budgetRules",
+      "preferred_name": "SponsoredProducts_UpdateBudgetRulesForSPCampaigns",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "GetBudgetRuleByRuleIdForSPCampaigns",
+      "method": "GET",
+      "path": "/sp/budgetRules/{budgetRuleId}",
+      "preferred_name": "SponsoredProducts_GetBudgetRuleByRuleIdForSPCampaigns",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "GetCampaignsAssociatedWithSPBudgetRule",
+      "method": "GET",
+      "path": "/sp/budgetRules/{budgetRuleId}/campaigns",
+      "preferred_name": "SponsoredProducts_GetCampaignsAssociatedWithSPBudgetRule",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "BulkBudgetRulesAssociationForSP",
+      "method": "POST",
+      "path": "/sp/budgetRulesAssociation",
+      "preferred_name": "SponsoredProducts_BulkBudgetRulesAssociationForSP",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "BulkBudgetRulesDisAssociationForSP",
+      "method": "POST",
+      "path": "/sp/budgetRulesAssociation/delete",
+      "preferred_name": "SponsoredProducts_BulkBudgetRulesDisAssociationForSP",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getCampaignRecommendations",
+      "method": "GET",
+      "path": "/sp/campaign/recommendations",
+      "preferred_name": "SponsoredProducts_getCampaignRecommendations",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "CreateSponsoredProductsCampaignNegativeKeywords",
+      "method": "POST",
+      "path": "/sp/campaignNegativeKeywords",
+      "preferred_name": "SponsoredProducts_CreateSponsoredProductsCampaignNegativeKeywords",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "UpdateSponsoredProductsCampaignNegativeKeywords",
+      "method": "PUT",
+      "path": "/sp/campaignNegativeKeywords",
+      "preferred_name": "SponsoredProducts_UpdateSponsoredProductsCampaignNegativeKeywords",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "DeleteSponsoredProductsCampaignNegativeKeywords",
+      "method": "POST",
+      "path": "/sp/campaignNegativeKeywords/delete",
+      "preferred_name": "SponsoredProducts_DeleteSponsoredProductsCampaignNegativeKeywords",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "ListSponsoredProductsCampaignNegativeKeywords",
+      "method": "POST",
+      "path": "/sp/campaignNegativeKeywords/list",
+      "preferred_name": "SponsoredProducts_ListSponsoredProductsCampaignNegativeKeywords",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "CreateSponsoredProductsCampaignNegativeTargetingClauses",
+      "method": "POST",
+      "path": "/sp/campaignNegativeTargets",
+      "preferred_name": "SponsoredProducts_CreateSponsoredProductsCampaignNegativeTargetingClauses",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "UpdateSponsoredProductsCampaignNegativeTargetingClauses",
+      "method": "PUT",
+      "path": "/sp/campaignNegativeTargets",
+      "preferred_name": "SponsoredProducts_UpdateSponsoredProductsCampaignNegativeTargetingClauses",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "DeleteSponsoredProductsCampaignNegativeTargetingClauses",
+      "method": "POST",
+      "path": "/sp/campaignNegativeTargets/delete",
+      "preferred_name": "SponsoredProducts_DeleteSponsoredProductsCampaignNegativeTargetingClauses",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "ListSponsoredProductsCampaignNegativeTargetingClauses",
+      "method": "POST",
+      "path": "/sp/campaignNegativeTargets/list",
+      "preferred_name": "SponsoredProducts_ListSponsoredProductsCampaignNegativeTargetingClauses",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "CreateSponsoredProductsCampaigns",
+      "method": "POST",
+      "path": "/sp/campaigns",
+      "preferred_name": "SponsoredProducts_CreateSponsoredProductsCampaigns",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "UpdateSponsoredProductsCampaigns",
+      "method": "PUT",
+      "path": "/sp/campaigns",
+      "preferred_name": "SponsoredProducts_UpdateSponsoredProductsCampaigns",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "spCampaignsBudgetUsage",
+      "method": "POST",
+      "path": "/sp/campaigns/budget/usage",
+      "preferred_name": "SponsoredProducts_spCampaignsBudgetUsage",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getBudgetRecommendations",
+      "method": "POST",
+      "path": "/sp/campaigns/budgetRecommendations",
+      "preferred_name": "SponsoredProducts_getBudgetRecommendations",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "SPGetBudgetRulesRecommendation",
+      "method": "POST",
+      "path": "/sp/campaigns/budgetRules/recommendations",
+      "preferred_name": "SponsoredProducts_SPGetBudgetRulesRecommendation",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "DeleteSponsoredProductsCampaigns",
+      "method": "POST",
+      "path": "/sp/campaigns/delete",
+      "preferred_name": "SponsoredProducts_DeleteSponsoredProductsCampaigns",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getBudgetRecommendation",
+      "method": "POST",
+      "path": "/sp/campaigns/initialBudgetRecommendation",
+      "preferred_name": "SponsoredProducts_getBudgetRecommendation",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "ListSponsoredProductsCampaigns",
+      "method": "POST",
+      "path": "/sp/campaigns/list",
+      "preferred_name": "SponsoredProducts_ListSponsoredProductsCampaigns",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "ListAssociatedBudgetRulesForSPCampaigns",
+      "method": "GET",
+      "path": "/sp/campaigns/{campaignId}/budgetRules",
+      "preferred_name": "SponsoredProducts_ListAssociatedBudgetRulesForSPCampaigns",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "CreateAssociatedBudgetRulesForSPCampaigns",
+      "method": "POST",
+      "path": "/sp/campaigns/{campaignId}/budgetRules",
+      "preferred_name": "SponsoredProducts_CreateAssociatedBudgetRulesForSPCampaigns",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "DisassociateAssociatedBudgetRuleForSPCampaigns",
+      "method": "DELETE",
+      "path": "/sp/campaigns/{campaignId}/budgetRules/{budgetRuleId}",
+      "preferred_name": "SponsoredProducts_DisassociateAssociatedBudgetRuleForSPCampaigns",
+      "complexity": {
+        "parameters": 4,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "AssociateOptimizationRulesToCampaign",
+      "method": "POST",
+      "path": "/sp/campaigns/{campaignId}/optimizationRules",
+      "preferred_name": "SponsoredProducts_AssociateOptimizationRulesToCampaign",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 5
+      }
+    },
+    {
+      "operationId": "GetMultiCountryThemeBasedBidRecommendationForAdGroup_v1",
+      "method": "POST",
+      "path": "/sp/global/targets/bid/recommendations",
+      "preferred_name": "SponsoredProducts_GetMultiCountryThemeBasedBidRecommendationForAdGroup_v1",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 9
+      }
+    },
+    {
+      "operationId": "getGlobalRankedKeywordRecommendation",
+      "method": "POST",
+      "path": "/sp/global/targets/keywords/recommendations/list",
+      "preferred_name": "SponsoredProducts_getGlobalRankedKeywordRecommendation",
+      "complexity": {
+        "parameters": 5,
+        "has_body": true,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "CreateSponsoredProductsKeywords",
+      "method": "POST",
+      "path": "/sp/keywords",
+      "preferred_name": "SponsoredProducts_CreateSponsoredProductsKeywords",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "UpdateSponsoredProductsKeywords",
+      "method": "PUT",
+      "path": "/sp/keywords",
+      "preferred_name": "SponsoredProducts_UpdateSponsoredProductsKeywords",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "DeleteSponsoredProductsKeywords",
+      "method": "POST",
+      "path": "/sp/keywords/delete",
+      "preferred_name": "SponsoredProducts_DeleteSponsoredProductsKeywords",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "ListSponsoredProductsKeywords",
+      "method": "POST",
+      "path": "/sp/keywords/list",
+      "preferred_name": "SponsoredProducts_ListSponsoredProductsKeywords",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "CreateSponsoredProductsNegativeKeywords",
+      "method": "POST",
+      "path": "/sp/negativeKeywords",
+      "preferred_name": "SponsoredProducts_CreateSponsoredProductsNegativeKeywords",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "UpdateSponsoredProductsNegativeKeywords",
+      "method": "PUT",
+      "path": "/sp/negativeKeywords",
+      "preferred_name": "SponsoredProducts_UpdateSponsoredProductsNegativeKeywords",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "DeleteSponsoredProductsNegativeKeywords",
+      "method": "POST",
+      "path": "/sp/negativeKeywords/delete",
+      "preferred_name": "SponsoredProducts_DeleteSponsoredProductsNegativeKeywords",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "ListSponsoredProductsNegativeKeywords",
+      "method": "POST",
+      "path": "/sp/negativeKeywords/list",
+      "preferred_name": "SponsoredProducts_ListSponsoredProductsNegativeKeywords",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "CreateSponsoredProductsNegativeTargetingClauses",
+      "method": "POST",
+      "path": "/sp/negativeTargets",
+      "preferred_name": "SponsoredProducts_CreateSponsoredProductsNegativeTargetingClauses",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "UpdateSponsoredProductsNegativeTargetingClauses",
+      "method": "PUT",
+      "path": "/sp/negativeTargets",
+      "preferred_name": "SponsoredProducts_UpdateSponsoredProductsNegativeTargetingClauses",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getNegativeBrands",
+      "method": "GET",
+      "path": "/sp/negativeTargets/brands/recommendations",
+      "preferred_name": "SponsoredProducts_getNegativeBrands",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "searchBrands",
+      "method": "POST",
+      "path": "/sp/negativeTargets/brands/search",
+      "preferred_name": "SponsoredProducts_searchBrands",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 5
+      }
+    },
+    {
+      "operationId": "DeleteSponsoredProductsNegativeTargetingClauses",
+      "method": "POST",
+      "path": "/sp/negativeTargets/delete",
+      "preferred_name": "SponsoredProducts_DeleteSponsoredProductsNegativeTargetingClauses",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "ListSponsoredProductsNegativeTargetingClauses",
+      "method": "POST",
+      "path": "/sp/negativeTargets/list",
+      "preferred_name": "SponsoredProducts_ListSponsoredProductsNegativeTargetingClauses",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "CreateSponsoredProductsProductAds",
+      "method": "POST",
+      "path": "/sp/productAds",
+      "preferred_name": "SponsoredProducts_CreateSponsoredProductsProductAds",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "UpdateSponsoredProductsProductAds",
+      "method": "PUT",
+      "path": "/sp/productAds",
+      "preferred_name": "SponsoredProducts_UpdateSponsoredProductsProductAds",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "DeleteSponsoredProductsProductAds",
+      "method": "POST",
+      "path": "/sp/productAds/delete",
+      "preferred_name": "SponsoredProducts_DeleteSponsoredProductsProductAds",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "ListSponsoredProductsProductAds",
+      "method": "POST",
+      "path": "/sp/productAds/list",
+      "preferred_name": "SponsoredProducts_ListSponsoredProductsProductAds",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "CreateOptimizationRule",
+      "method": "POST",
+      "path": "/sp/rules/campaignOptimization",
+      "preferred_name": "SponsoredProducts_CreateOptimizationRule",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "UpdateOptimizationRule",
+      "method": "PUT",
+      "path": "/sp/rules/campaignOptimization",
+      "preferred_name": "SponsoredProducts_UpdateOptimizationRule",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "GetOptimizationRuleEligibility",
+      "method": "POST",
+      "path": "/sp/rules/campaignOptimization/eligibility",
+      "preferred_name": "SponsoredProducts_GetOptimizationRuleEligibility",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "GetRuleNotification",
+      "method": "POST",
+      "path": "/sp/rules/campaignOptimization/state",
+      "preferred_name": "SponsoredProducts_GetRuleNotification",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "DeleteCampaignOptimizationRule",
+      "method": "DELETE",
+      "path": "/sp/rules/campaignOptimization/{campaignOptimizationId}",
+      "preferred_name": "SponsoredProducts_DeleteCampaignOptimizationRule",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "GetCampaignOptimizationRule",
+      "method": "GET",
+      "path": "/sp/rules/campaignOptimization/{campaignOptimizationId}",
+      "preferred_name": "SponsoredProducts_GetCampaignOptimizationRule",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "CreateOptimizationRules",
+      "method": "POST",
+      "path": "/sp/rules/optimization",
+      "preferred_name": "SponsoredProducts_CreateOptimizationRules",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 5
+      }
+    },
+    {
+      "operationId": "UpdateOptimizationRules",
+      "method": "PUT",
+      "path": "/sp/rules/optimization",
+      "preferred_name": "SponsoredProducts_UpdateOptimizationRules",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 5
+      }
+    },
+    {
+      "operationId": "SearchOptimizationRules",
+      "method": "POST",
+      "path": "/sp/rules/optimization/search",
+      "preferred_name": "SponsoredProducts_SearchOptimizationRules",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 5
+      }
+    },
+    {
+      "operationId": "CreateTargetPromotionGroups",
+      "method": "POST",
+      "path": "/sp/targetPromotionGroups",
+      "preferred_name": "SponsoredProducts_CreateTargetPromotionGroups",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "ListTargetPromotionGroups",
+      "method": "POST",
+      "path": "/sp/targetPromotionGroups/list",
+      "preferred_name": "SponsoredProducts_ListTargetPromotionGroups",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "GetTargetPromotionGroupsRecommendations",
+      "method": "POST",
+      "path": "/sp/targetPromotionGroups/recommendations",
+      "preferred_name": "SponsoredProducts_GetTargetPromotionGroupsRecommendations",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "CreateTargetPromotionGroupTargets",
+      "method": "POST",
+      "path": "/sp/targetPromotionGroups/targets",
+      "preferred_name": "SponsoredProducts_CreateTargetPromotionGroupTargets",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "ListTargetPromotionGroupTargets",
+      "method": "POST",
+      "path": "/sp/targetPromotionGroups/targets/list",
+      "preferred_name": "SponsoredProducts_ListTargetPromotionGroupTargets",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "getKeywordGroupRecommendations",
+      "method": "POST",
+      "path": "/sp/targeting/recommendations/keywordGroups",
+      "preferred_name": "SponsoredProducts_getKeywordGroupRecommendations",
+      "complexity": {
+        "parameters": 4,
+        "has_body": true,
+        "responses": 10
+      }
+    },
+    {
+      "operationId": "CreateSponsoredProductsTargetingClauses",
+      "method": "POST",
+      "path": "/sp/targets",
+      "preferred_name": "SponsoredProducts_CreateSponsoredProductsTargetingClauses",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "UpdateSponsoredProductsTargetingClauses",
+      "method": "PUT",
+      "path": "/sp/targets",
+      "preferred_name": "SponsoredProducts_UpdateSponsoredProductsTargetingClauses",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "GetThemeBasedBidRecommendationForAdGroup_v1",
+      "method": "POST",
+      "path": "/sp/targets/bid/recommendations",
+      "preferred_name": "SponsoredProducts_GetThemeBasedBidRecommendationForAdGroup_v1",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 9
+      }
+    },
+    {
+      "operationId": "getTargetableCategories",
+      "method": "GET",
+      "path": "/sp/targets/categories",
+      "preferred_name": "SponsoredProducts_getTargetableCategories",
+      "complexity": {
+        "parameters": 4,
+        "has_body": false,
+        "responses": 5
+      }
+    },
+    {
+      "operationId": "getCategoryRecommendationsForASINs",
+      "method": "POST",
+      "path": "/sp/targets/categories/recommendations",
+      "preferred_name": "SponsoredProducts_getCategoryRecommendationsForASINs",
+      "complexity": {
+        "parameters": 4,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "getRefinementsForCategory",
+      "method": "GET",
+      "path": "/sp/targets/category/{categoryId}/refinements",
+      "preferred_name": "SponsoredProducts_getRefinementsForCategory",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "DeleteSponsoredProductsTargetingClauses",
+      "method": "POST",
+      "path": "/sp/targets/delete",
+      "preferred_name": "SponsoredProducts_DeleteSponsoredProductsTargetingClauses",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getRankedKeywordRecommendation",
+      "method": "POST",
+      "path": "/sp/targets/keywords/recommendations",
+      "preferred_name": "SponsoredProducts_getRankedKeywordRecommendation",
+      "complexity": {
+        "parameters": 4,
+        "has_body": true,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "ListSponsoredProductsTargetingClauses",
+      "method": "POST",
+      "path": "/sp/targets/list",
+      "preferred_name": "SponsoredProducts_ListSponsoredProductsTargetingClauses",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getTargetableASINCounts",
+      "method": "POST",
+      "path": "/sp/targets/products/count",
+      "preferred_name": "SponsoredProducts_getTargetableASINCounts",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "getProductRecommendations",
+      "method": "POST",
+      "path": "/sp/targets/products/recommendations",
+      "preferred_name": "SponsoredProducts_getProductRecommendations",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 5
+      }
+    },
+    {
+      "operationId": "SPGetAllRuleEvents",
+      "method": "POST",
+      "path": "/sp/v1/events",
+      "preferred_name": "SponsoredProducts_SPGetAllRuleEvents",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 4
+      }
+    }
+  ]
+}

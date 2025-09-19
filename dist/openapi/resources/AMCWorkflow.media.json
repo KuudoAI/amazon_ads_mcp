@@ -1,0 +1,10 @@
+{
+  "version": "1.0",
+  "namespace": "AMCWorkflow",
+  "content_types": [
+    "application/vnd.amcdatasources.v1+json",
+    "application/vnd.amcschedules.v1+json",
+    "application/vnd.amcworkflowexecutions.v1+json",
+    "application/vnd.amcworkflows.v1+json"
+  ]
+}

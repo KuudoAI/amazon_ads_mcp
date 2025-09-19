@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "namespace": "AccountsBilling",
+  "content_types": [
+    "application/json",
+    "application/vnd.billingDocuments.v1+json",
+    "application/vnd.billingInvoiceSummary.v1+json",
+    "application/vnd.billingProfile.v1+json",
+    "application/vnd.billingProfileAgreement.v1+json",
+    "application/vnd.billingProfileUsage.v1+json",
+    "application/vnd.billingnotifications.v1+json",
+    "application/vnd.bulkgetbillingnotificationserrorresponse.v1+json",
+    "application/vnd.bulkgetbillingnotificationsresponse.v1+json",
+    "application/vnd.bulkgetbillingstatuserrorresponse.v1+json",
+    "application/vnd.bulkgetbillingstatusrequestbody.v1+json",
+    "application/vnd.bulkgetbillingstatusresponse.v1+json",
+    "application/vnd.createbillingstatementsrequest.v1+json",
+    "application/vnd.invoice.v1.1+json",
+    "application/vnd.invoices.v1+json",
+    "application/vnd.invoices.v1.1+json",
+    "application/vnd.paymentagreements.v1+json",
+    "application/vnd.paymentmethods.v1+json",
+    "application/vnd.paymentprofiles.v1+json"
+  ]
+}

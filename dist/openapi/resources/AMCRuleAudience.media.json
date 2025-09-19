@@ -1,0 +1,10 @@
+{
+  "version": "1.0",
+  "namespace": "AMCRuleAudience",
+  "content_types": [
+    "application/vnd.amclookalikeaudience.v1+json",
+    "application/vnd.amcquerybasedaudience.v1+json",
+    "application/vnd.amcquerybasedaudience.v1.1+json",
+    "application/vnd.amcquerybasedaudience.v1.2+json"
+  ]
+}

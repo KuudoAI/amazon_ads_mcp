@@ -1,0 +1,117 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "AMCAdAudience",
+  "tools": [
+    {
+      "operationId": "AmcpLinkRemoveConnectionV2",
+      "method": "DELETE",
+      "path": "/amc/audiences/connections",
+      "preferred_name": "AMCAdAudience_AmcpLinkRemoveConnectionV2",
+      "complexity": {
+        "parameters": 2,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "AmcpLinkGetConnectionsV2",
+      "method": "GET",
+      "path": "/amc/audiences/connections",
+      "preferred_name": "AMCAdAudience_AmcpLinkGetConnectionsV2",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "AmcpLinkAddConnectionV2",
+      "method": "POST",
+      "path": "/amc/audiences/connections",
+      "preferred_name": "AMCAdAudience_AmcpLinkAddConnectionV2",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "AmcpLinkGetTermsV2",
+      "method": "GET",
+      "path": "/amc/audiences/connections/terms",
+      "preferred_name": "AMCAdAudience_AmcpLinkGetTermsV2",
+      "complexity": {
+        "parameters": 1,
+        "has_body": false,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "AmcpLinkSetTermsAcceptanceV2",
+      "method": "PATCH",
+      "path": "/amc/audiences/connections/terms",
+      "preferred_name": "AMCAdAudience_AmcpLinkSetTermsAcceptanceV2",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "CreateAudienceMetadataV2",
+      "method": "POST",
+      "path": "/amc/audiences/metadata",
+      "preferred_name": "AMCAdAudience_CreateAudienceMetadataV2",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "GetAudienceMetadataV2",
+      "method": "GET",
+      "path": "/amc/audiences/metadata/{audienceId}",
+      "preferred_name": "AMCAdAudience_GetAudienceMetadataV2",
+      "complexity": {
+        "parameters": 2,
+        "has_body": false,
+        "responses": 5
+      }
+    },
+    {
+      "operationId": "UpdateAudienceMetadataV2",
+      "method": "PUT",
+      "path": "/amc/audiences/metadata/{audienceId}",
+      "preferred_name": "AMCAdAudience_UpdateAudienceMetadataV2",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 5
+      }
+    },
+    {
+      "operationId": "ManageAudienceV2",
+      "method": "POST",
+      "path": "/amc/audiences/records",
+      "preferred_name": "AMCAdAudience_ManageAudienceV2",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 5
+      }
+    },
+    {
+      "operationId": "ManageAudienceStatusV2",
+      "method": "GET",
+      "path": "/amc/audiences/records/{jobRequestId}",
+      "preferred_name": "AMCAdAudience_ManageAudienceStatusV2",
+      "complexity": {
+        "parameters": 2,
+        "has_body": false,
+        "responses": 5
+      }
+    }
+  ]
+}

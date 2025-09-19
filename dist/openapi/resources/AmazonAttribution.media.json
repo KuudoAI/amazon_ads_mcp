@@ -1,0 +1,7 @@
+{
+  "version": "1.0",
+  "namespace": "AmazonAttribution",
+  "content_types": [
+    "application/json"
+  ]
+}

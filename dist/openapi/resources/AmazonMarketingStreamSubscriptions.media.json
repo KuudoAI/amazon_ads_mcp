@@ -1,0 +1,7 @@
+{
+  "version": "1.0",
+  "namespace": "AmazonMarketingStreamSubscriptions",
+  "content_types": [
+    "application/vnd.amazonmarketingstreamsubscriptions.v1+json"
+  ]
+}

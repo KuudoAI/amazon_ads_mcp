@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "AmazonDSPAudiences",
+  "tools": [
+    {
+      "operationId": "dspCreateAudiencesPost",
+      "method": "POST",
+      "path": "/dsp/audiences",
+      "preferred_name": "AmazonDSPAudiences_dspCreateAudiencesPost",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 3
+      }
+    }
+  ]
+}

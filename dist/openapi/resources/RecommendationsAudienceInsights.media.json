@@ -1,0 +1,8 @@
+{
+  "version": "1.0",
+  "namespace": "RecommendationsAudienceInsights",
+  "content_types": [
+    "application/vnd.insightsaudiencesoverlap.v2+json",
+    "application/vnd.insightserror.v1+json"
+  ]
+}

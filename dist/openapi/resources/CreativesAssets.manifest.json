@@ -1,0 +1,73 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "CreativesAssets",
+  "tools": [
+    {
+      "operationId": "getAsset",
+      "method": "GET",
+      "path": "/assets",
+      "preferred_name": "CreativesAssets_getAsset",
+      "complexity": {
+        "parameters": 4,
+        "has_body": false,
+        "responses": 5
+      }
+    },
+    {
+      "operationId": "getAssetsBatchRegister",
+      "method": "GET",
+      "path": "/assets/batchRegister/{requestId}",
+      "preferred_name": "CreativesAssets_getAssetsBatchRegister",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "assetsBatchRegister",
+      "method": "POST",
+      "path": "/assets/batchRegister",
+      "preferred_name": "CreativesAssets_assetsBatchRegister",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "registerAsset",
+      "method": "POST",
+      "path": "/assets/register",
+      "preferred_name": "CreativesAssets_registerAsset",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "getUploadLocation",
+      "method": "POST",
+      "path": "/assets/upload",
+      "preferred_name": "CreativesAssets_getUploadLocation",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 5
+      }
+    },
+    {
+      "operationId": "searchAssets",
+      "method": "POST",
+      "path": "/assets/search",
+      "preferred_name": "CreativesAssets_searchAssets",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 5
+      }
+    }
+  ]
+}

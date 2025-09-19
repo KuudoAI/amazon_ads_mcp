@@ -1,0 +1,11 @@
+{
+  "version": "1.0",
+  "namespace": "StoresAnalytics",
+  "content_types": [
+    "application/json",
+    "application/vnd.GetAsinEngagementForStoreRequest.v1+json",
+    "application/vnd.GetAsinEngagementForStoreResponse.v1+json",
+    "application/vnd.GetInsightsForStoreRequest.v1+json",
+    "application/vnd.GetInsightsForStoreResponse.v1+json"
+  ]
+}

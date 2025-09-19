@@ -1,0 +1,34 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "ReportingVersion3",
+  "tools": [
+    {
+      "match": {
+        "operationId": "createAsyncReport"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "deleteAsyncReport"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "getAsyncReport"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "version": "1.0",
+  "namespace": "AccountsAdsAccounts",
+  "content_types": [
+    "application/json",
+    "application/vnd.GlobalRegistrationService.TermsTokenResource.v1.0+json",
+    "application/vnd.accountresource.v1+json",
+    "application/vnd.listaccountsresource.v1+json",
+    "application/vnd.registeradsaccountresource.v1+json",
+    "application/vnd.termstokenresource.v1+json"
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "ReportingMarketingMixModeling",
+  "tools": [
+    {
+      "operationId": "listMmmBrandGroups",
+      "method": "POST",
+      "path": "/mmm/v1/brandGroups/list",
+      "preferred_name": "ReportingMarketingMixModeling_listMmmBrandGroups",
+      "complexity": {
+        "parameters": 0,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "createMmmReport",
+      "method": "POST",
+      "path": "/mmm/v1/reports",
+      "preferred_name": "ReportingMarketingMixModeling_createMmmReport",
+      "complexity": {
+        "parameters": 0,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "deleteMmmReport",
+      "method": "DELETE",
+      "path": "/mmm/v1/reports/{reportId}",
+      "preferred_name": "ReportingMarketingMixModeling_deleteMmmReport",
+      "complexity": {
+        "parameters": 0,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getMmmReport",
+      "method": "GET",
+      "path": "/mmm/v1/reports/{reportId}",
+      "preferred_name": "ReportingMarketingMixModeling_getMmmReport",
+      "complexity": {
+        "parameters": 0,
+        "has_body": false,
+        "responses": 7
+      }
+    }
+  ]
+}

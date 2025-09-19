@@ -1,0 +1,24 @@
+{
+  "version": "1.0",
+  "namespace": "SponsoredDisplay",
+  "content_types": [
+    "a-pplication/json",
+    "application/json",
+    "application/vnd.sdbudgetrecommendations.v3+json",
+    "application/vnd.sdcampaignbudgetusage.v1+json",
+    "application/vnd.sdforecasts.v3.1+json",
+    "application/vnd.sdheadlinerecommendationaccessdeniedexception.v4.0+json",
+    "application/vnd.sdheadlinerecommendationidentifiernotfoundexception.v4.0+json",
+    "application/vnd.sdheadlinerecommendationinternalserverexception.v4.0+json",
+    "application/vnd.sdheadlinerecommendationrequest.v4.0+json",
+    "application/vnd.sdheadlinerecommendationresponse.v4.0+json",
+    "application/vnd.sdheadlinerecommendationschemavalidationexception.v4.0+json",
+    "application/vnd.sdheadlinerecommendationthrottlingexception.v4.0+json",
+    "application/vnd.sdtargetingrecommendations.v3.0+json",
+    "application/vnd.sdtargetingrecommendations.v3.1+json",
+    "application/vnd.sdtargetingrecommendations.v3.2+json",
+    "application/vnd.sdtargetingrecommendations.v3.3+json",
+    "application/vnd.sdtargetingrecommendations.v3.4+json",
+    "application/vnd.sdtargetingrecommendations.v3.5+json"
+  ]
+}

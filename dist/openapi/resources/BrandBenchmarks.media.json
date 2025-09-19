@@ -1,0 +1,8 @@
+{
+  "version": "1.0",
+  "namespace": "BrandBenchmarks",
+  "content_types": [
+    "application/json",
+    "application/vnd.insightsAdvertiser.v1+json"
+  ]
+}

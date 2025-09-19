@@ -1,0 +1,8 @@
+{
+  "version": "1.0",
+  "namespace": "AMCAdAudience",
+  "content_types": [
+    "application/vnd.amcaudiences.v1+json",
+    "application/vnd.amcaudiencesconnections.v1+json"
+  ]
+}

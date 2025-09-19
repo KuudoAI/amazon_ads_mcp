@@ -1,0 +1,11 @@
+{
+  "version": "1.0",
+  "namespace": "ReportingVersion3",
+  "content_types": [
+    "application/json",
+    "application/vnd.createasyncreportrequest.v3+json",
+    "application/vnd.createasyncreportresponse.v3+json",
+    "application/vnd.deleteasyncreportresponse.v3+json",
+    "application/vnd.getasyncreportresponse.v3+json"
+  ]
+}

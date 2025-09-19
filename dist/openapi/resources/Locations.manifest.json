@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "Locations",
+  "tools": [
+    {
+      "operationId": "listLocations",
+      "method": "POST",
+      "path": "/locations/list",
+      "preferred_name": "Locations_listLocations",
+      "complexity": {
+        "parameters": 4,
+        "has_body": true,
+        "responses": 8
+      }
+    }
+  ]
+}

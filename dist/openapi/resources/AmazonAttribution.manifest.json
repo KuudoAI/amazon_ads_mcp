@@ -1,0 +1,62 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "AmazonAttribution",
+  "tools": [
+    {
+      "operationId": "getAdvertisersByProfile",
+      "method": "GET",
+      "path": "/attribution/advertisers",
+      "preferred_name": "AmazonAttribution_getAdvertisersByProfile",
+      "complexity": {
+        "parameters": 2,
+        "has_body": false,
+        "responses": 1
+      }
+    },
+    {
+      "operationId": "getPublishers",
+      "method": "GET",
+      "path": "/attribution/publishers",
+      "preferred_name": "AmazonAttribution_getPublishers",
+      "complexity": {
+        "parameters": 2,
+        "has_body": false,
+        "responses": 1
+      }
+    },
+    {
+      "operationId": "getAttributionTagsByCampaign",
+      "method": "POST",
+      "path": "/attribution/report",
+      "preferred_name": "AmazonAttribution_getAttributionTagsByCampaign",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "getPublisherAttributionTagTemplate",
+      "method": "GET",
+      "path": "/attribution/tags/macroTag",
+      "preferred_name": "AmazonAttribution_getPublisherAttributionTagTemplate",
+      "complexity": {
+        "parameters": 4,
+        "has_body": false,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "getPublisherMacroAttributionTag",
+      "method": "GET",
+      "path": "/attribution/tags/nonMacroTemplateTag",
+      "preferred_name": "AmazonAttribution_getPublisherMacroAttributionTag",
+      "complexity": {
+        "parameters": 4,
+        "has_body": false,
+        "responses": 6
+      }
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "AmazonDSPTargetKPIRecommendations",
+  "tools": [
+    {
+      "operationId": "getGsbTargetKpiRecommendation",
+      "method": "POST",
+      "path": "/dsp/campaigns/targetKpi/recommendations",
+      "preferred_name": "AmazonDSPTargetKPIRecommendations_getGsbTargetKpiRecommendation",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 8
+      }
+    }
+  ]
+}

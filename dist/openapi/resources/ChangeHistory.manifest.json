@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "ChangeHistory",
+  "tools": [
+    {
+      "operationId": "getHistory",
+      "method": "POST",
+      "path": "/history",
+      "preferred_name": "ChangeHistory_getHistory",
+      "complexity": {
+        "parameters": 0,
+        "has_body": true,
+        "responses": 6
+      }
+    }
+  ]
+}

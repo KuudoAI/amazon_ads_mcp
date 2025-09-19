@@ -1,0 +1,29 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "StoresAnalytics",
+  "tools": [
+    {
+      "operationId": "getAsinEngagementForStore",
+      "method": "POST",
+      "path": "/stores/{brandEntityId}/asinMetrics",
+      "preferred_name": "StoresAnalytics_getAsinEngagementForStore",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "getInsightsForStoreAPI",
+      "method": "POST",
+      "path": "/stores/{brandEntityId}/insights",
+      "preferred_name": "StoresAnalytics_getInsightsForStoreAPI",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 8
+      }
+    }
+  ]
+}

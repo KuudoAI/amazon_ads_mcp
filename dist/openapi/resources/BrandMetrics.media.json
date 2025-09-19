@@ -1,0 +1,9 @@
+{
+  "version": "1.0",
+  "namespace": "BrandMetrics",
+  "content_types": [
+    "application/vnd.insightsbrandmetrics.v1+json",
+    "application/vnd.insightsbrandmetrics.v1.1+json",
+    "application/vnd.insightsbrandmetricserror.v1+json"
+  ]
+}

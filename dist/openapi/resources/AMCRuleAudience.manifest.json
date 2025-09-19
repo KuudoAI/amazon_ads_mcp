@@ -1,0 +1,73 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "AMCRuleAudience",
+  "tools": [
+    {
+      "operationId": "createLookalikeAudience",
+      "method": "POST",
+      "path": "/amc/audiences/lookalike",
+      "preferred_name": "AMCRuleAudience_createLookalikeAudience",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "getAllQueryBasedAudiencesByInstanceId",
+      "method": "GET",
+      "path": "/amc/audiences/query",
+      "preferred_name": "AMCRuleAudience_getAllQueryBasedAudiencesByInstanceId",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 3
+      }
+    },
+    {
+      "operationId": "createQueryBasedAudience",
+      "method": "POST",
+      "path": "/amc/audiences/query",
+      "preferred_name": "AMCRuleAudience_createQueryBasedAudience",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "deleteQueryBasedAudienceByAudienceExecutionId",
+      "method": "DELETE",
+      "path": "/amc/audiences/query/{audienceExecutionId}",
+      "preferred_name": "AMCRuleAudience_deleteQueryBasedAudienceByAudienceExecutionId",
+      "complexity": {
+        "parameters": 4,
+        "has_body": false,
+        "responses": 3
+      }
+    },
+    {
+      "operationId": "getQueryBasedAudienceByAudienceExecutionId",
+      "method": "GET",
+      "path": "/amc/audiences/query/{audienceExecutionId}",
+      "preferred_name": "AMCRuleAudience_getQueryBasedAudienceByAudienceExecutionId",
+      "complexity": {
+        "parameters": 4,
+        "has_body": false,
+        "responses": 3
+      }
+    },
+    {
+      "operationId": "updateQueryBasedAudienceByAudienceExecutionId",
+      "method": "PUT",
+      "path": "/amc/audiences/query/{audienceExecutionId}",
+      "preferred_name": "AMCRuleAudience_updateQueryBasedAudienceByAudienceExecutionId",
+      "complexity": {
+        "parameters": 4,
+        "has_body": true,
+        "responses": 6
+      }
+    }
+  ]
+}

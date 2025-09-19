@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "ProductsMetadata",
+  "tools": [
+    {
+      "operationId": "ProductMetadata",
+      "method": "POST",
+      "path": "/product/metadata",
+      "preferred_name": "ProductsMetadata_ProductMetadata",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    }
+  ]
+}

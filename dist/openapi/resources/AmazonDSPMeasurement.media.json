@@ -1,0 +1,22 @@
+{
+  "version": "1.0",
+  "namespace": "AmazonDSPMeasurement",
+  "content_types": [
+    "application/vnd.measurementeligibility.v1+json",
+    "application/vnd.measurementeligibility.v1.1+json",
+    "application/vnd.measurementeligibility.v1.2+json",
+    "application/vnd.measurementeligibility.v1.3+json",
+    "application/vnd.measurementresult.v1+json",
+    "application/vnd.measurementresult.v1.1+json",
+    "application/vnd.measurementresult.v1.2+json",
+    "application/vnd.measurementresult.v1.3+json",
+    "application/vnd.measurementvendor.v1+json",
+    "application/vnd.measurementvendor.v1.1+json",
+    "application/vnd.ocmbrands.v1.2+json",
+    "application/vnd.ocmbrands.v1.3+json",
+    "application/vnd.studymanagement.v1+json",
+    "application/vnd.studymanagement.v1.1+json",
+    "application/vnd.studymanagement.v1.2+json",
+    "application/vnd.studymanagement.v1.3+json"
+  ]
+}

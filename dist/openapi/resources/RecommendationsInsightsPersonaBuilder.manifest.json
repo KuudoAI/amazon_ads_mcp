@@ -1,0 +1,62 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "RecommendationsInsightsPersonaBuilder",
+  "tools": [
+    {
+      "operationId": "BandedSize",
+      "method": "POST",
+      "path": "/insights/bandedSize",
+      "preferred_name": "RecommendationsInsightsPersonaBuilder_BandedSize",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "Demographics",
+      "method": "POST",
+      "path": "/insights/demographics",
+      "preferred_name": "RecommendationsInsightsPersonaBuilder_Demographics",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "PrimeVideo",
+      "method": "POST",
+      "path": "/insights/primeVideo",
+      "preferred_name": "RecommendationsInsightsPersonaBuilder_PrimeVideo",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "TopCategoriesPurchased",
+      "method": "POST",
+      "path": "/insights/topCategoriesPurchased",
+      "preferred_name": "RecommendationsInsightsPersonaBuilder_TopCategoriesPurchased",
+      "complexity": {
+        "parameters": 5,
+        "has_body": true,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "TopOverlappingAudiences",
+      "method": "POST",
+      "path": "/insights/topOverlappingAudiences",
+      "preferred_name": "RecommendationsInsightsPersonaBuilder_TopOverlappingAudiences",
+      "complexity": {
+        "parameters": 5,
+        "has_body": true,
+        "responses": 8
+      }
+    }
+  ]
+}

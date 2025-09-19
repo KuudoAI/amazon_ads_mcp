@@ -1,0 +1,8 @@
+{
+  "version": "1.0",
+  "namespace": "AMCAdmin",
+  "content_types": [
+    "application/vnd.amcaudiencesconnections.v1+json",
+    "application/vnd.amcinstances.v1+json"
+  ]
+}

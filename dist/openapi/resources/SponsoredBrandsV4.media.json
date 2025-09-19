@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "namespace": "SponsoredBrandsV4",
+  "content_types": [
+    "application/json",
+    "application/vnd.SponsoredBrands.SponsoredBrandsMigrationApi.v4+json",
+    "application/vnd.sbAdCreativeResource.v4+json",
+    "application/vnd.sbadgroupresource.v4+json",
+    "application/vnd.sbadresource.v4+json",
+    "application/vnd.sbbudgetrecommendation.v4+json",
+    "application/vnd.sbcampaignbudgetusage.v1+json",
+    "application/vnd.sbcampaignresource.v4+json",
+    "application/vnd.sbforecasting.v4+json",
+    "application/vnd.sbinsights.v4+json",
+    "application/vnd.sboptimizationrecommendationresource.v4+json",
+    "application/vnd.sbruleoptimization.v4+json",
+    "application/vnd.sbtargeting.v4+json"
+  ]
+}

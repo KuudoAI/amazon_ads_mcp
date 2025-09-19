@@ -1,0 +1,227 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "CampaignManage",
+  "tools": [
+    {
+      "operationId": "CreateAdAssociation",
+      "method": "POST",
+      "path": "/adsApi/v1/create/adAssociations",
+      "preferred_name": "CampaignManage_CreateAdAssociation",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "CreateAdGroup",
+      "method": "POST",
+      "path": "/adsApi/v1/create/adGroups",
+      "preferred_name": "CampaignManage_CreateAdGroup",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "CreateAd",
+      "method": "POST",
+      "path": "/adsApi/v1/create/ads",
+      "preferred_name": "CampaignManage_CreateAd",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "CreateCampaign",
+      "method": "POST",
+      "path": "/adsApi/v1/create/campaigns",
+      "preferred_name": "CampaignManage_CreateCampaign",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "CreateTarget",
+      "method": "POST",
+      "path": "/adsApi/v1/create/targets",
+      "preferred_name": "CampaignManage_CreateTarget",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DeleteAdAssociation",
+      "method": "POST",
+      "path": "/adsApi/v1/delete/adAssociations",
+      "preferred_name": "CampaignManage_DeleteAdAssociation",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DeleteAdGroup",
+      "method": "POST",
+      "path": "/adsApi/v1/delete/adGroups",
+      "preferred_name": "CampaignManage_DeleteAdGroup",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DeleteAd",
+      "method": "POST",
+      "path": "/adsApi/v1/delete/ads",
+      "preferred_name": "CampaignManage_DeleteAd",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DeleteCampaign",
+      "method": "POST",
+      "path": "/adsApi/v1/delete/campaigns",
+      "preferred_name": "CampaignManage_DeleteCampaign",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DeleteTarget",
+      "method": "POST",
+      "path": "/adsApi/v1/delete/targets",
+      "preferred_name": "CampaignManage_DeleteTarget",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "QueryAdAssociation",
+      "method": "POST",
+      "path": "/adsApi/v1/query/adAssociations",
+      "preferred_name": "CampaignManage_QueryAdAssociation",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "QueryAdGroup",
+      "method": "POST",
+      "path": "/adsApi/v1/query/adGroups",
+      "preferred_name": "CampaignManage_QueryAdGroup",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "QueryAd",
+      "method": "POST",
+      "path": "/adsApi/v1/query/ads",
+      "preferred_name": "CampaignManage_QueryAd",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "QueryCampaign",
+      "method": "POST",
+      "path": "/adsApi/v1/query/campaigns",
+      "preferred_name": "CampaignManage_QueryCampaign",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "QueryTarget",
+      "method": "POST",
+      "path": "/adsApi/v1/query/targets",
+      "preferred_name": "CampaignManage_QueryTarget",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "UpdateAdAssociation",
+      "method": "POST",
+      "path": "/adsApi/v1/update/adAssociations",
+      "preferred_name": "CampaignManage_UpdateAdAssociation",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "UpdateAdGroup",
+      "method": "POST",
+      "path": "/adsApi/v1/update/adGroups",
+      "preferred_name": "CampaignManage_UpdateAdGroup",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "UpdateAd",
+      "method": "POST",
+      "path": "/adsApi/v1/update/ads",
+      "preferred_name": "CampaignManage_UpdateAd",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "UpdateCampaign",
+      "method": "POST",
+      "path": "/adsApi/v1/update/campaigns",
+      "preferred_name": "CampaignManage_UpdateCampaign",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "UpdateTarget",
+      "method": "POST",
+      "path": "/adsApi/v1/update/targets",
+      "preferred_name": "CampaignManage_UpdateTarget",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    }
+  ]
+}

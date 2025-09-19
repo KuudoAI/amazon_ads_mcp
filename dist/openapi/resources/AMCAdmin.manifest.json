@@ -1,0 +1,227 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "AMCAdmin",
+  "tools": [
+    {
+      "operationId": "AmcpLinkListAmcAccounts",
+      "method": "GET",
+      "path": "/amc/accounts",
+      "preferred_name": "AMCAdmin_AmcpLinkListAmcAccounts",
+      "complexity": {
+        "parameters": 2,
+        "has_body": false,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "listInstances",
+      "method": "GET",
+      "path": "/amc/instances",
+      "preferred_name": "AMCAdmin_listInstances",
+      "complexity": {
+        "parameters": 6,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "createInstance",
+      "method": "POST",
+      "path": "/amc/instances",
+      "preferred_name": "AMCAdmin_createInstance",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "deleteInstance",
+      "method": "DELETE",
+      "path": "/amc/instances/{instanceId}",
+      "preferred_name": "AMCAdmin_deleteInstance",
+      "complexity": {
+        "parameters": 4,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getInstance",
+      "method": "GET",
+      "path": "/amc/instances/{instanceId}",
+      "preferred_name": "AMCAdmin_getInstance",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "updateInstance",
+      "method": "PUT",
+      "path": "/amc/instances/{instanceId}",
+      "preferred_name": "AMCAdmin_updateInstance",
+      "complexity": {
+        "parameters": 4,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getInstanceAdvertisers",
+      "method": "GET",
+      "path": "/amc/instances/{instanceId}/advertisers",
+      "preferred_name": "AMCAdmin_getInstanceAdvertisers",
+      "complexity": {
+        "parameters": 8,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "listAdvertiserUpdates",
+      "method": "GET",
+      "path": "/amc/instances/{instanceId}/advertisers/updates",
+      "preferred_name": "AMCAdmin_listAdvertiserUpdates",
+      "complexity": {
+        "parameters": 6,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "createAdvertiserUpdate",
+      "method": "POST",
+      "path": "/amc/instances/{instanceId}/advertisers/updates",
+      "preferred_name": "AMCAdmin_createAdvertiserUpdate",
+      "complexity": {
+        "parameters": 4,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getAdvertiserUpdate",
+      "method": "GET",
+      "path": "/amc/instances/{instanceId}/advertisers/updates/{updateId}",
+      "preferred_name": "AMCAdmin_getAdvertiserUpdate",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getInstanceCollaboration",
+      "method": "GET",
+      "path": "/amc/instances/{instanceId}/collaboration",
+      "preferred_name": "AMCAdmin_getInstanceCollaboration",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "createCollaborationIdMappingTable",
+      "method": "POST",
+      "path": "/amc/instances/{instanceId}/collaboration/idmappingtables",
+      "preferred_name": "AMCAdmin_createCollaborationIdMappingTable",
+      "complexity": {
+        "parameters": 5,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "listCollaborationIdMappingTables",
+      "method": "POST",
+      "path": "/amc/instances/{instanceId}/collaboration/idmappingtables/list",
+      "preferred_name": "AMCAdmin_listCollaborationIdMappingTables",
+      "complexity": {
+        "parameters": 5,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "deleteCollaborationIdMappingTable",
+      "method": "DELETE",
+      "path": "/amc/instances/{instanceId}/collaboration/idmappingtables/{idMappingTableId}",
+      "preferred_name": "AMCAdmin_deleteCollaborationIdMappingTable",
+      "complexity": {
+        "parameters": 6,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getCollaborationIdMappingJobForTrackingId",
+      "method": "GET",
+      "path": "/amc/instances/{instanceId}/collaboration/idmappingtables/{idMappingTableId}/jobTracker/{trackingId}",
+      "preferred_name": "AMCAdmin_getCollaborationIdMappingJobForTrackingId",
+      "complexity": {
+        "parameters": 7,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "listCollaborationIdMappingJobs",
+      "method": "POST",
+      "path": "/amc/instances/{instanceId}/collaboration/idmappingtables/{idMappingTableId}/jobs/list",
+      "preferred_name": "AMCAdmin_listCollaborationIdMappingJobs",
+      "complexity": {
+        "parameters": 6,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getCollaborationIdMappingJob",
+      "method": "GET",
+      "path": "/amc/instances/{instanceId}/collaboration/idmappingtables/{idMappingTableId}/jobs/{jobId}",
+      "preferred_name": "AMCAdmin_getCollaborationIdMappingJob",
+      "complexity": {
+        "parameters": 7,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "refreshCollaborationIdMappingTable",
+      "method": "POST",
+      "path": "/amc/instances/{instanceId}/collaboration/idmappingtables/{idMappingTableId}/refresh",
+      "preferred_name": "AMCAdmin_refreshCollaborationIdMappingTable",
+      "complexity": {
+        "parameters": 6,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "listCollaborationIdNamespaces",
+      "method": "POST",
+      "path": "/amc/instances/{instanceId}/collaboration/idnamespaces/list",
+      "preferred_name": "AMCAdmin_listCollaborationIdNamespaces",
+      "complexity": {
+        "parameters": 5,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "updateInstanceCustomerAwsAccountMetadata",
+      "method": "POST",
+      "path": "/amc/instances/{instanceId}/updateCustomerAwsAccount",
+      "preferred_name": "AMCAdmin_updateInstanceCustomerAwsAccountMetadata",
+      "complexity": {
+        "parameters": 5,
+        "has_body": true,
+        "responses": 7
+      }
+    }
+  ]
+}

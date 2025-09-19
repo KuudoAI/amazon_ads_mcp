@@ -1,0 +1,14 @@
+{
+  "version": "1.0",
+  "namespace": "CreativesAssets",
+  "content_types": [
+    "application/json",
+    "application/vnd.assetsbatchregisterrequest.v1+json",
+    "application/vnd.assetsbatchregisterresponse.v1+json",
+    "application/vnd.creativeassetsgetbatchregisterresponse.v3+json",
+    "application/vnd.creativeassetsgetresponse.v3+json",
+    "application/vnd.creativeassetsregisterresponse.v3+json",
+    "application/vnd.creativeassetssearchassetsresponse.v3+json",
+    "application/vnd.creativeassetsuploadresponse.v3+json"
+  ]
+}

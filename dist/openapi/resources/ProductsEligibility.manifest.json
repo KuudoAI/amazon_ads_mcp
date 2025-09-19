@@ -1,0 +1,29 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "ProductsEligibility",
+  "tools": [
+    {
+      "operationId": "productEligibility",
+      "method": "POST",
+      "path": "/eligibility/product/list",
+      "preferred_name": "ProductsEligibility_productEligibility",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "ProgramEligibility",
+      "method": "POST",
+      "path": "/eligibility/programs",
+      "preferred_name": "ProductsEligibility_ProgramEligibility",
+      "complexity": {
+        "parameters": 5,
+        "has_body": true,
+        "responses": 6
+      }
+    }
+  ]
+}

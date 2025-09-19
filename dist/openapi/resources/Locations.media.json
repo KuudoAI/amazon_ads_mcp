@@ -1,0 +1,7 @@
+{
+  "version": "1.0",
+  "namespace": "Locations",
+  "content_types": [
+    "application/json"
+  ]
+}

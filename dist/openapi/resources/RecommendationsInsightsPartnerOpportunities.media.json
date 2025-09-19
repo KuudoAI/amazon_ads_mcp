@@ -1,0 +1,9 @@
+{
+  "version": "1.0",
+  "namespace": "RecommendationsInsightsPartnerOpportunities",
+  "content_types": [
+    "application/vnd.partneropportunity.v1+json",
+    "application/vnd.partneropportunity.v1.1+json",
+    "application/vnd.partneropportunity.v1.2+json"
+  ]
+}

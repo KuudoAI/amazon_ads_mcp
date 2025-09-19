@@ -1,0 +1,29 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "AccountsAccountBudgets",
+  "tools": [
+    {
+      "operationId": "getAccountBudgetFeatureFlags",
+      "method": "GET",
+      "path": "/accountBudgets/featureFlags",
+      "preferred_name": "AccountsAccountBudgets_getAccountBudgetFeatureFlags",
+      "complexity": {
+        "parameters": 2,
+        "has_body": false,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "updateAccountBudgetFeatureFlags",
+      "method": "POST",
+      "path": "/accountBudgets/featureFlags",
+      "preferred_name": "AccountsAccountBudgets_updateAccountBudgetFeatureFlags",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    }
+  ]
+}

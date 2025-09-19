@@ -1,0 +1,51 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "AudiencesDiscovery",
+  "tools": [
+    {
+      "operationId": "listAudiences",
+      "method": "POST",
+      "path": "/audiences/list",
+      "preferred_name": "AudiencesDiscovery_listAudiences",
+      "complexity": {
+        "parameters": 6,
+        "has_body": true,
+        "responses": 5
+      }
+    },
+    {
+      "operationId": "fetchTaxonomy",
+      "method": "POST",
+      "path": "/audiences/taxonomy/list",
+      "preferred_name": "AudiencesDiscovery_fetchTaxonomy",
+      "complexity": {
+        "parameters": 5,
+        "has_body": true,
+        "responses": 5
+      }
+    },
+    {
+      "operationId": "DspAudienceDelete",
+      "method": "POST",
+      "path": "/dsp/audiences/delete",
+      "preferred_name": "AudiencesDiscovery_DspAudienceDelete",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "DspAudienceEdit",
+      "method": "PUT",
+      "path": "/dsp/audiences/edit",
+      "preferred_name": "AudiencesDiscovery_DspAudienceEdit",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 8
+      }
+    }
+  ]
+}

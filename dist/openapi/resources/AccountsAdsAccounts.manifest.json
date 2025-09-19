@@ -1,0 +1,62 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "AccountsAdsAccounts",
+  "tools": [
+    {
+      "operationId": "RegisterAdsAccount",
+      "method": "POST",
+      "path": "/adsAccounts",
+      "preferred_name": "AccountsAdsAccounts_RegisterAdsAccount",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 5
+      }
+    },
+    {
+      "operationId": "ListAdsAccounts",
+      "method": "POST",
+      "path": "/adsAccounts/list",
+      "preferred_name": "AccountsAdsAccounts_ListAdsAccounts",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 5
+      }
+    },
+    {
+      "operationId": "GetAccount",
+      "method": "GET",
+      "path": "/adsAccounts/{advertisingAccountId}",
+      "preferred_name": "AccountsAdsAccounts_GetAccount",
+      "complexity": {
+        "parameters": 2,
+        "has_body": false,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "CreateTermsToken",
+      "method": "POST",
+      "path": "/termsTokens",
+      "preferred_name": "AccountsAdsAccounts_CreateTermsToken",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 5
+      }
+    },
+    {
+      "operationId": "GetTermsToken",
+      "method": "GET",
+      "path": "/termsTokens/{termsToken}",
+      "preferred_name": "AccountsAdsAccounts_GetTermsToken",
+      "complexity": {
+        "parameters": 2,
+        "has_body": false,
+        "responses": 5
+      }
+    }
+  ]
+}

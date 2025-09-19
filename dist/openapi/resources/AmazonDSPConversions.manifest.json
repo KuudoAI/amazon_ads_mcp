@@ -1,0 +1,194 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "AmazonDSPConversions",
+  "tools": [
+    {
+      "operationId": "dspAmazonAdTagGetEventsByAdTagId",
+      "method": "GET",
+      "path": "/accounts/{accountId}/dsp/adTagEvents/{adTagId}/list",
+      "preferred_name": "AmazonDSPConversions_dspAmazonAdTagGetEventsByAdTagId",
+      "complexity": {
+        "parameters": 11,
+        "has_body": false,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "dspAmazonAdTagGetAdTagByAdvertiserId",
+      "method": "GET",
+      "path": "/accounts/{accountId}/dsp/amazonAdTag",
+      "preferred_name": "AmazonDSPConversions_dspAmazonAdTagGetAdTagByAdvertiserId",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 5
+      }
+    },
+    {
+      "operationId": "dspAmazonBatchGetConversionDefinitionsForOrders",
+      "method": "POST",
+      "path": "/accounts/{accountId}/dsp/batchOrders/conversionDefinitionAssociations",
+      "preferred_name": "AmazonDSPConversions_dspAmazonBatchGetConversionDefinitionsForOrders",
+      "complexity": {
+        "parameters": 4,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "dspAmazonCreateConversionDefinitions",
+      "method": "POST",
+      "path": "/accounts/{accountId}/dsp/conversionDefinitions",
+      "preferred_name": "AmazonDSPConversions_dspAmazonCreateConversionDefinitions",
+      "complexity": {
+        "parameters": 4,
+        "has_body": true,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "dspAmazonUpdateConversionDefinitions",
+      "method": "PUT",
+      "path": "/accounts/{accountId}/dsp/conversionDefinitions",
+      "preferred_name": "AmazonDSPConversions_dspAmazonUpdateConversionDefinitions",
+      "complexity": {
+        "parameters": 4,
+        "has_body": true,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "dspAmazonDeletionRequest",
+      "method": "POST",
+      "path": "/accounts/{accountId}/dsp/conversionDefinitions/delete",
+      "preferred_name": "AmazonDSPConversions_dspAmazonDeletionRequest",
+      "complexity": {
+        "parameters": 4,
+        "has_body": true,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "dspAmazonIngestConversionData",
+      "method": "POST",
+      "path": "/accounts/{accountId}/dsp/conversionDefinitions/eventData",
+      "preferred_name": "AmazonDSPConversions_dspAmazonIngestConversionData",
+      "complexity": {
+        "parameters": 4,
+        "has_body": true,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "dspAmazonListConversionDefinitions",
+      "method": "POST",
+      "path": "/accounts/{accountId}/dsp/conversionDefinitions/list",
+      "preferred_name": "AmazonDSPConversions_dspAmazonListConversionDefinitions",
+      "complexity": {
+        "parameters": 4,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "dspAmazonGetAdTagAssociatedEvent",
+      "method": "GET",
+      "path": "/accounts/{accountId}/dsp/conversionDefinitions/{conversionDefinitionId}/adTagEventAssociations",
+      "preferred_name": "AmazonDSPConversions_dspAmazonGetAdTagAssociatedEvent",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "dspAmazonUpdateAdTagAssociatedEvent",
+      "method": "POST",
+      "path": "/accounts/{accountId}/dsp/conversionDefinitions/{conversionDefinitionId}/adTagEventAssociations",
+      "preferred_name": "AmazonDSPConversions_dspAmazonUpdateAdTagAssociatedEvent",
+      "complexity": {
+        "parameters": 5,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "dspAmazonGetAssociatedMobileAppForConversionDefinition",
+      "method": "GET",
+      "path": "/accounts/{accountId}/dsp/conversionDefinitions/{conversionDefinitionId}/mobileMeasurementPartnerAppRegistration",
+      "preferred_name": "AmazonDSPConversions_dspAmazonGetAssociatedMobileAppForConversionDefinition",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "dspAmazonBatchCreateMobileMeasurementPartnerAppRegistration",
+      "method": "POST",
+      "path": "/accounts/{accountId}/dsp/mobileMeasurementPartners",
+      "preferred_name": "AmazonDSPConversions_dspAmazonBatchCreateMobileMeasurementPartnerAppRegistration",
+      "complexity": {
+        "parameters": 4,
+        "has_body": true,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "dspAmazonBatchUpdateMobileMeasurementPartnerAppRegistration",
+      "method": "PUT",
+      "path": "/accounts/{accountId}/dsp/mobileMeasurementPartners",
+      "preferred_name": "AmazonDSPConversions_dspAmazonBatchUpdateMobileMeasurementPartnerAppRegistration",
+      "complexity": {
+        "parameters": 4,
+        "has_body": true,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "dspAmazonDeleteMeasurementPartnerAppRegistrations",
+      "method": "POST",
+      "path": "/accounts/{accountId}/dsp/mobileMeasurementPartners/delete",
+      "preferred_name": "AmazonDSPConversions_dspAmazonDeleteMeasurementPartnerAppRegistrations",
+      "complexity": {
+        "parameters": 4,
+        "has_body": true,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "dspAmazonListMobileMeasurementPartnerAppRegistrations",
+      "method": "POST",
+      "path": "/accounts/{accountId}/dsp/mobileMeasurementPartners/list",
+      "preferred_name": "AmazonDSPConversions_dspAmazonListMobileMeasurementPartnerAppRegistrations",
+      "complexity": {
+        "parameters": 4,
+        "has_body": true,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "dspAmazonGetAssociatedConversionDefinitionsForOrder",
+      "method": "GET",
+      "path": "/accounts/{accountId}/dsp/orders/{orderId}/conversionDefinitionAssociations",
+      "preferred_name": "AmazonDSPConversions_dspAmazonGetAssociatedConversionDefinitionsForOrder",
+      "complexity": {
+        "parameters": 7,
+        "has_body": false,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "dspAmazonUpdateAssociatedConversionDefinitionsForOrder",
+      "method": "POST",
+      "path": "/accounts/{accountId}/dsp/orders/{orderId}/conversionDefinitionAssociations",
+      "preferred_name": "AmazonDSPConversions_dspAmazonUpdateAssociatedConversionDefinitionsForOrder",
+      "complexity": {
+        "parameters": 5,
+        "has_body": true,
+        "responses": 4
+      }
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "version": "1.0",
+  "namespace": "RecommendationsInsightsTacticalRecommendations",
+  "content_types": [
+    "application/vnd.applyRecommendationsRequest.v1+json",
+    "application/vnd.applyRecommendationsResponse.v1+json",
+    "application/vnd.listRecommendationsRequest.v1+json",
+    "application/vnd.listRecommendationsResponse.v1+json",
+    "application/vnd.recommendation.v1+json",
+    "application/vnd.recommendationApiError.v1+json",
+    "application/vnd.updateRecommendationRequest.v1+json"
+  ]
+}

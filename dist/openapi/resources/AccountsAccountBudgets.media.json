@@ -1,0 +1,8 @@
+{
+  "version": "1.0",
+  "namespace": "AccountsAccountBudgets",
+  "content_types": [
+    "application/vnd.accountBudgetFeatureFlags.v1+json",
+    "application/vnd.accountBudgetFeatureFlagsError.v1+json"
+  ]
+}

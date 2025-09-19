@@ -1,0 +1,62 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "ExportsSnapshots",
+  "tools": [
+    {
+      "operationId": "AdGroupExport",
+      "method": "POST",
+      "path": "/adGroups/export",
+      "preferred_name": "ExportsSnapshots_AdGroupExport",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "AdExport",
+      "method": "POST",
+      "path": "/ads/export",
+      "preferred_name": "ExportsSnapshots_AdExport",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "CampaignExport",
+      "method": "POST",
+      "path": "/campaigns/export",
+      "preferred_name": "ExportsSnapshots_CampaignExport",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "GetExport",
+      "method": "GET",
+      "path": "/exports/{exportId}",
+      "preferred_name": "ExportsSnapshots_GetExport",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "TargetExport",
+      "method": "POST",
+      "path": "/targets/export",
+      "preferred_name": "ExportsSnapshots_TargetExport",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 4
+      }
+    }
+  ]
+}

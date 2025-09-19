@@ -1,0 +1,40 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "RecommendationsInsightsTacticalRecommendations",
+  "tools": [
+    {
+      "operationId": "ApplyRecommendations",
+      "method": "POST",
+      "path": "/recommendations/apply",
+      "preferred_name": "RecommendationsInsightsTacticalRecommendations_ApplyRecommendations",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "ListRecommendations",
+      "method": "POST",
+      "path": "/recommendations/list",
+      "preferred_name": "RecommendationsInsightsTacticalRecommendations_ListRecommendations",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "UpdateRecommendation",
+      "method": "PUT",
+      "path": "/recommendations/{recommendationId}",
+      "preferred_name": "RecommendationsInsightsTacticalRecommendations_UpdateRecommendation",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 5
+      }
+    }
+  ]
+}

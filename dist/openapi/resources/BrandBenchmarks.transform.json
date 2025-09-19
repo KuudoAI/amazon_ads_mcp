@@ -1,0 +1,32 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "BrandBenchmarks",
+  "tools": [
+    {
+      "match": {
+        "operationId": "ListAdvertiserReportMetadata"
+      },
+      "pagination": {
+        "param_name": "nextToken",
+        "response_key": "nextToken",
+        "all_pages": false,
+        "limit_param": "maxResults",
+        "default_limit": 100
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "GetAdvertiserReport"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    }
+  ]
+}

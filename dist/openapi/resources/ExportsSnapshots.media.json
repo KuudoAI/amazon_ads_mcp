@@ -1,0 +1,10 @@
+{
+  "version": "1.0",
+  "namespace": "ExportsSnapshots",
+  "content_types": [
+    "application/vnd.adgroupsexport.v1+json",
+    "application/vnd.adsexport.v1+json",
+    "application/vnd.campaignsexport.v1+json",
+    "application/vnd.targetsexport.v1+json"
+  ]
+}

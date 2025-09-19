@@ -1,0 +1,9 @@
+{
+  "version": "1.0",
+  "namespace": "AmazonDSPAudiences",
+  "content_types": [
+    "application/vnd.dspaudiences.v1+json",
+    "application/vnd.dspaudienceserror.v1+json",
+    "application/vnd.dspaudiencesresponse.v1+json"
+  ]
+}

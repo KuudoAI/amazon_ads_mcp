@@ -1,0 +1,29 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "BrandBenchmarks",
+  "tools": [
+    {
+      "operationId": "ListAdvertiserReportMetadata",
+      "method": "GET",
+      "path": "/insights/brandBenchmarks/advertisers/{advertiserId}/allReportMetadata",
+      "preferred_name": "BrandBenchmarks_ListAdvertiserReportMetadata",
+      "complexity": {
+        "parameters": 6,
+        "has_body": false,
+        "responses": 9
+      }
+    },
+    {
+      "operationId": "GetAdvertiserReport",
+      "method": "GET",
+      "path": "/insights/brandBenchmarks/advertisers/{advertiserId}/reports/{reportType}/indexDates/{indexDate}",
+      "preferred_name": "BrandBenchmarks_GetAdvertiserReport",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 9
+      }
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "MediaPlanningReachForecasting",
+  "tools": [
+    {
+      "operationId": "CreateDeduplicatedReachForecastsV1",
+      "method": "POST",
+      "path": "/mediaPlan/v1/deduplicatedReachForecasts",
+      "preferred_name": "MediaPlanningReachForecasting_CreateDeduplicatedReachForecastsV1",
+      "complexity": {
+        "parameters": 4,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "CreateReachForecastsV1",
+      "method": "POST",
+      "path": "/mediaPlan/v1/reachForecasts",
+      "preferred_name": "MediaPlanningReachForecasting_CreateReachForecastsV1",
+      "complexity": {
+        "parameters": 4,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "ListReachForecastsV1",
+      "method": "POST",
+      "path": "/mediaPlan/v1/reachForecasts/list",
+      "preferred_name": "MediaPlanningReachForecasting_ListReachForecastsV1",
+      "complexity": {
+        "parameters": 4,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "ListReachForecastTargetsV1",
+      "method": "POST",
+      "path": "/mediaPlan/v1/reachForecasts/targets/list",
+      "preferred_name": "MediaPlanningReachForecasting_ListReachForecastTargetsV1",
+      "complexity": {
+        "parameters": 4,
+        "has_body": true,
+        "responses": 7
+      }
+    }
+  ]
+}

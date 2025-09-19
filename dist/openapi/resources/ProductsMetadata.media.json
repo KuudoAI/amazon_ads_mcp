@@ -1,0 +1,9 @@
+{
+  "version": "1.0",
+  "namespace": "ProductsMetadata",
+  "content_types": [
+    "application/json",
+    "application/vnd.productmetadatarequest.v1+json",
+    "application/vnd.productmetadataresponse.v1+json"
+  ]
+}

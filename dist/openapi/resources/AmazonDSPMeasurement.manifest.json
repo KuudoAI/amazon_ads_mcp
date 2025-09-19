@@ -1,0 +1,337 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "AmazonDSPMeasurement",
+  "tools": [
+    {
+      "operationId": "CheckDSPAudienceResearchEligibility",
+      "method": "POST",
+      "path": "/dsp/measurement/eligibility/audienceResearch",
+      "preferred_name": "AmazonDSPMeasurement_CheckDSPAudienceResearchEligibility",
+      "complexity": {
+        "parameters": 5,
+        "has_body": true,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "CheckDSPBrandLiftEligibility",
+      "method": "POST",
+      "path": "/dsp/measurement/eligibility/brandLift",
+      "preferred_name": "AmazonDSPMeasurement_CheckDSPBrandLiftEligibility",
+      "complexity": {
+        "parameters": 5,
+        "has_body": true,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "CheckDSPCreativeTestingEligibility",
+      "method": "POST",
+      "path": "/dsp/measurement/eligibility/creativeTesting",
+      "preferred_name": "AmazonDSPMeasurement_CheckDSPCreativeTestingEligibility",
+      "complexity": {
+        "parameters": 5,
+        "has_body": true,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "CheckDSPOmnichannelMetricsEligibility",
+      "method": "POST",
+      "path": "/dsp/measurement/eligibility/omnichannelMetrics",
+      "preferred_name": "AmazonDSPMeasurement_CheckDSPOmnichannelMetricsEligibility",
+      "complexity": {
+        "parameters": 5,
+        "has_body": true,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "GetDSPAudienceResearchStudies",
+      "method": "GET",
+      "path": "/dsp/measurement/studies/audienceResearch",
+      "preferred_name": "AmazonDSPMeasurement_GetDSPAudienceResearchStudies",
+      "complexity": {
+        "parameters": 7,
+        "has_body": false,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "CreateDSPAudienceResearchStudy",
+      "method": "POST",
+      "path": "/dsp/measurement/studies/audienceResearch",
+      "preferred_name": "AmazonDSPMeasurement_CreateDSPAudienceResearchStudy",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "UpdateDSPAudienceResearchStudy",
+      "method": "PUT",
+      "path": "/dsp/measurement/studies/audienceResearch/{studyId}",
+      "preferred_name": "AmazonDSPMeasurement_UpdateDSPAudienceResearchStudy",
+      "complexity": {
+        "parameters": 4,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "GetDSPAudienceResearchStudyResult",
+      "method": "GET",
+      "path": "/dsp/measurement/studies/audienceResearch/{studyId}/result",
+      "preferred_name": "AmazonDSPMeasurement_GetDSPAudienceResearchStudyResult",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 9
+      }
+    },
+    {
+      "operationId": "GetDSPBrandLiftStudies",
+      "method": "GET",
+      "path": "/dsp/measurement/studies/brandLift",
+      "preferred_name": "AmazonDSPMeasurement_GetDSPBrandLiftStudies",
+      "complexity": {
+        "parameters": 7,
+        "has_body": false,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "CreateDSPBrandLiftStudies",
+      "method": "POST",
+      "path": "/dsp/measurement/studies/brandLift",
+      "preferred_name": "AmazonDSPMeasurement_CreateDSPBrandLiftStudies",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "UpdateDSPBrandLiftStudies",
+      "method": "PUT",
+      "path": "/dsp/measurement/studies/brandLift",
+      "preferred_name": "AmazonDSPMeasurement_UpdateDSPBrandLiftStudies",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "GetDSPCreativeTestingStudies",
+      "method": "GET",
+      "path": "/dsp/measurement/studies/creativeTesting",
+      "preferred_name": "AmazonDSPMeasurement_GetDSPCreativeTestingStudies",
+      "complexity": {
+        "parameters": 7,
+        "has_body": false,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "CreateDSPCreativeTestingStudy",
+      "method": "POST",
+      "path": "/dsp/measurement/studies/creativeTesting",
+      "preferred_name": "AmazonDSPMeasurement_CreateDSPCreativeTestingStudy",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "UpdateDSPCreativeTestingStudy",
+      "method": "PUT",
+      "path": "/dsp/measurement/studies/creativeTesting/{studyId}",
+      "preferred_name": "AmazonDSPMeasurement_UpdateDSPCreativeTestingStudy",
+      "complexity": {
+        "parameters": 4,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "GetDSPCreativeTestingStudyResult",
+      "method": "GET",
+      "path": "/dsp/measurement/studies/creativeTesting/{studyId}/result",
+      "preferred_name": "AmazonDSPMeasurement_GetDSPCreativeTestingStudyResult",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 9
+      }
+    },
+    {
+      "operationId": "GetDSPOmnichannelMetricsStudies",
+      "method": "GET",
+      "path": "/dsp/measurement/studies/omnichannelMetrics",
+      "preferred_name": "AmazonDSPMeasurement_GetDSPOmnichannelMetricsStudies",
+      "complexity": {
+        "parameters": 7,
+        "has_body": false,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "CreateDSPOmnichannelMetricsStudies",
+      "method": "POST",
+      "path": "/dsp/measurement/studies/omnichannelMetrics",
+      "preferred_name": "AmazonDSPMeasurement_CreateDSPOmnichannelMetricsStudies",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "UpdateDSPOmnichannelMetricsStudies",
+      "method": "PUT",
+      "path": "/dsp/measurement/studies/omnichannelMetrics",
+      "preferred_name": "AmazonDSPMeasurement_UpdateDSPOmnichannelMetricsStudies",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "GetDSPOmnichannelMetricsStudyResult",
+      "method": "GET",
+      "path": "/dsp/measurement/studies/omnichannelMetrics/{studyId}/result",
+      "preferred_name": "AmazonDSPMeasurement_GetDSPOmnichannelMetricsStudyResult",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "CheckPlanningEligibility",
+      "method": "POST",
+      "path": "/measurement/planning/eligibility",
+      "preferred_name": "AmazonDSPMeasurement_CheckPlanningEligibility",
+      "complexity": {
+        "parameters": 5,
+        "has_body": true,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "CancelMeasurementStudies",
+      "method": "DELETE",
+      "path": "/measurement/studies",
+      "preferred_name": "AmazonDSPMeasurement_CancelMeasurementStudies",
+      "complexity": {
+        "parameters": 4,
+        "has_body": false,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "GetStudies",
+      "method": "GET",
+      "path": "/measurement/studies",
+      "preferred_name": "AmazonDSPMeasurement_GetStudies",
+      "complexity": {
+        "parameters": 7,
+        "has_body": false,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "GetDSPBrandLiftStudyResult",
+      "method": "GET",
+      "path": "/measurement/studies/brandLift/{studyId}/result",
+      "preferred_name": "AmazonDSPMeasurement_GetDSPBrandLiftStudyResult",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 9
+      }
+    },
+    {
+      "operationId": "GetSurveys",
+      "method": "GET",
+      "path": "/measurement/studies/surveys",
+      "preferred_name": "AmazonDSPMeasurement_GetSurveys",
+      "complexity": {
+        "parameters": 7,
+        "has_body": false,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "CreateSurveys",
+      "method": "POST",
+      "path": "/measurement/studies/surveys",
+      "preferred_name": "AmazonDSPMeasurement_CreateSurveys",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "UpdateSurveys",
+      "method": "PUT",
+      "path": "/measurement/studies/surveys",
+      "preferred_name": "AmazonDSPMeasurement_UpdateSurveys",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "vendorProduct",
+      "method": "POST",
+      "path": "/measurement/vendorProducts/list",
+      "preferred_name": "AmazonDSPMeasurement_vendorProduct",
+      "complexity": {
+        "parameters": 5,
+        "has_body": true,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "omnichannelMetricsBrandSearch",
+      "method": "POST",
+      "path": "/measurement/vendorProducts/omnichannelMetrics/brands/list",
+      "preferred_name": "AmazonDSPMeasurement_omnichannelMetricsBrandSearch",
+      "complexity": {
+        "parameters": 5,
+        "has_body": true,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "vendorProductPolicy",
+      "method": "GET",
+      "path": "/measurement/vendorProducts/policies",
+      "preferred_name": "AmazonDSPMeasurement_vendorProductPolicy",
+      "complexity": {
+        "parameters": 6,
+        "has_body": false,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "vendorProductSurveyQuestionTemplates",
+      "method": "GET",
+      "path": "/measurement/vendorProducts/surveyQuestionTemplates",
+      "preferred_name": "AmazonDSPMeasurement_vendorProductSurveyQuestionTemplates",
+      "complexity": {
+        "parameters": 7,
+        "has_body": false,
+        "responses": 8
+      }
+    }
+  ]
+}

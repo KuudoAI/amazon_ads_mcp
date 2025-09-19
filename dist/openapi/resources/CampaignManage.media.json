@@ -1,0 +1,7 @@
+{
+  "version": "1.0",
+  "namespace": "CampaignManage",
+  "content_types": [
+    "application/json"
+  ]
+}

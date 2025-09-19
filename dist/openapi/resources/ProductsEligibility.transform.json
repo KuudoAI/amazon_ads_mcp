@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "ProductsEligibility",
+  "tools": [
+    {
+      "match": {
+        "operationId": "productEligibility"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "ProgramEligibility"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    }
+  ]
+}

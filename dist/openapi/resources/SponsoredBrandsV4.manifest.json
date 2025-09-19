@@ -1,0 +1,546 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "SponsoredBrandsV4",
+  "tools": [
+    {
+      "operationId": "CreateSponsoredBrandsCampaigns",
+      "method": "POST",
+      "path": "/sb/v4/campaigns",
+      "preferred_name": "SponsoredBrandsV4_CreateSponsoredBrandsCampaigns",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "UpdateSponsoredBrandsCampaigns",
+      "method": "PUT",
+      "path": "/sb/v4/campaigns",
+      "preferred_name": "SponsoredBrandsV4_UpdateSponsoredBrandsCampaigns",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "ListSponsoredBrandsCampaigns",
+      "method": "POST",
+      "path": "/sb/v4/campaigns/list",
+      "preferred_name": "SponsoredBrandsV4_ListSponsoredBrandsCampaigns",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "DeleteSponsoredBrandsCampaigns",
+      "method": "POST",
+      "path": "/sb/v4/campaigns/delete",
+      "preferred_name": "SponsoredBrandsV4_DeleteSponsoredBrandsCampaigns",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "CreateSponsoredBrandsAdGroups",
+      "method": "POST",
+      "path": "/sb/v4/adGroups",
+      "preferred_name": "SponsoredBrandsV4_CreateSponsoredBrandsAdGroups",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "UpdateSponsoredBrandsAdGroups",
+      "method": "PUT",
+      "path": "/sb/v4/adGroups",
+      "preferred_name": "SponsoredBrandsV4_UpdateSponsoredBrandsAdGroups",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "ListSponsoredBrandsAdGroups",
+      "method": "POST",
+      "path": "/sb/v4/adGroups/list",
+      "preferred_name": "SponsoredBrandsV4_ListSponsoredBrandsAdGroups",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "DeleteSponsoredBrandsAdGroups",
+      "method": "POST",
+      "path": "/sb/v4/adGroups/delete",
+      "preferred_name": "SponsoredBrandsV4_DeleteSponsoredBrandsAdGroups",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "CreateSponsoredBrandsBrandVideoAds",
+      "method": "POST",
+      "path": "/sb/v4/ads/brandVideo",
+      "preferred_name": "SponsoredBrandsV4_CreateSponsoredBrandsBrandVideoAds",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "CreateSponsoredBrandsExtendedProductCollectionAds",
+      "method": "POST",
+      "path": "/sb/v4/ads/productCollectionExtended",
+      "preferred_name": "SponsoredBrandsV4_CreateSponsoredBrandsExtendedProductCollectionAds",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "CreateSponsoredBrandsVideoAds",
+      "method": "POST",
+      "path": "/sb/v4/ads/video",
+      "preferred_name": "SponsoredBrandsV4_CreateSponsoredBrandsVideoAds",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "CreateSponsoredBrandsProductCollectionAds",
+      "method": "POST",
+      "path": "/sb/v4/ads/productCollection",
+      "preferred_name": "SponsoredBrandsV4_CreateSponsoredBrandsProductCollectionAds",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "CreateSponsoredBrandStoreSpotlightAds",
+      "method": "POST",
+      "path": "/sb/v4/ads/storeSpotlight",
+      "preferred_name": "SponsoredBrandsV4_CreateSponsoredBrandStoreSpotlightAds",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "UpdateSponsoredBrandsAds",
+      "method": "PUT",
+      "path": "/sb/v4/ads",
+      "preferred_name": "SponsoredBrandsV4_UpdateSponsoredBrandsAds",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "ListSponsoredBrandsAds",
+      "method": "POST",
+      "path": "/sb/v4/ads/list",
+      "preferred_name": "SponsoredBrandsV4_ListSponsoredBrandsAds",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "DeleteSponsoredBrandsAds",
+      "method": "POST",
+      "path": "/sb/v4/ads/delete",
+      "preferred_name": "SponsoredBrandsV4_DeleteSponsoredBrandsAds",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "CreateBrandVideoCreative",
+      "method": "POST",
+      "path": "/sb/ads/creatives/brandVideo",
+      "preferred_name": "SponsoredBrandsV4_CreateBrandVideoCreative",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "CreateExtendedProductCollectionCreative",
+      "method": "POST",
+      "path": "/sb/ads/creatives/productCollectionExtended",
+      "preferred_name": "SponsoredBrandsV4_CreateExtendedProductCollectionCreative",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "CreateVideoCreative",
+      "method": "POST",
+      "path": "/sb/ads/creatives/video",
+      "preferred_name": "SponsoredBrandsV4_CreateVideoCreative",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "CreateProductCollectionCreative",
+      "method": "POST",
+      "path": "/sb/ads/creatives/productCollection",
+      "preferred_name": "SponsoredBrandsV4_CreateProductCollectionCreative",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "CreateStoreSpotlightCreative",
+      "method": "POST",
+      "path": "/sb/ads/creatives/storeSpotlight",
+      "preferred_name": "SponsoredBrandsV4_CreateStoreSpotlightCreative",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "ListCreatives",
+      "method": "POST",
+      "path": "/sb/ads/creatives/list",
+      "preferred_name": "SponsoredBrandsV4_ListCreatives",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "SBTargetingGetNegativeBrands",
+      "method": "GET",
+      "path": "/sb/negativeTargets/brands/recommendations",
+      "preferred_name": "SponsoredBrandsV4_SBTargetingGetNegativeBrands",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "SBOptimizationRecommendation",
+      "method": "POST",
+      "path": "/sb/recommendations/optimization",
+      "preferred_name": "SponsoredBrandsV4_SBOptimizationRecommendation",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getHeadlineRecommendations",
+      "method": "POST",
+      "path": "/sb/recommendations/creative/headline",
+      "preferred_name": "SponsoredBrandsV4_getHeadlineRecommendations",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "GetBudgetRecommendations",
+      "method": "POST",
+      "path": "/sb/campaigns/budgetRecommendations",
+      "preferred_name": "SponsoredBrandsV4_GetBudgetRecommendations",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "SBTargetingGetTargetableCategories",
+      "method": "GET",
+      "path": "/sb/targets/categories",
+      "preferred_name": "SponsoredBrandsV4_SBTargetingGetTargetableCategories",
+      "complexity": {
+        "parameters": 7,
+        "has_body": false,
+        "responses": 5
+      }
+    },
+    {
+      "operationId": "SBTargetingGetTargetableASINCounts",
+      "method": "POST",
+      "path": "/sb/targets/products/count",
+      "preferred_name": "SponsoredBrandsV4_SBTargetingGetTargetableASINCounts",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "SBTargetingGetRefinementsForCategory",
+      "method": "GET",
+      "path": "/sb/targets/categories/{categoryRefinementId}/refinements",
+      "preferred_name": "SponsoredBrandsV4_SBTargetingGetRefinementsForCategory",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 5
+      }
+    },
+    {
+      "operationId": "SBInsightsCampaignInsights",
+      "method": "POST",
+      "path": "/sb/campaigns/insights",
+      "preferred_name": "SponsoredBrandsV4_SBInsightsCampaignInsights",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "CreateBudgetRulesForSBCampaigns",
+      "method": "POST",
+      "path": "/sb/budgetRules",
+      "preferred_name": "SponsoredBrandsV4_CreateBudgetRulesForSBCampaigns",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "UpdateBudgetRulesForSBCampaigns",
+      "method": "PUT",
+      "path": "/sb/budgetRules",
+      "preferred_name": "SponsoredBrandsV4_UpdateBudgetRulesForSBCampaigns",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "GetSBBudgetRulesForAdvertiser",
+      "method": "GET",
+      "path": "/sb/budgetRules",
+      "preferred_name": "SponsoredBrandsV4_GetSBBudgetRulesForAdvertiser",
+      "complexity": {
+        "parameters": 4,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "GetBudgetRuleByRuleIdForSBCampaigns",
+      "method": "GET",
+      "path": "/sb/budgetRules/{budgetRuleId}",
+      "preferred_name": "SponsoredBrandsV4_GetBudgetRuleByRuleIdForSBCampaigns",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "CreateAssociatedBudgetRulesForSBCampaigns",
+      "method": "POST",
+      "path": "/sb/campaigns/{campaignId}/budgetRules",
+      "preferred_name": "SponsoredBrandsV4_CreateAssociatedBudgetRulesForSBCampaigns",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "ListAssociatedBudgetRulesForSBCampaigns",
+      "method": "GET",
+      "path": "/sb/campaigns/{campaignId}/budgetRules",
+      "preferred_name": "SponsoredBrandsV4_ListAssociatedBudgetRulesForSBCampaigns",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "GetCampaignsAssociatedWithSBBudgetRule",
+      "method": "GET",
+      "path": "/sb/budgetRules/{budgetRuleId}/campaigns",
+      "preferred_name": "SponsoredBrandsV4_GetCampaignsAssociatedWithSBBudgetRule",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "DisassociateAssociatedBudgetRuleForSBCampaigns",
+      "method": "DELETE",
+      "path": "/sb/campaigns/{campaignId}/budgetRules/{budgetRuleId}",
+      "preferred_name": "SponsoredBrandsV4_DisassociateAssociatedBudgetRuleForSBCampaigns",
+      "complexity": {
+        "parameters": 4,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "sbCampaignsBudgetUsage",
+      "method": "POST",
+      "path": "/sb/campaigns/budget/usage",
+      "preferred_name": "SponsoredBrandsV4_sbCampaignsBudgetUsage",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "SBCampaignPerformanceForecasts",
+      "method": "POST",
+      "path": "/sb/forecasts",
+      "preferred_name": "SponsoredBrandsV4_SBCampaignPerformanceForecasts",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "CreateSponsoredBrandsOptimizationRules",
+      "method": "POST",
+      "path": "/sb/rules/optimization",
+      "preferred_name": "SponsoredBrandsV4_CreateSponsoredBrandsOptimizationRules",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "UpdateSponsoredBrandsOptimizationRules",
+      "method": "PUT",
+      "path": "/sb/rules/optimization",
+      "preferred_name": "SponsoredBrandsV4_UpdateSponsoredBrandsOptimizationRules",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "AssociateSponsoredBrandsOptimizationRules",
+      "method": "POST",
+      "path": "/sb/rules/optimization/associate",
+      "preferred_name": "SponsoredBrandsV4_AssociateSponsoredBrandsOptimizationRules",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "ListSponsoredBrandsOptimizationRules",
+      "method": "POST",
+      "path": "/sb/rules/optimization/list",
+      "preferred_name": "SponsoredBrandsV4_ListSponsoredBrandsOptimizationRules",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "DisassociateSponsoredBrandsOptimizationRules",
+      "method": "POST",
+      "path": "/sb/rules/optimization/disassociate",
+      "preferred_name": "SponsoredBrandsV4_DisassociateSponsoredBrandsOptimizationRules",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "StartMigrationJob",
+      "method": "POST",
+      "path": "/sb/v4/legacyCampaigns/migrationJob",
+      "preferred_name": "SponsoredBrandsV4_StartMigrationJob",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "MigrationJobResults",
+      "method": "POST",
+      "path": "/sb/v4/legacyCampaigns/migrationJob/results",
+      "preferred_name": "SponsoredBrandsV4_MigrationJobResults",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "MigrationJobStatus",
+      "method": "POST",
+      "path": "/sb/v4/legacyCampaigns/migrationJob/status",
+      "preferred_name": "SponsoredBrandsV4_MigrationJobStatus",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "MigrationResults",
+      "method": "POST",
+      "path": "/sb/v4/legacyCampaigns/overallMigrationResults",
+      "preferred_name": "SponsoredBrandsV4_MigrationResults",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    }
+  ]
+}

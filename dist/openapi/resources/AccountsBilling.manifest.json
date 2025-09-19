@@ -1,0 +1,216 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "AccountsBilling",
+  "tools": [
+    {
+      "operationId": "GetDocument",
+      "method": "GET",
+      "path": "/billing/documents/{documentId}",
+      "preferred_name": "AccountsBilling_GetDocument",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 5
+      }
+    },
+    {
+      "operationId": "PayInvoices",
+      "method": "POST",
+      "path": "/billing/invoices/pay",
+      "preferred_name": "AccountsBilling_PayInvoices",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "bulkGetBillingNotifications",
+      "method": "POST",
+      "path": "/billing/notifications",
+      "preferred_name": "AccountsBilling_bulkGetBillingNotifications",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "CreatePaymentAgreements",
+      "method": "POST",
+      "path": "/billing/paymentAgreements",
+      "preferred_name": "AccountsBilling_CreatePaymentAgreements",
+      "complexity": {
+        "parameters": 4,
+        "has_body": true,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "GetPaymentAgreements",
+      "method": "POST",
+      "path": "/billing/paymentAgreements/list",
+      "preferred_name": "AccountsBilling_GetPaymentAgreements",
+      "complexity": {
+        "parameters": 6,
+        "has_body": false,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "GetCustomerPaymentMethods",
+      "method": "POST",
+      "path": "/billing/paymentMethods/list",
+      "preferred_name": "AccountsBilling_GetCustomerPaymentMethods",
+      "complexity": {
+        "parameters": 6,
+        "has_body": false,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "CreatePaymentProfiles",
+      "method": "POST",
+      "path": "/billing/paymentProfiles",
+      "preferred_name": "AccountsBilling_CreatePaymentProfiles",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "bulkGetBillingStatus",
+      "method": "POST",
+      "path": "/billing/statuses",
+      "preferred_name": "AccountsBilling_bulkGetBillingStatus",
+      "complexity": {
+        "parameters": 0,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "GetBillingProfileAgreementContent",
+      "method": "GET",
+      "path": "/billingProfileAgreementContents/{billingProfileAgreementContentId}",
+      "preferred_name": "AccountsBilling_GetBillingProfileAgreementContent",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 5
+      }
+    },
+    {
+      "operationId": "ApplyBillingProfile",
+      "method": "POST",
+      "path": "/billingProfileUsages",
+      "preferred_name": "AccountsBilling_ApplyBillingProfile",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "GetBillingProfileUsages",
+      "method": "POST",
+      "path": "/billingProfileUsages/list",
+      "preferred_name": "AccountsBilling_GetBillingProfileUsages",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "CreateBillingProfiles",
+      "method": "POST",
+      "path": "/billingProfiles",
+      "preferred_name": "AccountsBilling_CreateBillingProfiles",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "UpdateBillingProfiles",
+      "method": "PUT",
+      "path": "/billingProfiles",
+      "preferred_name": "AccountsBilling_UpdateBillingProfiles",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "GetBillingProfiles",
+      "method": "POST",
+      "path": "/billingProfiles/list",
+      "preferred_name": "AccountsBilling_GetBillingProfiles",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "CreateBillingStatement",
+      "method": "POST",
+      "path": "/billingStatements",
+      "preferred_name": "AccountsBilling_CreateBillingStatement",
+      "complexity": {
+        "parameters": 4,
+        "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "GetBillingStatement",
+      "method": "GET",
+      "path": "/billingStatements/{billingStatementRequestId}",
+      "preferred_name": "AccountsBilling_GetBillingStatement",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "GetBillingInvoiceSummaries",
+      "method": "POST",
+      "path": "/invoiceSummaries/list",
+      "preferred_name": "AccountsBilling_GetBillingInvoiceSummaries",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "getAdvertiserInvoices",
+      "method": "GET",
+      "path": "/invoices",
+      "preferred_name": "AccountsBilling_getAdvertiserInvoices",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "getInvoice",
+      "method": "GET",
+      "path": "/invoices/{invoiceId}",
+      "preferred_name": "AccountsBilling_getInvoice",
+      "complexity": {
+        "parameters": 1,
+        "has_body": false,
+        "responses": 7
+      }
+    }
+  ]
+}

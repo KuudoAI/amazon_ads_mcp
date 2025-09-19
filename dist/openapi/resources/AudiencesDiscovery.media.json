@@ -1,0 +1,8 @@
+{
+  "version": "1.0",
+  "namespace": "AudiencesDiscovery",
+  "content_types": [
+    "application/json",
+    "application/vnd.dspaudiences.v1+json"
+  ]
+}

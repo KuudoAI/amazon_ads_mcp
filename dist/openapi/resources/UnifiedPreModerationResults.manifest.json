@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "UnifiedPreModerationResults",
+  "tools": [
+    {
+      "operationId": "preModeration",
+      "method": "POST",
+      "path": "/preModeration",
+      "preferred_name": "UnifiedPreModerationResults_preModeration",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    }
+  ]
+}

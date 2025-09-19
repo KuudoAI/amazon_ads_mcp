@@ -1,0 +1,128 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "SPSnapshotsSuggestedKeywords",
+  "tools": [
+    {
+      "operationId": "getAdGroupBidRecommendations",
+      "method": "GET",
+      "path": "/v2/sp/adGroups/{adGroupId}/bidRecommendations",
+      "preferred_name": "SPSnapshotsSuggestedKeywords_getAdGroupBidRecommendations",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 3
+      }
+    },
+    {
+      "operationId": "getKeywordBidRecommendations",
+      "method": "GET",
+      "path": "/v2/sp/keywords/{keywordId}/bidRecommendations",
+      "preferred_name": "SPSnapshotsSuggestedKeywords_getKeywordBidRecommendations",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 2
+      }
+    },
+    {
+      "operationId": "createKeywordBidRecommendations",
+      "method": "POST",
+      "path": "/v2/sp/keywords/bidRecommendations",
+      "preferred_name": "SPSnapshotsSuggestedKeywords_createKeywordBidRecommendations",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 3
+      }
+    },
+    {
+      "operationId": "getAdGroupSuggestedKeywords",
+      "method": "GET",
+      "path": "/v2/sp/adGroups/{adGroupId}/suggested/keywords",
+      "preferred_name": "SPSnapshotsSuggestedKeywords_getAdGroupSuggestedKeywords",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 3
+      }
+    },
+    {
+      "operationId": "getAdGroupSuggestedKeywordsEx",
+      "method": "GET",
+      "path": "/v2/sp/adGroups/{adGroupId}/suggested/keywords/extended",
+      "preferred_name": "SPSnapshotsSuggestedKeywords_getAdGroupSuggestedKeywordsEx",
+      "complexity": {
+        "parameters": 6,
+        "has_body": false,
+        "responses": 3
+      }
+    },
+    {
+      "operationId": "getAsinSuggestedKeywords",
+      "method": "GET",
+      "path": "/v2/sp/asins/{asinValue}/suggested/keywords",
+      "preferred_name": "SPSnapshotsSuggestedKeywords_getAsinSuggestedKeywords",
+      "complexity": {
+        "parameters": 4,
+        "has_body": false,
+        "responses": 2
+      }
+    },
+    {
+      "operationId": "bulkGetAsinSuggestedKeywords",
+      "method": "POST",
+      "path": "/v2/sp/asins/suggested/keywords",
+      "preferred_name": "SPSnapshotsSuggestedKeywords_bulkGetAsinSuggestedKeywords",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 2
+      }
+    },
+    {
+      "operationId": "getBidRecommendations",
+      "method": "POST",
+      "path": "/v2/sp/targets/bidRecommendations",
+      "preferred_name": "SPSnapshotsSuggestedKeywords_getBidRecommendations",
+      "complexity": {
+        "parameters": 0,
+        "has_body": true,
+        "responses": 2
+      }
+    },
+    {
+      "operationId": "requestSnapshot",
+      "method": "POST",
+      "path": "/v2/sp/{recordType}/snapshot",
+      "preferred_name": "SPSnapshotsSuggestedKeywords_requestSnapshot",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 2
+      }
+    },
+    {
+      "operationId": "getSnapshotStatus",
+      "method": "GET",
+      "path": "/v2/sp/snapshots/{snapshotId}",
+      "preferred_name": "SPSnapshotsSuggestedKeywords_getSnapshotStatus",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 4
+      }
+    },
+    {
+      "operationId": "downloadSnapshot",
+      "method": "GET",
+      "path": "/v2/sp/snapshots/{snapshotId}/download",
+      "preferred_name": "SPSnapshotsSuggestedKeywords_downloadSnapshot",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 3
+      }
+    }
+  ]
+}

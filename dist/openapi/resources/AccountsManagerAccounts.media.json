@@ -1,0 +1,11 @@
+{
+  "version": "1.0",
+  "namespace": "AccountsManagerAccounts",
+  "content_types": [
+    "application/vnd.createmanageraccountrequest.v1+json",
+    "application/vnd.getmanageraccountsresponse.v1+json",
+    "application/vnd.manageraccount.v1+json",
+    "application/vnd.updateadvertisingaccountsinmanageraccountrequest.v1+json",
+    "application/vnd.updateadvertisingaccountsinmanageraccountresponse.v1+json"
+  ]
+}

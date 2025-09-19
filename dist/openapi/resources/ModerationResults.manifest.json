@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "ModerationResults",
+  "tools": [
+    {
+      "operationId": "moderationResults",
+      "method": "POST",
+      "path": "/moderation/results",
+      "preferred_name": "ModerationResults_moderationResults",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 6
+      }
+    }
+  ]
+}

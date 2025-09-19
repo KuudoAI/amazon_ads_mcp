@@ -1,0 +1,29 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "BrandMetrics",
+  "tools": [
+    {
+      "operationId": "generateBrandMetricsReport",
+      "method": "POST",
+      "path": "/insights/brandMetrics/report",
+      "preferred_name": "BrandMetrics_generateBrandMetricsReport",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 8
+      }
+    },
+    {
+      "operationId": "getBrandMetricsReport",
+      "method": "GET",
+      "path": "/insights/brandMetrics/report/{reportId}",
+      "preferred_name": "BrandMetrics_getBrandMetricsReport",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 8
+      }
+    }
+  ]
+}
