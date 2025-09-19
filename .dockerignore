@@ -18,7 +18,8 @@ htmlcov/
 .mypy_cache/
 .ruff_cache/
 *.egg-info/
-dist/
+# dist/ contains OpenAPI resources needed at runtime - DO NOT IGNORE
+# dist/
 build/
 
 # Environment and secrets
