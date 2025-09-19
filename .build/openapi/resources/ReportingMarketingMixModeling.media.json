@@ -1,1 +1,0 @@
-{"requests":{"POST /mmm/v1/brandGroups/list":"application/json","POST /mmm/v1/reports":"application/json"},"responses":{"POST /mmm/v1/brandGroups/list":["application/json"],"POST /mmm/v1/reports":["application/json"],"DELETE /mmm/v1/reports/{reportId}":["application/json"],"GET /mmm/v1/reports/{reportId}":["application/json"]}}

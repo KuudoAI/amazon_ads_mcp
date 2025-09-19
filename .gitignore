@@ -6,7 +6,7 @@ __pycache__/
 *.egg
 *.egg-info/
 # dist/ folder contains OpenAPI resources needed for runtime - DO NOT IGNORE
-build/
+.build/
 eggs/
 .eggs/
 lib/

@@ -1,1 +1,0 @@
-{"version":"1.0","generated":"2025-08-29T20:18:30.513536Z","namespace":"RecommendationsAudienceInsights","tools":[{"match":{"operationId":"insightsGetAudiencesOverlappingAudiences"},"pagination":{"param_name":"nextToken","response_key":"nextToken","all_pages":true,"limit_param":null,"default_limit":100}}]}

@@ -1,1 +1,0 @@
-{"requests":{},"responses":{"GET /insights/audiences/{audienceId}/overlappingAudiences":["application/vnd.insightsaudiencesoverlap.v2+json","application/vnd.insightserror.v1+json"]}}

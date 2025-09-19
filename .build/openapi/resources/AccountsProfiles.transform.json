@@ -1,1 +1,0 @@
-{"version":"1.0","generated":"2025-08-29T20:18:23.608716Z","namespace":"AccountsProfiles","tools":[{"match":{"operationId":"listProfiles"},"output_transform":{"sample_n":10}},{"match":{"operationId":"getProfileById"},"output_transform":{"sample_n":10}}]}

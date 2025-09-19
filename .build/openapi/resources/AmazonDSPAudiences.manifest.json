@@ -1,1 +1,0 @@
-{"version":"1.0","generated":"2025-08-29T20:18:29.406057Z","namespace":"AmazonDSPAudiences","tools":[{"operationId":"dspCreateAudiencesPost","method":"POST","path":"/dsp/audiences","preferred_name":"dspCreateAudiencesPost","complexity":{"score":45,"factors":{"depth":1,"properties":0,"arrays":true},"threshold_exceeded":false,"reason":""}}]}

@@ -1,1 +1,0 @@
-{"requests":{"POST /dsp/campaigns/targetKpi/recommendations":"application/vnd.gsbtargetkpirecommendation.v1+json"},"responses":{"POST /dsp/campaigns/targetKpi/recommendations":["application/vnd.gsbtargetkpirecommendation.v1+json","application/vnd.spinitialbudgetrecommendation.v3.4+json"]}}
