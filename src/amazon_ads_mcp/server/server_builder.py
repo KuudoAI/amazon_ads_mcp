@@ -320,23 +320,7 @@ class ServerBuilder:
         resource namespaces (matching the .json stem names). Empty set means
         no restriction.
         """
-        raw = os.getenv("AMAZON_AD_API_PACKAGES") or os.getenv("AD_API_PACKAGES")
-        if not raw:
-            return set()
-
-        # Strip surrounding quotes if present (Windows compatibility)
-        raw = raw.strip()
-        if (raw.startswith('"') and raw.endswith('"')) or (raw.startswith("'") and raw.endswith("'")):
-            logger.debug("Stripping quotes from AMAZON_AD_API_PACKAGES value")
-            raw = raw[1:-1]
-
-        # Parse comma-separated values
-        requested = {part.strip().lower() for part in raw.split(",") if part.strip()}
-        logger.debug("Parsed AMAZON_AD_API_PACKAGES: %s", requested)
-        if not requested:
-            return set()
-
-        # Load packages.json to resolve aliases -> namespaces
+        # Load packages.json to resolve aliases -> namespaces and read defaults
         candidates = [
             resources_dir.parent / "packages.json",
             resources_dir / "packages.json",
@@ -344,8 +328,8 @@ class ServerBuilder:
         ]
         packages_path = next((p for p in candidates if p.exists()), None)
 
-        allow: set[str] = set()
         alias_map: Dict[str, str] = {}
+        default_tokens: list[str] = []
         if packages_path:
             try:
                 data = json_load(packages_path)
@@ -355,10 +339,36 @@ class ServerBuilder:
                     for alias, ns in aliases.items():
                         if isinstance(alias, str) and isinstance(ns, str):
                             alias_map[alias.lower()] = ns
+                # Optional defaults list (aliases or namespace stems)
+                defaults_val = data.get("defaults") if isinstance(data, dict) else None
+                if isinstance(defaults_val, list):
+                    default_tokens = [str(v).strip().lower() for v in defaults_val if str(v).strip()]
             except Exception as e:
-                logger.debug("Failed to read aliases from %s: %s", packages_path, e)
+                logger.debug("Failed to read aliases/defaults from %s: %s", packages_path, e)
+
+        # Determine requested tokens from env or defaults
+        raw = os.getenv("AMAZON_AD_API_PACKAGES") or os.getenv("AD_API_PACKAGES")
+        requested: set[str]
+        if raw:
+            raw = raw.strip()
+            # Strip surrounding quotes if present (Windows compatibility)
+            if (raw.startswith('"') and raw.endswith('"')) or (raw.startswith("'") and raw.endswith("'")):
+                logger.debug("Stripping quotes from AMAZON_AD_API_PACKAGES value")
+                raw = raw[1:-1]
+            requested = {part.strip().lower() for part in raw.split(",") if part.strip()}
+            logger.debug("Parsed AMAZON_AD_API_PACKAGES: %s", requested)
+        else:
+            # Use packages.json defaults when available; otherwise fall back to a safe minimal set
+            fallback_defaults = ["profiles", "accounts-ads-accounts"]
+            requested = set(default_tokens or fallback_defaults)
+            logger.info("Using default package allowlist: %s", ", ".join(sorted(requested)))
+
+        if not requested:
+            # If we somehow ended up empty, do not restrict
+            return set()
 
         # Build allowlist: map requested tokens using alias_map when possible.
+        allow: set[str] = set()
         for token in requested:
             # Exact alias -> namespace
             if token in alias_map:
@@ -374,8 +384,6 @@ class ServerBuilder:
                     continue
                 if stem.lower() == token:
                     allow.add(stem)
-            # Also accept values that match NamespaceName case-insensitively
-            # (where files are named that way), covered by stem matching above.
 
         if allow:
             logger.info(
@@ -385,8 +393,7 @@ class ServerBuilder:
             )
         else:
             logger.warning(
-                "AMAZON_AD_API_PACKAGES set, but no matches resolved; loading nothing."
-            )
+                "No packages resolved from requested tokens; loading nothing.")
         return allow
 
     async def _mount_single_resource(

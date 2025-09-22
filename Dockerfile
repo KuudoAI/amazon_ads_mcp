@@ -36,4 +36,4 @@ ENV TRANSPORT=streamable-http \
 
 EXPOSE 9080
 
-CMD ["python", "-m", "amazon_ads_mcp.server.mcp_server", "--transport", "streamable-http", "--host", "0.0.0.0", "--port", "9080"]
+CMD ["python", "-m", "amazon_ads_mcp.server", "--transport", "streamable-http", "--host", "0.0.0.0", "--port", "9080"]

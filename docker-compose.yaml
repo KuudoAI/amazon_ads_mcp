@@ -13,16 +13,12 @@ services:
       - HOST=0.0.0.0
       - PORT=9080
       - LOG_LEVEL=INFO
-      # Token persistence
+      - AMAZON_AD_PACKAGES=profiles,accounts-ads-accounts
       - AMAZON_ADS_TOKEN_PERSIST=true
       - AMAZON_ADS_CACHE_DIR=/app/.cache/amazon-ads-mcp
       # Authentication (configure as needed for your environment)
       # - AUTH_METHOD=openbridge
-      # - OPENBRIDGE_REFRESH_TOKEN=key:secret
-      # - OPENBRIDGE_REMOTE_IDENTITY_ID=ri-123
-      # - AMAZON_AD_API_CLIENT_ID=amzn-client-id  # or legacy AMAZON_ADS_CLIENT_ID
-      # Optional default profile scope
-      # - AMAZON_ADS_PROFILE_ID=1234567890
+
     ports:
       - "9080:9080"
     volumes:
@@ -31,7 +27,7 @@ services:
       # Persist token cache across container restarts
       - cache:/app/.cache
     command: [
-      "python", "-m", "amazon_ads_mcp.server.mcp_server",
+      "python", "-m", "amazon_ads_mcp.server",
       "--transport", "${TRANSPORT:-http}",
       "--host", "${HOST:-0.0.0.0}",
       "--port", "${PORT:-9080}"

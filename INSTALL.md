@@ -20,13 +20,14 @@ git clone https://github.com/KuudoAI/amazon-ads-mcp.git
 cd amazon-ads-mcp
 
 # Install dependencies with uv
+uv venv
 uv sync
 
 # Run the server (stdio mode for Claude Desktop)
-uv run python -m amazon_ads_mcp.server.mcp_server
+uv run python -m amazon_ads_mcp.server
 
 # Or run with HTTP transport
-uv run python -m amazon_ads_mcp.server.mcp_server --transport http --port 9080
+uv run python -m amazon_ads_mcp.server --transport http --port 9080
 ```
 
 **Option B: Using pip**
@@ -43,10 +44,10 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
 # Run the server (stdio mode for Claude Desktop)
-python -m amazon_ads_mcp.server.mcp_server
+python -m amazon_ads_mcp.server
 
 # Or run with HTTP transport
-python -m amazon_ads_mcp.server.mcp_server --transport http --port 9080
+python -m amazon_ads_mcp.server --transport http --port 9080
 ```
 
 ### Path 2: Run with Docker (Recommended for Production)

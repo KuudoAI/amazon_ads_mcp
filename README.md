@@ -64,7 +64,7 @@ The Amazon Ads API MCP SDK is an open-source implementation that provides a robu
 ## 📚 What Is Included In the Amazon Ads MCP?
 There is broad coverage in the MCP server for the published in the Amazon Ads API. Each aligns with a collection of operations within the Amazon Ads API. This includes services like the new [Campaign Management services in the new Amazon Ads API v1](https://advertising.amazon.com/API/docs/en-us/guides/campaign-management/overview), [Exports](https://advertising.amazon.com/API/docs/en-us/guides/exports/overview), [Amazon Marketing Cloud](https://advertising.amazon.com/API/docs/en-us/guides/amazon-marketing-cloud/overview) and many more.
 
-Here is a representitive list of the various Amazon API services in the MCP:
+Here is a representative list of the various Amazon API services in the MCP:
 
 - Accounts
 - Audiences
@@ -138,36 +138,35 @@ If you have your own Amazon Ads API app, or want to create one, the process is d
 1. Go to the [Amazon Developer Console](https://developer.amazon.com/)
 2. Create or select your Login with Amazon application
 3. Note your `Client ID` and `Client Secret`
-4. Set your callback URL to "Allowed Return URLs":
+4. Set your callback URL to "Allowed Return URLs". This is where you are running this server:
    - For production: `https://your-server.com/auth/callback`
    - For local development: `http://localhost:8000/auth/callback`
 
-
+Once you have your app secured and approved by Amazon, you will need the client ID and secret:
 ```bash
 # Amazon Ads API Credentials (required)
+AMAZON_AD_API_CLIENT_ID="your-client-id"
+AMAZON_AD_API_CLIENT_SECRET="your-client-secret"
+```
+Make sure these are in your `.env` file. Also, make sure you set your authorization method to `direct` in the same `.env`:
 
-export AMAZON_AD_API_CLIENT_ID="your-client-id"
-export AMAZON_AD_API_CLIENT_SECRET="your-client-secret"
-
-# OAuth Server Configuration
-export OAUTH_BASE_URL="https://your-server.com"  # Your server's public URL
-# For local development: export OAUTH_BASE_URL="http://localhost:8000"
-export OAUTH_PROXY_REDIRECT_PATH=/auth/callback
+```bash
+AUTH_METHOD=direct
 ```
 
-### Complete Oauth Flow
-To authroize your connection to Amazon, you need to complete an Oauth workflow. First, you need to set your region. Authorization occurs at the region level and not setting your region may cause a failure. The server will default to the `na` region. You can manually set the region with tool `set_active_region`.
+### Complete OAuth Flow
+To authorize your connection to Amazon, you need to complete an OAuth workflow as an end user. First, you need to set your region. Authorization occurs at the region level and not setting your region may cause a failure. The server will default to the `na` region. You can manually set the region with tool `set_active_region`.
 
 * Tool: `set_active_region`
 * Parameters: `na` | `eu` | `fe`
 
-Example: *"Set my current region to `eu`"*
+Example prompt: *"Set my current region to `eu`"*
 
 ### Step 1: Start OAuth 
 
 To connect to Amazon Ads API, you use an MCP tool to start your OAuth flow
 * Tool: `start_oauth_flow`
-* Example: *"Start my OAuth flow"*
+* Example prompt: *"Start my OAuth flow"*
 
 <img src="images/step1.png" alt="Step 1" style="max-width: 600px;">
 
@@ -185,7 +184,7 @@ In the browser window, Amazon will prompt that you approve the request to connec
 
 ### Step 4: Success
 
-If all goes well, you will see a success response. You can close the brwser window and go back to your client. If you see something else, attempt the process again and confirm all your configuration elements are correct
+If all goes well, you will see a success response. You can close the browser window and go back to your client. If you see something else, attempt the process again and confirm all your configuration elements are correct
 
 <img src="images/step4.png" alt="Step 4" style="max-width: 600px;">
 
@@ -195,15 +194,17 @@ If all goes well, you will see a success response. You can close the brwser wind
 To confirm that your MCP server is connected to the Amazon Ads API, check your OAuth status
 
 * Tool: `check_oauth_status`
-* Example: *"Check my OAuth status"*
+* Example prompt: *"Check my OAuth status"*
 
 <img src="images/step5.png" alt="Step 5" style="max-width: 600px;">
+
+You are ready to start interacting with the Amazon Ads API system!
 
 ### Partner Applications: Token Authentication
 You can configure your client, like Claude, to use authentication by supplying a valid access token. This is most appropriate for service accounts, long-lived API keys, CI/CD, applications where authentication is managed separately, or other non-interactive authentication methods.
 
 #### Openbridge Partner App
-As an Ads API Partner application provider, Openbridge offers a ready-to-go gateway to the Amazon Ads API. You log into your Openbridge account, provision a token, then set your token in theyour client config (see below).
+As an Ads API Partner application provider, Openbridge offers a ready-to-go gateway to the Amazon Ads API. You log into your Openbridge account, provision a token, then set your token in your client config (see below).
 
 First, set Openbridge as the auth method:
 
@@ -211,9 +212,11 @@ First, set Openbridge as the auth method:
 AUTH_METHOD=openbridge
 ```
 
-That is it for the server config. You configured the client, like Claude Desktop to pass the token directly.
+That is it for the server config. To access the server, you need configure the client, like Claude Desktop, to pass the token directly. (see [Example MCP Client: Connect Claude Desktop](#example-mcp-client-connect-claude-desktop))
 
-Your Amazon authorizations reside in Openbridge. You first step in your client is to request your current identities: `"List my remote identities"`. Next, you would tell the MCP server to use of of these identities: `"Set my remote identity to <>"`. You can then ask the MCP to `List all of my Amazon Ad profiles` linked to that account. If you do not see an advertiser listed, set a different identity.
+##### Authorized Amazon Accounts
+
+Your Amazon authorizations reside in Openbridge. Your first step in your client is to request your current identities: `"List my remote identities"`. Next, you would tell the MCP server to use one of these identities: `"Set my remote identity to <>"`. You can then ask the MCP to `List all of my Amazon Ad profiles` linked to that account. If you do not see an advertiser listed, set a different identity.
 
 
 ### Set Your Amazon Ads MCP Packages 
@@ -267,7 +270,7 @@ Here is the list of tool packages available in the server:
 - `amc-rule-audience`
 - `amc-ad-audience`
 
-You will note that some are broken up into smaller groupings. For example, Amazon Marketing Cloud has bundles; `amc-ad-audience`, `amc-administration`, `amc-rule-audience`, and `amc-workflow`. This is done to create efficiencies and optimizations that reduce conext limits in many AI clients. 
+You will note that some are broken up into smaller groupings. For example, Amazon Marketing Cloud has bundles; `amc-ad-audience`, `amc-administration`, `amc-rule-audience`, and `amc-workflow`. This is done to create efficiencies and optimizations that reduce context limits in many AI clients. 
 
 ## Understanding Amazon Ads MCP Tools 
 
@@ -280,7 +283,7 @@ Example prefixes:
 - `sd_` → Sponsored Display  
 - `ams_` → Amazon Marketing Stream  
 
-This will tranlate into collections of tools that align with the API operations that are available:
+This will translate into collections of tools that align with the API operations that are available:
 
 **Campaign Management (`cp_`)**
 - `cp_listCampaigns` — List all campaigns  
@@ -316,24 +319,24 @@ Users would see tools like:
 ### Setting Your Advertiser Profile 
 Per Amazon: *Profiles play a crucial role in the Amazon Ads API by determining the management scope for a given call. A profile ID is a required credential to access an advertiser's data and services in a specific marketplace.*
 
-You many not know what profile(s)  authorization grants you access to. You can lists all advertising profiles accessible by your authroization:
+You may not know what profile(s) authorization grants you access to. You can list all advertising profiles accessible by your authorization:
 
 * Tool: `ac_listProfiles`
-* Example: *"List my advertiser profile ids"*
+* Example prompt: *"List my advertiser profile ids"*
 
 Response includes profile details:
 - profileId, countryCode, currencyCode
 - dailyBudget, timezone
 - accountInfo (type: seller/vendor/agency)
 
-Let's assume your list included profile ID `1043817530956285`. You can check for more details by get profile details to confirm this is the one you want to use.
+Let's assume your list included profile ID `1043817530956285`. You can check for more details by getting profile details to confirm this is the one you want to use.
 
 * Tool: `ac_getProfile`    
-* Example: *"Get the details for my profile_id: `1043817530956285`"*
+* Example prompt: *"Get the details for my profile_id: `1043817530956285`"*
 
-Assuming this is the profile you want to use, you need to **set** the profile Amazon requires to API calls:
+Assuming this is the profile you want to use, you need to **set** the profile Amazon requires for API calls:
 * Tool: `set_active_profile`
-* Example: *"Set my active profile id to `1043817530956285`"*
+* Example prompt: *"Set my active profile id to `1043817530956285`"*
 
 When you set the profile, it determines:
 - Which account's data you access
@@ -348,7 +351,7 @@ The region is part of an advertiser profile. When you set an advertiser profile 
 
 * Tool: `set_active_profile`
 
-Example: *"Set my active advertiser profile to `111111111111`"* 
+Example prompt: *"Set my active advertiser profile to `111111111111`"* 
 
 Since profile ID `111111111111` is based in `na`, the region will be set based on the profile region.
 
@@ -369,14 +372,14 @@ When you set a region, the system automatically:
 4. **Preserves other settings** - Keeps profile ID and identity settings intact
 
 
-**IMPORTANT: Avoid Region Mismatch**: *If you attempt to set a region that is not associated with you advertiser profile, the Ads API will reject your requests. For example if a profile ID is attached to `na` and you manually set the region to `eu`, you have created a mismatch which will cause API request failures.*
+**IMPORTANT: Avoid Region Mismatch**: *If you attempt to set a region that is not associated with your advertiser profile, the Ads API will reject your requests. For example, if a profile ID is attached to `na` and you manually set the region to `eu`, you have created a mismatch which will cause API request failures.*
 
 ### Get Active Region
 If you are not sure what region is set, you can check for the region
 * Tool: `get_active_region`
 * Returns: Current region, endpoints, and configuration source
 
-Example: *"What is my current active region?"*
+Example prompt: *"What is my current active region?"*
 
 ## Example MCP Client: Connect Claude Desktop
 
@@ -408,16 +411,16 @@ In this example, we show how to use the bearer token using the Openbridge API ke
         "Accept: application/json, text/event-stream"
       ],
       "env": {
-        "MCP_TIMEOUT": "300",
-        "HOSTNAME": "your_hostname",
-        "PORT": "your_server_port",
-        "MCP_TIMEOUT": "120000",
-        "MCP_REQUEST_TIMEOUT": "60000",
-        "MCP_CONNECTION_TIMEOUT": "10000",
-        "MCP_SERVER_REQUEST_TIMEOUT": "60000",
-        "MCP_TOOL_TIMEOUT": "120000",
-        "MCP_REQUEST_WARNING_THRESHOLD": "10000",
-        "OPENBRIDGE_REFRESH_TOKEN": "your_openbridge_token_here"
+        "MCP_TIMEOUT":"300",
+        "HOSTNAME":"your_hostname",
+        "PORT":"your_server_port",
+        "MCP_TIMEOUT":"120000",
+        "MCP_REQUEST_TIMEOUT":"60000",
+        "MCP_CONNECTION_TIMEOUT":"10000",
+        "MCP_SERVER_REQUEST_TIMEOUT":"60000",
+        "MCP_TOOL_TIMEOUT":"120000",
+        "MCP_REQUEST_WARNING_THRESHOLD":"10000",
+        "OPENBRIDGE_REFRESH_TOKEN":"your_openbridge_token_here"
       }
     }
   }
@@ -425,7 +428,7 @@ In this example, we show how to use the bearer token using the Openbridge API ke
 ```
 **Note**: Replace `hostname`, `port` and `your_openbridge_token_here` with your actual OpenBridge token.
 
-Here is another exmaple, which can be used if you are using Oauth since the `OPENBRIDGE_REFRESH_TOKEN` is not needed:
+Here is another example, which can be used if you are using OAuth since the `OPENBRIDGE_REFRESH_TOKEN` is not needed:
 
 ```json
 {
@@ -438,12 +441,12 @@ Here is another exmaple, which can be used if you are using Oauth since the `OPE
         "http://localhost:9080/mcp"
       ],
       "env": {
-        "MCP_TIMEOUT": "120000",
-        "MCP_REQUEST_TIMEOUT": "60000",
-        "MCP_CONNECTION_TIMEOUT": "10000",
-        "MCP_SERVER_REQUEST_TIMEOUT": "60000",
-        "MCP_TOOL_TIMEOUT": "120000",
-        "MCP_REQUEST_WARNING_THRESHOLD": "10000"
+        "MCP_TIMEOUT":"120000",
+        "MCP_REQUEST_TIMEOUT":"60000",
+        "MCP_CONNECTION_TIMEOUT":"10000",
+        "MCP_SERVER_REQUEST_TIMEOUT":"60000",
+        "MCP_TOOL_TIMEOUT":"120000",
+        "MCP_REQUEST_WARNING_THRESHOLD":"10000"
       }
     }
   }
@@ -454,10 +457,8 @@ Here is another exmaple, which can be used if you are using Oauth since the `OPE
 
 After saving the configuration file, restart Claude Desktop to load the new MCP server.
 
-
-
 ## ⚠️ Context Limits and Active MCP Server Tools
-MCP tool registration and use can impact your AI systems usage limits. Usage limits control how much you can interact with a AI system, like Claude, over a specific time period. As Anthropic states, think of the amnount of information/data used goes draws down on a "conversation budget". That budget determines how many messages you can send to your AI client, or how long you can work, before needing to wait for your limit to reset.
+MCP tool registration and use can impact your AI systems usage limits. Usage limits control how much you can interact with an AI system, like Claude, over a specific time period. As Anthropic states, think of the amount of information/data used as drawing down on a "conversation budget". That budget determines how many messages you can send to your AI client, or how long you can work, before needing to wait for your limit to reset.
 
 MCP Server tools contribute metadata like titles, descriptions, hints, and schemas to the model's context. This metadata is loaded into the LLM’s context window, which acts as its short-term working memory.
 

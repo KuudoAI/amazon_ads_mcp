@@ -49,6 +49,7 @@ cd amazon_ads_mcp
 git checkout -b feature/your-feature-name
 
 # Install dependencies
+uv venv
 uv sync
 
 # Set up pre-commit hooks (if available)
