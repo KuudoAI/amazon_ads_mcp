@@ -411,22 +411,59 @@ In this example, we show how to use the bearer token using the Openbridge API ke
         "Accept: application/json, text/event-stream"
       ],
       "env": {
-        "MCP_TIMEOUT":"300",
-        "HOSTNAME":"your_hostname",
-        "PORT":"your_server_port",
-        "MCP_TIMEOUT":"120000",
-        "MCP_REQUEST_TIMEOUT":"60000",
-        "MCP_CONNECTION_TIMEOUT":"10000",
-        "MCP_SERVER_REQUEST_TIMEOUT":"60000",
-        "MCP_TOOL_TIMEOUT":"120000",
-        "MCP_REQUEST_WARNING_THRESHOLD":"10000",
-        "OPENBRIDGE_REFRESH_TOKEN":"your_openbridge_token_here"
+        "MCP_TIMEOUT": "300",
+        "HOSTNAME": "your_hostname",
+        "PORT": "your_server_port",
+        "MCP_TIMEOUT": "120000",
+        "MCP_REQUEST_TIMEOUT": "60000",
+        "MCP_CONNECTION_TIMEOUT": "10000",
+        "MCP_SERVER_REQUEST_TIMEOUT": "60000",
+        "MCP_TOOL_TIMEOUT": "120000",
+        "MCP_REQUEST_WARNING_THRESHOLD": "10000",
+        "OPENBRIDGE_REFRESH_TOKEN": "your_openbridge_token_here"
       }
     }
   }
 }
 ```
 **Note**: Replace `hostname`, `port` and `your_openbridge_token_here` with your actual OpenBridge token.
+
+**IMPORTANT**: Cursor and Claude Desktop (Windows) have a bug where spaces inside args aren't escaped when it invokes npx, which ends up mangling these values. You can work around it using: [mcp-remote custom headers documentation](https://github.com/geelen/mcp-remote?tab=readme-ov-file#custom-headers). 
+
+The config would look something like this:
+
+
+```json
+{
+  "mcpServers": {
+    "amazon_ads_mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "--allow-http",
+        "mcp-remote",
+        "http://${HOSTNAME}:${PORT}/mcp/",
+        "--header",
+        "Authorization:${AUTH_HEADER}"
+        "--header",
+        "Accept: application/json, text/event-stream"
+      ],
+      "env": {
+        "MCP_TIMEOUT": "300",
+        "HOSTNAME": "your_hostname",
+        "PORT": "your_server_port",
+        "MCP_TIMEOUT": "120000",
+        "MCP_REQUEST_TIMEOUT": "60000",
+        "MCP_CONNECTION_TIMEOUT": "10000",
+        "MCP_SERVER_REQUEST_TIMEOUT": "60000",
+        "MCP_TOOL_TIMEOUT": "120000",
+        "MCP_REQUEST_WARNING_THRESHOLD": "10000",
+        "AUTH_HEADER": "Bearer <your_openbridge_token_here>"
+      }
+    }
+  }
+}
+```
 
 Here is another example, which can be used if you are using OAuth since the `OPENBRIDGE_REFRESH_TOKEN` is not needed:
 
@@ -441,12 +478,12 @@ Here is another example, which can be used if you are using OAuth since the `OPE
         "http://localhost:9080/mcp"
       ],
       "env": {
-        "MCP_TIMEOUT":"120000",
-        "MCP_REQUEST_TIMEOUT":"60000",
-        "MCP_CONNECTION_TIMEOUT":"10000",
-        "MCP_SERVER_REQUEST_TIMEOUT":"60000",
-        "MCP_TOOL_TIMEOUT":"120000",
-        "MCP_REQUEST_WARNING_THRESHOLD":"10000"
+        "MCP_TIMEOUT""120000",
+        "MCP_REQUEST_TIMEOUT": "60000",
+        "MCP_CONNECTION_TIMEOUT": "10000",
+        "MCP_SERVER_REQUEST_TIMEOUT": "60000",
+        "MCP_TOOL_TIMEOUT": "120000",
+        "MCP_REQUEST_WARNING_THRESHOLD": "10000"
       }
     }
   }
@@ -487,6 +524,7 @@ If you're encountering unexpected length issues, review which tools are active. 
 
 **Claude not recognizing the server?**
 - Restart Claude Desktop after configuration changes
+- "Reload Page" in Claude Desktop if the MCP is not active
 - Check the JSON syntax is valid
 - Ensure the server name matches exactly
 
