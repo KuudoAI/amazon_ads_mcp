@@ -326,7 +326,12 @@ class OpenBridgeProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
         return None
 
     async def get_identity_credentials(self, identity_id: str) -> AuthCredentials:
-        """Get Amazon Ads credentials for specific identity."""
+        """Get Amazon Ads credentials for specific identity.
+
+        OpenBridge handles token refresh internally - each call to their
+        /service/amzadv/token/<id> endpoint returns a fresh, valid token.
+        We parse the expiration if possible to enable client-side caching.
+        """
         logger.info(f"Getting credentials for identity {identity_id}")
 
         identity = await self.get_identity(identity_id)
@@ -397,7 +402,38 @@ class OpenBridgeProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
                         "OpenBridge returned 'openbridge' placeholder and AMAZON_AD_API_CLIENT_ID not set"
                     )
 
-            expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+            # Try to parse expiration from the Amazon token if it's a JWT
+            expires_at = None
+            try:
+                # Amazon tokens are usually JWTs we can decode
+                payload = jwt.decode(amazon_ads_token, options={"verify_signature": False})
+                # Check for standard JWT expiration claim
+                if "exp" in payload:
+                    expires_at = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
+                    logger.info(f"Parsed Amazon token expiration: {expires_at}")
+                elif "expires_at" in payload:
+                    expires_at = datetime.fromtimestamp(payload["expires_at"], tz=timezone.utc)
+                    logger.info(f"Parsed Amazon token expiration: {expires_at}")
+            except Exception as e:
+                logger.debug(f"Could not parse Amazon token as JWT: {e}")
+
+            # If we couldn't parse expiration, use a conservative default
+            # OpenBridge should always return fresh tokens, but we use a short
+            # expiration to ensure frequent refresh checks
+            if expires_at is None:
+                expires_at = datetime.now(timezone.utc) + timedelta(minutes=55)
+                logger.info("Using default 55-minute expiration for Amazon token")
+            else:
+                # Check if the token is already expired or about to expire
+                now = datetime.now(timezone.utc)
+                time_until_expiry = expires_at - now
+                if time_until_expiry.total_seconds() < 300:  # Less than 5 minutes
+                    logger.warning(
+                        f"OpenBridge returned token expiring in {time_until_expiry.total_seconds():.0f} seconds!"
+                    )
+                    # OpenBridge should not return expired tokens, but log if it happens
+                    if time_until_expiry.total_seconds() < 0:
+                        logger.error("OpenBridge returned an EXPIRED token! This should not happen.")
 
             # Get the identity's region for the correct endpoint
             identity_region = identity.attributes.get("region", "na").lower()

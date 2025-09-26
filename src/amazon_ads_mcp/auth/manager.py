@@ -152,9 +152,24 @@ class AuthManager:
         :rtype: str
         :raises ValueError: If no authentication method is configured
         """
-        # Check if explicitly set
-        if self.settings.auth_method:
-            return self.settings.auth_method
+        # Check if explicitly set via env or settings override
+        explicit_env_method = os.getenv("AUTH_METHOD") or os.getenv(
+            "AMAZON_ADS_AUTH_METHOD"
+        )
+        if explicit_env_method:
+            return explicit_env_method.strip().lower()
+
+        method_from_settings = (self.settings.auth_method or "").strip().lower()
+        # Treat non-default methods as explicit configuration
+        if method_from_settings and method_from_settings != "openbridge":
+            return method_from_settings
+
+        # Allow explicit openbridge only when credentials are present
+        if (
+            method_from_settings == "openbridge"
+            and self.settings.openbridge_refresh_token
+        ):
+            return "openbridge"
 
         # Auto-detect based on available credentials
         if all(

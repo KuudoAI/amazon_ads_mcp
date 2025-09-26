@@ -790,8 +790,12 @@ class AuthenticatedClient(httpx.AsyncClient):
                 if v:
                     request.headers[k] = v
                     if "authorization" in k.lower():
-                        # Log first 20 chars of token for debugging
-                        logger.info(f"  {k}: {v[:30]}... [REDACTED]")
+                        # Log Bearer prefix and token length for debugging
+                        if v.startswith("Bearer "):
+                            token_len = len(v) - 7  # Subtract "Bearer " length
+                            logger.info(f"  {k}: Bearer [token: {token_len} chars]")
+                        else:
+                            logger.warning(f"  {k}: MISSING 'Bearer ' prefix! Value starts with: {v[:10]}...")
                     else:
                         logger.info(f"  {k}: {v}")
 
