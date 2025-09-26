@@ -146,9 +146,26 @@ class AuthHeaderHook:
         :return: The response, potentially modified
         :rtype: httpx.Response
         """
-        # Log auth-related errors
+        # Log auth-related errors with more detail
         if response.status_code == 401:
-            logger.warning("Received 401 Unauthorized - token may be expired")
+            error_detail = ""
+            try:
+                error_body = response.json()
+                error_detail = f" - Error: {error_body}"
+            except:
+                error_detail = f" - Response: {response.text[:200]}"
+
+            logger.error(f"Received 401 Unauthorized - token may be expired or invalid{error_detail}")
+            logger.error(f"Request URL: {response.request.url}")
+            logger.error(f"Request had headers: {list(response.request.headers.keys())}")
+
+            # Check for specific auth headers
+            auth_header = response.request.headers.get("authorization", "")
+            if not auth_header:
+                logger.error("CRITICAL: No Authorization header in request!")
+            elif not auth_header.startswith("Bearer "):
+                logger.error(f"CRITICAL: Authorization header missing 'Bearer ' prefix: {auth_header[:20]}...")
+
         elif response.status_code == 403:
             logger.warning("Received 403 Forbidden - check permissions")
 
