@@ -19,8 +19,6 @@ from typing import Any, Dict, Optional
 
 try:
     from cryptography.fernet import Fernet
-    from cryptography.hazmat.primitives import hashes
-    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
     CRYPTOGRAPHY_AVAILABLE = True
 except ImportError:
@@ -531,12 +529,14 @@ class PersistentTokenStore(InMemoryTokenStore):
                         f"CRITICAL: Invalid AMAZON_ADS_ENCRYPTION_KEY: {e}\n"
                         f"Previously encrypted tokens will be UNREADABLE!\n"
                         f'Generate a valid key with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"\n'
-                        f"Falling back to machine-derived key (DEV/LOCAL USE ONLY)"
+                        f"Falling back to auto-generated random key"
                     )
 
-            # Check if we're in production-like environment
-            import platform
+            # Generate and persist a strong random key
+            # This ensures we always use strong encryption, never weak deterministic keys
+            key_file = self._cache_dir / ".encryption.key"
 
+            # Check if we're in production-like environment
             is_production = (
                 os.getenv("ENV") in ["production", "prod", "staging"]
                 or os.getenv("ENVIRONMENT") in ["production", "prod", "staging"]
@@ -544,35 +544,44 @@ class PersistentTokenStore(InMemoryTokenStore):
             )
 
             if is_production:
-                logger.error(
+                # In production, warn but don't fail
+                logger.warning(
                     "SECURITY WARNING: No AMAZON_ADS_ENCRYPTION_KEY set in production!\n"
-                    "Machine-derived keys are NOT secure for production use.\n"
-                    "Set AMAZON_ADS_ENCRYPTION_KEY with a secure key immediately.\n"
-                    'Generate one with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"'
+                    "Using auto-generated key. For better security, set an explicit key:\n"
+                    'Generate one with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"\n'
+                    "Then set: export AMAZON_ADS_ENCRYPTION_KEY='<generated-key>'"
                 )
 
-            # Generate a deterministic key based on machine + app
-            # WARNING: This is for DEVELOPMENT/LOCAL use only!
+            if key_file.exists():
+                # Load existing key
+                try:
+                    with open(key_file, 'rb') as f:
+                        key = f.read()
+                    cipher = Fernet(key)
+                    logger.info("Loaded persistent encryption key from cache")
+                    return cipher
+                except Exception as e:
+                    logger.warning(f"Failed to load existing key: {e}, generating new one")
 
-            # Combine machine-specific data for key derivation
-            machine_id = f"{platform.node()}:{platform.machine()}:{os.getuid() if hasattr(os, 'getuid') else ''}"
-            app_id = "amazon-ads-mcp-token-store"
-            seed = f"{machine_id}:{app_id}".encode()
-
-            # Derive a key using PBKDF2
-            kdf = PBKDF2HMAC(
-                algorithm=hashes.SHA256(),
-                length=32,
-                salt=b"amazon-ads-mcp-v1",  # Static salt for deterministic key
-                iterations=100000,
-            )
-            key = base64.urlsafe_b64encode(kdf.derive(seed))
+            # Generate a new random key with strong entropy
+            key = Fernet.generate_key()
             cipher = Fernet(key)
 
-            logger.warning(
-                "Using machine-specific encryption key (DEVELOPMENT USE ONLY).\n"
-                "For production, set AMAZON_ADS_ENCRYPTION_KEY environment variable."
-            )
+            # Save the key for persistence
+            try:
+                key_file.parent.mkdir(parents=True, exist_ok=True)
+                # Set restrictive permissions (owner read/write only)
+                with open(key_file, 'wb') as f:
+                    f.write(key)
+                os.chmod(key_file, 0o600)
+                logger.info(
+                    f"Generated and saved new encryption key to {key_file}\n"
+                    "This strong random key will be reused across sessions.\n"
+                    "For explicit control, set AMAZON_ADS_ENCRYPTION_KEY environment variable."
+                )
+            except Exception as e:
+                logger.warning(f"Could not persist encryption key: {e}")
+
             return cipher
 
         except Exception as e:
@@ -617,8 +626,23 @@ class PersistentTokenStore(InMemoryTokenStore):
                 "data": base64.b64encode(encrypted_bytes).decode("ascii"),
             }
         except Exception as e:
-            logger.error(f"Encryption failed, falling back to plaintext: {e}")
-            return data
+            # Encryption failure is critical - never fall back to plaintext
+            logger.error(f"CRITICAL: Encryption failed: {e}")
+
+            # Check if plaintext persistence is explicitly allowed (for testing only)
+            if os.getenv("AMAZON_ADS_ALLOW_PLAINTEXT_PERSIST") == "true":
+                logger.warning(
+                    "AMAZON_ADS_ALLOW_PLAINTEXT_PERSIST is enabled - storing in plaintext.\n"
+                    "This should ONLY be used for testing!"
+                )
+                return data
+
+            # Raise the exception to prevent silent security downgrade
+            raise ValueError(
+                f"Token encryption failed: {e}\n"
+                "Refusing to store tokens in plaintext.\n"
+                "To allow plaintext storage for testing, set AMAZON_ADS_ALLOW_PLAINTEXT_PERSIST=true"
+            ) from e
 
     def _decrypt_data(self, data: dict) -> dict:
         """Decrypt token data from storage.

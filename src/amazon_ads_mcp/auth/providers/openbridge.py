@@ -347,8 +347,14 @@ class OpenBridgeProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
             response.raise_for_status()
 
             data = response.json()
-            # Log the full response structure for debugging
-            logger.debug(f"OpenBridge token response: {data}")
+            # Log sanitized response metadata (without sensitive tokens)
+            logger.debug(
+                "OpenBridge token response received",
+                extra={
+                    "has_data": "data" in data,
+                    "data_keys": list(data.get("data", {}).keys()) if "data" in data else [],
+                }
+            )
 
             token_data = OpenbridgeTokenResponse(data=data.get("data", {}))
             amazon_ads_token = token_data.get_token()
