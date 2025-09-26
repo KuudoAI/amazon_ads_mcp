@@ -1,0 +1,7 @@
+{
+  "version": "1.0",
+  "namespace": "TestAccount",
+  "content_types": [
+    "application/json"
+  ]
+}
