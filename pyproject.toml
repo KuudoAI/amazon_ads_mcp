@@ -4,7 +4,7 @@ version = "0.1.3"
 description = "Amazon Ads API MCP Server - Implementation for Amazon Advertising API"
 readme = "README.md"
 requires-python = ">=3.10,<4.0"
-dependencies = [ "fastmcp>=2.11.3", "python-dotenv>=1.0.0", "pydantic>=2.5.0", "pydantic-settings>=2.0.0", "httpx>=0.27.0", "pyjwt>=2.8.0", "cryptography>=41.0.0", "openai>=1.0.0",]
+dependencies = [ "fastmcp>=2.11.3", "python-dotenv>=1.0.0", "pydantic>=2.5.0", "pydantic-settings>=2.0.0", "httpx>=0.27.0", "pyjwt>=2.8.0", "cryptography>=41.0.0", "openai>=1.0.0", "PyYAML>=6.0.0",]
 [[project.authors]]
 name = "Amazon Ads API MCP SDK"
 
@@ -89,6 +89,7 @@ httpx = ">=0.27.0"
 pyjwt = "^2.8.0"
 cryptography = "^41.0.0"
 openai = "^1.0.0"
+PyYAML = "^6.0.0"
 
 [tool.poetry.scripts]
 amazon-ads-mcp = "amazon_ads_mcp.server.mcp_server:main"
