@@ -402,13 +402,14 @@ In this example, we show how to use the bearer token using the Openbridge API ke
       "command": "npx",
       "args": [
         "-y",
-        "--allow-http",
-        "mcp-remote",
+        "mcp-remote@latest",
         "http://${HOSTNAME}:${PORT}/mcp/",
+        "--allow-http",
         "--header",
-        "Authorization: Bearer ${OPENBRIDGE_REFRESH_TOKEN}",
+        "Authorization:Bearer ${OPENBRIDGE_REFRESH_TOKEN}",
         "--header",
-        "Accept: application/json, text/event-stream"
+        "Accept:application/json,text/event-stream",
+        "--debug"
       ],
       "env": {
         "MCP_TIMEOUT": "300",
@@ -440,9 +441,9 @@ The config would look something like this:
       "command": "npx",
       "args": [
         "-y",
-        "--allow-http",
         "mcp-remote",
         "http://${HOSTNAME}:${PORT}/mcp/",
+        "--allow-http",
         "--header",
         "Authorization:${AUTH_HEADER}"
         "--header",
@@ -475,7 +476,8 @@ Here is another example, which can be used if you are using OAuth since the `OPE
       "args": [
         "-y",
         "mcp-remote@latest",
-        "http://localhost:9080/mcp"
+        "http://localhost:9080/mcp/",
+        "--allow-http"
       ],
       "env": {
         "MCP_TIMEOUT""120000",
@@ -489,6 +491,8 @@ Here is another example, which can be used if you are using OAuth since the `OPE
   }
 }
 ```
+
+*Note: For various Claude configurations similar to what was shown above, see the [MCP Remote docs](https://github.com/geelen/mcp-remote) for the latest settings/options.*
 
 ### 3. Restart Claude Desktop
 

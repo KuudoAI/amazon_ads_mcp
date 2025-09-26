@@ -534,7 +534,8 @@ class PersistentTokenStore(InMemoryTokenStore):
 
             # Generate and persist a strong random key
             # This ensures we always use strong encryption, never weak deterministic keys
-            key_file = self._cache_dir / ".encryption.key"
+            # Use the parent directory of storage_path for the encryption key
+            key_file = self._storage_path.parent / ".encryption.key"
 
             # Check if we're in production-like environment
             is_production = (
