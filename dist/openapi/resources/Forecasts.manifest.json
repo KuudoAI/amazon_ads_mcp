@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "Forecasts",
+  "tools": [
+    {
+      "operationId": "DSPRetrieveCampaignForecast",
+      "method": "POST",
+      "path": "/adsApi/v1/retrieve/campaignForecasts/dsp",
+      "preferred_name": "Forecasts_DSPRetrieveCampaignForecast",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    }
+  ]
+}
