@@ -482,7 +482,7 @@ Here is another example, which can be used if you are using OAuth since the `OPE
         "--allow-http"
       ],
       "env": {
-        "MCP_TIMEOUT""120000",
+        "MCP_TIMEOUT": "120000",
         "MCP_REQUEST_TIMEOUT": "60000",
         "MCP_CONNECTION_TIMEOUT": "10000",
         "MCP_SERVER_REQUEST_TIMEOUT": "60000",
