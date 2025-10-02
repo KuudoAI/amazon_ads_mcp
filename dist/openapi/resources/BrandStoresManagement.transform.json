@@ -1,0 +1,52 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "BrandStoresManagement",
+  "tools": [
+    {
+      "match": {
+        "operationId": "UpdateBrandStoreEditionPublishVersion"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "UpdateBrandStorePage"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "ListBrandStoreEdition"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "QueryBrandStorePage"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "QueryBrandStoreEditionPublishVersion"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    }
+  ]
+}

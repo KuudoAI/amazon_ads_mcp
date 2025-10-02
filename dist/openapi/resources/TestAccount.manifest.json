@@ -1,0 +1,29 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "TestAccount",
+  "tools": [
+    {
+      "operationId": "GetAccountInformation",
+      "method": "GET",
+      "path": "/testAccounts",
+      "preferred_name": "TestAccount_GetAccountInformation",
+      "complexity": {
+        "parameters": 2,
+        "has_body": false,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "createAccount",
+      "method": "POST",
+      "path": "/testAccounts",
+      "preferred_name": "TestAccount_createAccount",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 7
+      }
+    }
+  ]
+}

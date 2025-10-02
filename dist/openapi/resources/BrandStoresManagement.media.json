@@ -1,0 +1,7 @@
+{
+  "version": "1.0",
+  "namespace": "BrandStoresManagement",
+  "content_types": [
+    "application/json"
+  ]
+}

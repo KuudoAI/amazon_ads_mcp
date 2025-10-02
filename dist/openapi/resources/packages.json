@@ -3,6 +3,9 @@
   "generated": "auto",
   "packages": {
     "profiles": "AccountsProfiles",
+    "test-account": "TestAccount",
+    "forecasts": "Forecasts",
+    "brand-stores-management": "BrandStoresManagement",
     "campaign-manage": "CampaignManage",
     "accounts-manager-accounts": "AccountsManagerAccounts",
     "accounts-ads-accounts": "AccountsAdsAccounts",
@@ -49,6 +52,9 @@
   },
   "prefixes": {
     "AccountsProfiles": "ac",
+    "TestAccount": "test",
+    "Forecasts": "fc",
+    "BrandStoresManagement": "bsm",
     "CampaignManage": "cm",
     "AccountsManagerAccounts": "ac",
     "AccountsAdsAccounts": "ac",
@@ -95,6 +101,9 @@
   },
   "aliases": {
     "profiles": "AccountsProfiles",
+    "test-account": "TestAccount",
+    "forecasts": "Forecasts",
+    "brand-stores-management": "BrandStoresManagement",
     "campaign-manage": "CampaignManage",
     "accounts-manager-accounts": "AccountsManagerAccounts",
     "accounts-ads-accounts": "AccountsAdsAccounts",

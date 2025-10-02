@@ -1,0 +1,62 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "BrandStoresManagement",
+  "tools": [
+    {
+      "operationId": "UpdateBrandStoreEditionPublishVersion",
+      "method": "POST",
+      "path": "/adsApi/v1/update/brandStoreEditionPublishVersions",
+      "preferred_name": "BrandStoresManagement_UpdateBrandStoreEditionPublishVersion",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "UpdateBrandStorePage",
+      "method": "POST",
+      "path": "/adsApi/v1/update/brandStorePages",
+      "preferred_name": "BrandStoresManagement_UpdateBrandStorePage",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "ListBrandStoreEdition",
+      "method": "GET",
+      "path": "/adsApi/v1/brandStoreEditions",
+      "preferred_name": "BrandStoresManagement_ListBrandStoreEdition",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "QueryBrandStorePage",
+      "method": "POST",
+      "path": "/adsApi/v1/query/brandStorePages",
+      "preferred_name": "BrandStoresManagement_QueryBrandStorePage",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "QueryBrandStoreEditionPublishVersion",
+      "method": "POST",
+      "path": "/adsApi/v1/query/brandStoreEditionPublishVersions",
+      "preferred_name": "BrandStoresManagement_QueryBrandStoreEditionPublishVersion",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    }
+  ]
+}

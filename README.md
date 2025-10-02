@@ -249,6 +249,8 @@ Here is the list of tool packages available in the server:
 - `dsp-target-kpi-recommendations`
 - `amazon-attribution`
 - `audience-insights`
+- `forecasts`
+- `brand-store-manangement`
 - `partner-opportunities`
 - `tactical-recommendations`
 - `persona-builder`
