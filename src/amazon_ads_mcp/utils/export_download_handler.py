@@ -107,9 +107,12 @@ class ExportDownloadHandler:
         path_parts = parsed.path.strip("/").split("/")
 
         # Check for S3 offline report storage
-        if parsed.hostname and "amazonaws.com" in parsed.hostname:
+        # Validate hostname is legitimate AWS domain
+        hostname = (parsed.hostname or "").lower()
+        is_aws_domain = hostname.endswith(".amazonaws.com") or hostname == "amazonaws.com"
+        if hostname and is_aws_domain:
             if any(
-                pattern in parsed.hostname
+                pattern in hostname
                 for pattern in [
                     "offline-report-storage",
                     "report-storage",

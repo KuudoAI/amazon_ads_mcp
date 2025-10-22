@@ -180,7 +180,7 @@ class TestAuthenticatedClient:
             
             # Verify URL was updated to EU endpoint
             sent_request = mock_send.call_args[0][0]
-            assert "advertising-api-eu.amazon.com" in str(sent_request.url)
+            assert sent_request.url.host == "advertising-api-eu.amazon.com"
         set_region_override(None)
     
     async def test_error_handling(self, authenticated_client):

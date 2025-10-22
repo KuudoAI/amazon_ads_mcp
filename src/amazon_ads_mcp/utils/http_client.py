@@ -642,9 +642,15 @@ class AuthenticatedClient(httpx.AsyncClient):
         # 3) AUTH-AWARE REGIONAL ENDPOINT FIX AND CORRECT AUTH HEADERS (only for Amazon Ads API calls)
         # Get the current URL (may have been modified by previous steps)
         current_url = str(request.url)
-        u_host = urlparse(current_url).netloc.lower()
+        parsed_url = urlparse(current_url)
+        u_host = (parsed_url.hostname or parsed_url.netloc or "").lower()
+        # Validate hostname is legitimate Amazon domain
+        is_amazon_ads_domain = (
+            "advertising-api" in u_host
+            and (u_host.endswith(".amazon.com") or u_host == "amazon.com")
+        )
         is_ads_api = (
-            ("advertising-api" in u_host and "amazon.com" in u_host)
+            is_amazon_ads_domain
             or path.startswith("/v2/")
             or path.startswith("/reporting/")
             or ("/amc/" in path)
