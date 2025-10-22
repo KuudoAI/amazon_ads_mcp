@@ -172,7 +172,10 @@ def resolve_download_accept_headers(
     from urllib.parse import urlparse
 
     parsed = urlparse(url)
-    if parsed.hostname and "amazonaws.com" in parsed.hostname:
+    # Validate hostname is legitimate AWS domain
+    hostname = (parsed.hostname or "").lower()
+    is_aws_domain = hostname.endswith(".amazonaws.com") or hostname == "amazonaws.com"
+    if hostname and is_aws_domain:
         # S3 URLs don't need Accept headers - they serve what they have
         return []
 

@@ -1224,7 +1224,12 @@ def create_auth_middleware(
 
         # Auto-configure OpenBridge if the endpoint is detected
         if config.refresh_token_enabled and config.refresh_token_endpoint:
-            if "openbridge.io" in config.refresh_token_endpoint:
+            # Validate hostname is legitimate OpenBridge domain
+            from urllib.parse import urlparse
+            parsed_endpoint = urlparse(config.refresh_token_endpoint)
+            endpoint_host = (parsed_endpoint.hostname or "").lower()
+            is_openbridge = endpoint_host.endswith(".openbridge.io") or endpoint_host == "openbridge.io"
+            if is_openbridge:
                 logger.info("Auto-configuring OpenBridge authentication")
                 # Use OpenBridge-specific configuration
                 config = create_openbridge_config()
