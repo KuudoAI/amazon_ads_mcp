@@ -6,6 +6,7 @@ All region mappings should be defined here to avoid duplication.
 """
 
 from typing import Dict, Literal, Optional
+from urllib.parse import urlparse
 
 # Type alias for region codes
 RegionCode = Literal["na", "eu", "fe"]
@@ -120,14 +121,19 @@ class RegionConfig:
         if not url:
             return cls.DEFAULT_REGION
 
-        url_lower = url.lower()
+        # Parse URL and extract hostname only
+        parsed = urlparse(url)
+        hostname = (parsed.hostname or parsed.netloc or "").lower()
 
-        # Check for EU indicators
-        if "-eu." in url_lower or ".co.uk" in url_lower or "api-eu" in url_lower:
+        if not hostname:
+            return cls.DEFAULT_REGION
+
+        # Check for EU indicators in hostname only
+        if "-eu." in hostname or hostname.endswith(".co.uk") or "api-eu" in hostname:
             return "eu"
 
-        # Check for FE indicators
-        if "-fe." in url_lower or ".co.jp" in url_lower or "api-fe" in url_lower:
+        # Check for FE indicators in hostname only
+        if "-fe." in hostname or hostname.endswith(".co.jp") or "api-fe" in hostname:
             return "fe"
 
         # Default to NA
