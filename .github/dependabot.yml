@@ -4,8 +4,8 @@
 # https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 version: 2
 updates:
-  # Python dependencies managed by uv
-  - package-ecosystem: "uv"
+  # Python dependencies (pip reads pyproject.toml)
+  - package-ecosystem: "pip"
     directory: "/"
     schedule:
       interval: "weekly"
