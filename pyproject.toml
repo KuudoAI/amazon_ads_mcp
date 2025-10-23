@@ -18,9 +18,6 @@ dev = [ "black>=25.1.0", "isort>=6.0.1", "mypy>=1.18.1", "pytest>=8.4.2", "pytes
 [project.license]
 text = "MIT"
 
-[project.optional-dependencies]
-dev = [ "pytest>=7.4.0", "pytest-asyncio>=0.21.0", "ruff>=0.1.0", "black>=23.0.0", "isort>=5.12.0", "mypy>=1.7.0", "types-pyjwt>=1.7.1",]
-
 [project.scripts]
 amazon-ads-mcp = "amazon_ads_mcp.server.mcp_server:main"
 
@@ -106,11 +103,11 @@ omit = [ "*/tests/*", "*/debug/*",]
 exclude_lines = [ "pragma: no cover", "def __repr__", "if self.debug:", "if settings.DEBUG", "raise AssertionError", "raise NotImplementedError", "if 0:", "if __name__ == .__main__.:", "class .*\\bProtocol\\):", "@(abc\\.)?abstractmethod",]
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^7.4.0"
-pytest-asyncio = "^0.21.0"
-black = "^23.0.0"
-isort = "^5.12.0"
-flake8 = "^6.0.0"
-mypy = "^1.7.0"
+pytest = "^8.4.2"
+pytest-asyncio = "^1.2.0"
+black = "^25.1.0"
+isort = "^6.0.1"
+ruff = "^0.13.0"
+mypy = "^1.18.1"
 types-pyjwt = "^1.7.1"
 types-python-dotenv = "^1.0.0"
