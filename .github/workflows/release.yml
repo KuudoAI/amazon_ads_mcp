@@ -233,7 +233,7 @@ jobs:
           git push origin main
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.new_version.outputs.version }}
           name: Release v${{ steps.new_version.outputs.version }}
