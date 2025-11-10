@@ -103,7 +103,7 @@ omit = [ "*/tests/*", "*/debug/*",]
 exclude_lines = [ "pragma: no cover", "def __repr__", "if self.debug:", "if settings.DEBUG", "raise AssertionError", "raise NotImplementedError", "if 0:", "if __name__ == .__main__.:", "class .*\\bProtocol\\):", "@(abc\\.)?abstractmethod",]
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.4.2"
+pytest = "^9.0.0"
 pytest-asyncio = "^1.2.0"
 black = "^25.1.0"
 isort = "^6.0.1"
