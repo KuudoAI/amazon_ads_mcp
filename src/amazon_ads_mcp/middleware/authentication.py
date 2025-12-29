@@ -521,54 +521,54 @@ class RefreshTokenMiddleware(Middleware):
             >>> # This method is called automatically by FastMCP
             >>> # when requests are processed through the middleware chain
         """
-        if not self.config.enabled or not self.config.refresh_token_enabled:
-            return await call_next(context)
-
         try:
             # Get headers from the context if available
             auth_header = ""
-            if context.fastmcp_context:
+            if context.fastmcp_context and context.fastmcp_context.request_context:
                 request = context.fastmcp_context.request_context.request
                 if request and hasattr(request, "headers"):
                     auth_header = request.headers.get("authorization", "")
 
-            if not auth_header:
-                return await call_next(context)
+            if auth_header:
+                # Extract token more robustly - handle case variations and extra whitespace
+                parts = auth_header.split(" ", 1)
+                if len(parts) == 2 and parts[0].lower() == "bearer":
+                    token = parts[1].strip()  # Remove any leading/trailing whitespace
 
-            # Extract token more robustly - handle case variations and extra whitespace
-            parts = auth_header.split(" ", 1)
-            if len(parts) != 2 or parts[0].lower() != "bearer":
-                return await call_next(context)
+                    # CRITICAL: Always set refresh token in provider if available (for OpenBridge)
+                    # This MUST happen even if config.enabled is False, so tools can use the token
+                    # The provider needs the refresh token to authenticate API calls
+                    if self.auth_manager and hasattr(self.auth_manager, "provider"):
+                        provider = self.auth_manager.provider
+                        if hasattr(provider, "set_refresh_token"):
+                            self.logger.debug(
+                                "Setting refresh token in OpenBridge provider from Authorization header"
+                            )
+                            provider.set_refresh_token(token)
 
-            token = parts[1].strip()  # Remove any leading/trailing whitespace
+                    # JWT conversion processing (only if enabled)
+                    if self.config.enabled and self.config.refresh_token_enabled:
+                        # Check if this matches the refresh token pattern for JWT conversion
+                        if self.config.refresh_token_pattern and self.config.refresh_token_pattern(
+                            token
+                        ):
+                            self.logger.debug("Detected refresh token format, checking cache...")
 
-            # Check if this matches the refresh token pattern
-            if self.config.refresh_token_pattern and self.config.refresh_token_pattern(
-                token
-            ):
-                self.logger.debug("Detected refresh token format, checking cache...")
+                            jwt_token = await self._get_cached_or_convert_jwt(token)
+                            if jwt_token:
+                                self.logger.debug("JWT token ready (cached or converted)")
+                                # Store the JWT in context-safe storage for the JWT middleware to use
+                                jwt_token_var.set(jwt_token)
+                            else:
+                                self.logger.error("Failed to convert refresh token to JWT")
+                        else:
+                            self.logger.debug(
+                                "Token does not match refresh token pattern - skipping JWT conversion"
+                            )
 
-                # If auth_manager with OpenBridge provider is available, update its refresh token
-                if self.auth_manager and hasattr(self.auth_manager, "provider"):
-                    provider = self.auth_manager.provider
-                    if hasattr(provider, "set_refresh_token"):
-                        self.logger.debug(
-                            "Setting refresh token in OpenBridge provider"
-                        )
-                        provider.set_refresh_token(token)
-
-                jwt_token = await self._get_cached_or_convert_jwt(token)
-                if jwt_token:
-                    self.logger.debug("JWT token ready (cached or converted)")
-                    # Store the JWT in context-safe storage for the JWT middleware to use
-                    jwt_token_var.set(jwt_token)
-                else:
-                    self.logger.error("Failed to convert refresh token to JWT")
-            else:
-                self.logger.debug(
-                    "Token does not match refresh token pattern - skipping conversion"
-                )
-
+        except ToolError:
+            # Let ToolError propagate - it's handled by FastMCP
+            raise
         except Exception as e:
             self.logger.error(f"RefreshTokenMiddleware error: {e}")
 
@@ -739,7 +739,7 @@ class JWTAuthenticationMiddleware(Middleware):
             else:
                 # Get token from headers via context
                 auth_header = ""
-                if context.fastmcp_context:
+                if context.fastmcp_context and context.fastmcp_context.request_context:
                     request = context.fastmcp_context.request_context.request
                     if request and hasattr(request, "headers"):
                         auth_header = request.headers.get("authorization", "")
@@ -1379,6 +1379,9 @@ def create_openbridge_config() -> AuthConfig:
     # OpenBridge-specific settings
     config.jwt_verify_iss = False  # Don't validate issuer for OpenBridge
     config.jwt_verify_aud = False  # Don't validate audience for OpenBridge
+
+    # Respect AUTH_ENABLED environment variable
+    config.load_from_env()
 
     return config
 

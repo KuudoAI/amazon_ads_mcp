@@ -7,7 +7,7 @@ Settings are loaded from environment variables and .env files.
 
 from typing import Literal, Optional
 
-from pydantic import Field, field_validator
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from ..utils.region_config import RegionConfig
@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     :type amazon_ads_client_secret: Optional[str]
     :param amazon_ads_refresh_token: Amazon Ads API Refresh Token for direct auth
     :type amazon_ads_refresh_token: Optional[str]
-    :param openbridge_refresh_token: OpenBridge refresh token (key:secret format)
+    :param openbridge_refresh_token: OpenBridge API key (aka refresh token)
     :type openbridge_refresh_token: Optional[str]
     :param openbridge_remote_identity_id: OpenBridge remote identity ID
     :type openbridge_remote_identity_id: Optional[str]
@@ -100,7 +100,9 @@ class Settings(BaseSettings):
 
     # Openbridge Configuration
     openbridge_refresh_token: Optional[str] = Field(
-        None, description="Openbridge Refresh Token (format: key:secret)"
+        None,
+        validation_alias=AliasChoices("OPENBRIDGE_REFRESH_TOKEN", "OPENBRIDGE_API_KEY"),
+        description="OpenBridge API key (aka refresh token)",
     )
     openbridge_remote_identity_id: Optional[str] = Field(
         None, description="Openbridge Remote Identity ID for Amazon Ads"

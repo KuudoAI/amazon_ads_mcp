@@ -192,7 +192,7 @@ class AuthManager:
         raise ValueError(
             "No authentication method configured. Please set one of:\n"
             "- For direct auth: AD_API_CLIENT_ID, AD_API_CLIENT_SECRET, AD_API_REFRESH_TOKEN\n"
-            "- For OpenBridge: OPENBRIDGE_REFRESH_TOKEN\n"
+            "- For OpenBridge: OPENBRIDGE_REFRESH_TOKEN (or OPENBRIDGE_API_KEY)\n"
             "- Or explicitly set AUTH_METHOD environment variable"
         )
 

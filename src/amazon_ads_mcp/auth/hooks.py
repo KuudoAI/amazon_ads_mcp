@@ -152,7 +152,7 @@ class AuthHeaderHook:
             try:
                 error_body = response.json()
                 error_detail = f" - Error: {error_body}"
-            except:
+            except Exception:
                 error_detail = f" - Response: {response.text[:200]}"
 
             logger.error(f"Received 401 Unauthorized - token may be expired or invalid{error_detail}")

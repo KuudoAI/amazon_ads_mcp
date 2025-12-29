@@ -1,13 +1,13 @@
 # Core dependencies
-fastmcp>=2.12.2
+fastmcp>=2.14.1
 httpx[http2]>=0.28.1
-pydantic>=2.11.9
-pydantic-settings>=2.10.1
-python-dotenv>=1.1.1
+pydantic>=2.12.5
+pydantic-settings>=2.12.0
+python-dotenv>=1.2.1
 PyJWT>=2.10.1
 PyYAML>=6.0.2
 jsonschema>=4.25.1
-openai>=1.108.0
+openai>=1.109.1
 
 # Development dependencies (optional)
 # Install with: pip install -r requirements-dev.txt

@@ -408,7 +408,7 @@ In this example, we show how to use the bearer token using the Openbridge API ke
         "http://${HOSTNAME}:${PORT}/mcp/",
         "--allow-http",
         "--header",
-        "Authorization:Bearer ${OPENBRIDGE_REFRESH_TOKEN}",
+        "Authorization:Bearer ${OPENBRIDGE_API_KEY}",
         "--header",
         "Accept:application/json,text/event-stream",
         "--debug"
@@ -423,7 +423,7 @@ In this example, we show how to use the bearer token using the Openbridge API ke
         "MCP_SERVER_REQUEST_TIMEOUT": "60000",
         "MCP_TOOL_TIMEOUT": "120000",
         "MCP_REQUEST_WARNING_THRESHOLD": "10000",
-        "OPENBRIDGE_REFRESH_TOKEN": "your_openbridge_token_here"
+        "OPENBRIDGE_API_KEY": "your_openbridge_token_here"
       }
     }
   }
@@ -468,7 +468,7 @@ The config would look something like this:
 }
 ```
 
-Here is another example, which can be used if you are using OAuth since the `OPENBRIDGE_REFRESH_TOKEN` is not needed:
+Here is another example, which can be used if you are using OAuth since the `OPENBRIDGE_API_KEY` is not needed:
 
 ```json
 {
