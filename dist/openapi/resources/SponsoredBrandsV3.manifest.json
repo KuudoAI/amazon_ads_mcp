@@ -15,127 +15,6 @@
       }
     },
     {
-      "operationId": "listKeywords",
-      "method": "GET",
-      "path": "/sb/keywords",
-      "preferred_name": "SponsoredBrandsV3_listKeywords",
-      "complexity": {
-        "parameters": 12,
-        "has_body": false,
-        "responses": 1
-      }
-    },
-    {
-      "operationId": "updateKeywords",
-      "method": "PUT",
-      "path": "/sb/keywords",
-      "preferred_name": "SponsoredBrandsV3_updateKeywords",
-      "complexity": {
-        "parameters": 2,
-        "has_body": true,
-        "responses": 1
-      }
-    },
-    {
-      "operationId": "createKeywords",
-      "method": "POST",
-      "path": "/sb/keywords",
-      "preferred_name": "SponsoredBrandsV3_createKeywords",
-      "complexity": {
-        "parameters": 2,
-        "has_body": true,
-        "responses": 1
-      }
-    },
-    {
-      "operationId": "getKeyword",
-      "method": "GET",
-      "path": "/sb/keywords/{keywordId}",
-      "preferred_name": "SponsoredBrandsV3_getKeyword",
-      "complexity": {
-        "parameters": 4,
-        "has_body": false,
-        "responses": 2
-      }
-    },
-    {
-      "operationId": "archiveKeyword",
-      "method": "DELETE",
-      "path": "/sb/keywords/{keywordId}",
-      "preferred_name": "SponsoredBrandsV3_archiveKeyword",
-      "complexity": {
-        "parameters": 3,
-        "has_body": false,
-        "responses": 2
-      }
-    },
-    {
-      "operationId": "listNegativeKeywords",
-      "method": "GET",
-      "path": "/sb/negativeKeywords",
-      "preferred_name": "SponsoredBrandsV3_listNegativeKeywords",
-      "complexity": {
-        "parameters": 11,
-        "has_body": false,
-        "responses": 1
-      }
-    },
-    {
-      "operationId": "updateNegativeKeywords",
-      "method": "PUT",
-      "path": "/sb/negativeKeywords",
-      "preferred_name": "SponsoredBrandsV3_updateNegativeKeywords",
-      "complexity": {
-        "parameters": 2,
-        "has_body": true,
-        "responses": 1
-      }
-    },
-    {
-      "operationId": "createNegativeKeywords",
-      "method": "POST",
-      "path": "/sb/negativeKeywords",
-      "preferred_name": "SponsoredBrandsV3_createNegativeKeywords",
-      "complexity": {
-        "parameters": 2,
-        "has_body": true,
-        "responses": 1
-      }
-    },
-    {
-      "operationId": "getNegativeKeyword",
-      "method": "GET",
-      "path": "/sb/negativeKeywords/{keywordId}",
-      "preferred_name": "SponsoredBrandsV3_getNegativeKeyword",
-      "complexity": {
-        "parameters": 3,
-        "has_body": false,
-        "responses": 1
-      }
-    },
-    {
-      "operationId": "archiveNegativeKeyword",
-      "method": "DELETE",
-      "path": "/sb/negativeKeywords/{keywordId}",
-      "preferred_name": "SponsoredBrandsV3_archiveNegativeKeyword",
-      "complexity": {
-        "parameters": 3,
-        "has_body": false,
-        "responses": 2
-      }
-    },
-    {
-      "operationId": "listAsins",
-      "method": "GET",
-      "path": "/pageAsins",
-      "preferred_name": "SponsoredBrandsV3_listAsins",
-      "complexity": {
-        "parameters": 3,
-        "has_body": false,
-        "responses": 1
-      }
-    },
-    {
       "operationId": "completeUpload",
       "method": "PUT",
       "path": "/media/complete",
@@ -158,35 +37,13 @@
       }
     },
     {
-      "operationId": "listAssets",
+      "operationId": "listAsins",
       "method": "GET",
-      "path": "/stores/assets",
-      "preferred_name": "SponsoredBrandsV3_listAssets",
+      "path": "/pageAsins",
+      "preferred_name": "SponsoredBrandsV3_listAsins",
       "complexity": {
-        "parameters": 4,
+        "parameters": 3,
         "has_body": false,
-        "responses": 1
-      }
-    },
-    {
-      "operationId": "createAsset",
-      "method": "POST",
-      "path": "/stores/assets",
-      "preferred_name": "SponsoredBrandsV3_createAsset",
-      "complexity": {
-        "parameters": 4,
-        "has_body": true,
-        "responses": 1
-      }
-    },
-    {
-      "operationId": "getBidsRecommendations",
-      "method": "POST",
-      "path": "/sb/recommendations/bids",
-      "preferred_name": "SponsoredBrandsV3_getBidsRecommendations",
-      "complexity": {
-        "parameters": 2,
-        "has_body": true,
         "responses": 1
       }
     },
@@ -202,76 +59,120 @@
       }
     },
     {
-      "operationId": "getKeywordRecommendations",
-      "method": "POST",
-      "path": "/sb/recommendations/keyword",
-      "preferred_name": "SponsoredBrandsV3_getKeywordRecommendations",
+      "operationId": "listKeywords",
+      "method": "GET",
+      "path": "/sb/keywords",
+      "preferred_name": "SponsoredBrandsV3_listKeywords",
       "complexity": {
-        "parameters": 2,
-        "has_body": true,
-        "responses": 4
+        "parameters": 12,
+        "has_body": false,
+        "responses": 1
       }
     },
     {
-      "operationId": "listTargets",
+      "operationId": "createKeywords",
       "method": "POST",
-      "path": "/sb/targets/list",
-      "preferred_name": "SponsoredBrandsV3_listTargets",
+      "path": "/sb/keywords",
+      "preferred_name": "SponsoredBrandsV3_createKeywords",
       "complexity": {
-        "parameters": 0,
+        "parameters": 2,
         "has_body": true,
         "responses": 1
       }
     },
     {
-      "operationId": "updateTargets",
+      "operationId": "updateKeywords",
       "method": "PUT",
-      "path": "/sb/targets",
-      "preferred_name": "SponsoredBrandsV3_updateTargets",
+      "path": "/sb/keywords",
+      "preferred_name": "SponsoredBrandsV3_updateKeywords",
       "complexity": {
-        "parameters": 0,
+        "parameters": 2,
         "has_body": true,
-        "responses": 2
+        "responses": 1
       }
     },
     {
-      "operationId": "createTargets",
-      "method": "POST",
-      "path": "/sb/targets",
-      "preferred_name": "SponsoredBrandsV3_createTargets",
-      "complexity": {
-        "parameters": 0,
-        "has_body": true,
-        "responses": 2
-      }
-    },
-    {
-      "operationId": "getTarget",
-      "method": "GET",
-      "path": "/sb/targets/{targetId}",
-      "preferred_name": "SponsoredBrandsV3_getTarget",
+      "operationId": "archiveKeyword",
+      "method": "DELETE",
+      "path": "/sb/keywords/{keywordId}",
+      "preferred_name": "SponsoredBrandsV3_archiveKeyword",
       "complexity": {
         "parameters": 3,
         "has_body": false,
-        "responses": 3
+        "responses": 2
       }
     },
     {
-      "operationId": "archiveTarget",
-      "method": "DELETE",
-      "path": "/sb/targets/{targetId}",
-      "preferred_name": "SponsoredBrandsV3_archiveTarget",
+      "operationId": "getKeyword",
+      "method": "GET",
+      "path": "/sb/keywords/{keywordId}",
+      "preferred_name": "SponsoredBrandsV3_getKeyword",
       "complexity": {
-        "parameters": 1,
+        "parameters": 4,
         "has_body": false,
-        "responses": 3
+        "responses": 2
       }
     },
     {
-      "operationId": "listNegativeTargets",
+      "operationId": "listNegativeKeywords",
+      "method": "GET",
+      "path": "/sb/negativeKeywords",
+      "preferred_name": "SponsoredBrandsV3_listNegativeKeywords",
+      "complexity": {
+        "parameters": 11,
+        "has_body": false,
+        "responses": 1
+      }
+    },
+    {
+      "operationId": "createNegativeKeywords",
       "method": "POST",
-      "path": "/sb/negativeTargets/list",
-      "preferred_name": "SponsoredBrandsV3_listNegativeTargets",
+      "path": "/sb/negativeKeywords",
+      "preferred_name": "SponsoredBrandsV3_createNegativeKeywords",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 1
+      }
+    },
+    {
+      "operationId": "updateNegativeKeywords",
+      "method": "PUT",
+      "path": "/sb/negativeKeywords",
+      "preferred_name": "SponsoredBrandsV3_updateNegativeKeywords",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 1
+      }
+    },
+    {
+      "operationId": "archiveNegativeKeyword",
+      "method": "DELETE",
+      "path": "/sb/negativeKeywords/{keywordId}",
+      "preferred_name": "SponsoredBrandsV3_archiveNegativeKeyword",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 2
+      }
+    },
+    {
+      "operationId": "getNegativeKeyword",
+      "method": "GET",
+      "path": "/sb/negativeKeywords/{keywordId}",
+      "preferred_name": "SponsoredBrandsV3_getNegativeKeyword",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 1
+      }
+    },
+    {
+      "operationId": "createNegativeTargets",
+      "method": "POST",
+      "path": "/sb/negativeTargets",
+      "preferred_name": "SponsoredBrandsV3_createNegativeTargets",
       "complexity": {
         "parameters": 0,
         "has_body": true,
@@ -290,25 +191,14 @@
       }
     },
     {
-      "operationId": "createNegativeTargets",
+      "operationId": "listNegativeTargets",
       "method": "POST",
-      "path": "/sb/negativeTargets",
-      "preferred_name": "SponsoredBrandsV3_createNegativeTargets",
+      "path": "/sb/negativeTargets/list",
+      "preferred_name": "SponsoredBrandsV3_listNegativeTargets",
       "complexity": {
         "parameters": 0,
         "has_body": true,
         "responses": 2
-      }
-    },
-    {
-      "operationId": "getNegativeTarget",
-      "method": "GET",
-      "path": "/sb/negativeTargets/{negativeTargetId}",
-      "preferred_name": "SponsoredBrandsV3_getNegativeTarget",
-      "complexity": {
-        "parameters": 1,
-        "has_body": false,
-        "responses": 3
       }
     },
     {
@@ -323,10 +213,21 @@
       }
     },
     {
-      "operationId": "sbListThemes",
+      "operationId": "getNegativeTarget",
+      "method": "GET",
+      "path": "/sb/negativeTargets/{negativeTargetId}",
+      "preferred_name": "SponsoredBrandsV3_getNegativeTarget",
+      "complexity": {
+        "parameters": 1,
+        "has_body": false,
+        "responses": 3
+      }
+    },
+    {
+      "operationId": "getBidsRecommendations",
       "method": "POST",
-      "path": "/sb/themes/list",
-      "preferred_name": "SponsoredBrandsV3_sbListThemes",
+      "path": "/sb/recommendations/bids",
+      "preferred_name": "SponsoredBrandsV3_getBidsRecommendations",
       "complexity": {
         "parameters": 2,
         "has_body": true,
@@ -334,32 +235,21 @@
       }
     },
     {
-      "operationId": "sbUpdateThemes",
-      "method": "PUT",
-      "path": "/sb/themes",
-      "preferred_name": "SponsoredBrandsV3_sbUpdateThemes",
+      "operationId": "getKeywordRecommendations",
+      "method": "POST",
+      "path": "/sb/recommendations/keyword",
+      "preferred_name": "SponsoredBrandsV3_getKeywordRecommendations",
       "complexity": {
         "parameters": 2,
         "has_body": true,
-        "responses": 2
+        "responses": 4
       }
     },
     {
-      "operationId": "sbCreateThemes",
+      "operationId": "getBrandRecommendations",
       "method": "POST",
-      "path": "/sb/themes",
-      "preferred_name": "SponsoredBrandsV3_sbCreateThemes",
-      "complexity": {
-        "parameters": 2,
-        "has_body": true,
-        "responses": 2
-      }
-    },
-    {
-      "operationId": "getProductRecommendations",
-      "method": "POST",
-      "path": "/sb/recommendations/targets/product/list",
-      "preferred_name": "SponsoredBrandsV3_getProductRecommendations",
+      "path": "/sb/recommendations/targets/brand",
+      "preferred_name": "SponsoredBrandsV3_getBrandRecommendations",
       "complexity": {
         "parameters": 2,
         "has_body": true,
@@ -378,12 +268,122 @@
       }
     },
     {
-      "operationId": "getBrandRecommendations",
+      "operationId": "getProductRecommendations",
       "method": "POST",
-      "path": "/sb/recommendations/targets/brand",
-      "preferred_name": "SponsoredBrandsV3_getBrandRecommendations",
+      "path": "/sb/recommendations/targets/product/list",
+      "preferred_name": "SponsoredBrandsV3_getProductRecommendations",
       "complexity": {
         "parameters": 2,
+        "has_body": true,
+        "responses": 1
+      }
+    },
+    {
+      "operationId": "createTargets",
+      "method": "POST",
+      "path": "/sb/targets",
+      "preferred_name": "SponsoredBrandsV3_createTargets",
+      "complexity": {
+        "parameters": 0,
+        "has_body": true,
+        "responses": 2
+      }
+    },
+    {
+      "operationId": "updateTargets",
+      "method": "PUT",
+      "path": "/sb/targets",
+      "preferred_name": "SponsoredBrandsV3_updateTargets",
+      "complexity": {
+        "parameters": 0,
+        "has_body": true,
+        "responses": 2
+      }
+    },
+    {
+      "operationId": "listTargets",
+      "method": "POST",
+      "path": "/sb/targets/list",
+      "preferred_name": "SponsoredBrandsV3_listTargets",
+      "complexity": {
+        "parameters": 0,
+        "has_body": true,
+        "responses": 1
+      }
+    },
+    {
+      "operationId": "archiveTarget",
+      "method": "DELETE",
+      "path": "/sb/targets/{targetId}",
+      "preferred_name": "SponsoredBrandsV3_archiveTarget",
+      "complexity": {
+        "parameters": 1,
+        "has_body": false,
+        "responses": 3
+      }
+    },
+    {
+      "operationId": "getTarget",
+      "method": "GET",
+      "path": "/sb/targets/{targetId}",
+      "preferred_name": "SponsoredBrandsV3_getTarget",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 3
+      }
+    },
+    {
+      "operationId": "sbCreateThemes",
+      "method": "POST",
+      "path": "/sb/themes",
+      "preferred_name": "SponsoredBrandsV3_sbCreateThemes",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 2
+      }
+    },
+    {
+      "operationId": "sbUpdateThemes",
+      "method": "PUT",
+      "path": "/sb/themes",
+      "preferred_name": "SponsoredBrandsV3_sbUpdateThemes",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 2
+      }
+    },
+    {
+      "operationId": "sbListThemes",
+      "method": "POST",
+      "path": "/sb/themes/list",
+      "preferred_name": "SponsoredBrandsV3_sbListThemes",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 1
+      }
+    },
+    {
+      "operationId": "listAssets",
+      "method": "GET",
+      "path": "/stores/assets",
+      "preferred_name": "SponsoredBrandsV3_listAssets",
+      "complexity": {
+        "parameters": 4,
+        "has_body": false,
+        "responses": 1
+      }
+    },
+    {
+      "operationId": "createAsset",
+      "method": "POST",
+      "path": "/stores/assets",
+      "preferred_name": "SponsoredBrandsV3_createAsset",
+      "complexity": {
+        "parameters": 4,
         "has_body": true,
         "responses": 1
       }

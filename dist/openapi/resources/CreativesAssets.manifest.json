@@ -15,17 +15,6 @@
       }
     },
     {
-      "operationId": "getAssetsBatchRegister",
-      "method": "GET",
-      "path": "/assets/batchRegister/{requestId}",
-      "preferred_name": "CreativesAssets_getAssetsBatchRegister",
-      "complexity": {
-        "parameters": 3,
-        "has_body": false,
-        "responses": 6
-      }
-    },
-    {
       "operationId": "assetsBatchRegister",
       "method": "POST",
       "path": "/assets/batchRegister",
@@ -33,6 +22,17 @@
       "complexity": {
         "parameters": 2,
         "has_body": true,
+        "responses": 6
+      }
+    },
+    {
+      "operationId": "getAssetsBatchRegister",
+      "method": "GET",
+      "path": "/assets/batchRegister/{requestId}",
+      "preferred_name": "CreativesAssets_getAssetsBatchRegister",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
         "responses": 6
       }
     },
@@ -48,10 +48,10 @@
       }
     },
     {
-      "operationId": "getUploadLocation",
+      "operationId": "searchAssets",
       "method": "POST",
-      "path": "/assets/upload",
-      "preferred_name": "CreativesAssets_getUploadLocation",
+      "path": "/assets/search",
+      "preferred_name": "CreativesAssets_searchAssets",
       "complexity": {
         "parameters": 2,
         "has_body": true,
@@ -59,10 +59,10 @@
       }
     },
     {
-      "operationId": "searchAssets",
+      "operationId": "getUploadLocation",
       "method": "POST",
-      "path": "/assets/search",
-      "preferred_name": "CreativesAssets_searchAssets",
+      "path": "/assets/upload",
+      "preferred_name": "CreativesAssets_getUploadLocation",
       "complexity": {
         "parameters": 2,
         "has_body": true,

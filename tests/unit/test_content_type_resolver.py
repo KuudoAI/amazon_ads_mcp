@@ -5,11 +5,14 @@ that determines appropriate Accept headers for different
 Amazon Ads API endpoints.
 """
 
+import base64
+
 from amazon_ads_mcp.utils.export_content_type_resolver import (
     get_export_accept_headers,
     get_measurement_accept_headers,
     get_brandmetrics_accept_headers,
     get_reports_download_accept_headers,
+    resolve_export_content_type,
     resolve_download_accept_headers,
 )
 
@@ -18,6 +21,23 @@ def test_export_accept_headers_ordering():
     # Unknown export id still returns all types preferring campaigns first only when known
     headers = get_export_accept_headers("")
     assert "application/vnd.campaignsexport.v1+json" in headers
+
+
+def test_resolve_export_content_type_ads_from_base64_suffix():
+    raw = "97608c6a-487f-4c32-9e9a-03063aa950c4,AD"
+    export_id = base64.urlsafe_b64encode(raw.encode("utf-8")).decode("ascii").rstrip("=")
+    assert (
+        resolve_export_content_type(export_id)
+        == "application/vnd.adsexport.v1+json"
+    )
+
+def test_resolve_export_content_type_ads_from_base64_suffix_r():
+    raw = "e8149182-dd74-4a97-82ec-13724dc6789c,R"
+    export_id = base64.urlsafe_b64encode(raw.encode("utf-8")).decode("ascii").rstrip("=")
+    assert (
+        resolve_export_content_type(export_id)
+        == "application/vnd.adsexport.v1+json"
+    )
 
 
 def test_measurement_accept_pref_csv():

@@ -1,0 +1,205 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "AdsAPIv1SponsoredProducts",
+  "tools": [
+    {
+      "operationId": "SPCreateAdGroup",
+      "method": "POST",
+      "path": "/adsApi/v1/create/adGroups",
+      "preferred_name": "AdsAPIv1SponsoredProducts_SPCreateAdGroup",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SPCreateAd",
+      "method": "POST",
+      "path": "/adsApi/v1/create/ads",
+      "preferred_name": "AdsAPIv1SponsoredProducts_SPCreateAd",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SPCreateCampaign",
+      "method": "POST",
+      "path": "/adsApi/v1/create/campaigns",
+      "preferred_name": "AdsAPIv1SponsoredProducts_SPCreateCampaign",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SPCreateTarget",
+      "method": "POST",
+      "path": "/adsApi/v1/create/targets",
+      "preferred_name": "AdsAPIv1SponsoredProducts_SPCreateTarget",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SPDeleteAdGroup",
+      "method": "POST",
+      "path": "/adsApi/v1/delete/adGroups",
+      "preferred_name": "AdsAPIv1SponsoredProducts_SPDeleteAdGroup",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SPDeleteAd",
+      "method": "POST",
+      "path": "/adsApi/v1/delete/ads",
+      "preferred_name": "AdsAPIv1SponsoredProducts_SPDeleteAd",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SPDeleteCampaign",
+      "method": "POST",
+      "path": "/adsApi/v1/delete/campaigns",
+      "preferred_name": "AdsAPIv1SponsoredProducts_SPDeleteCampaign",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SPDeleteTarget",
+      "method": "POST",
+      "path": "/adsApi/v1/delete/targets",
+      "preferred_name": "AdsAPIv1SponsoredProducts_SPDeleteTarget",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SPQueryAdExtension",
+      "method": "POST",
+      "path": "/adsApi/v1/query/adExtensions",
+      "preferred_name": "AdsAPIv1SponsoredProducts_SPQueryAdExtension",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SPQueryAdGroup",
+      "method": "POST",
+      "path": "/adsApi/v1/query/adGroups",
+      "preferred_name": "AdsAPIv1SponsoredProducts_SPQueryAdGroup",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SPQueryAd",
+      "method": "POST",
+      "path": "/adsApi/v1/query/ads",
+      "preferred_name": "AdsAPIv1SponsoredProducts_SPQueryAd",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SPQueryCampaign",
+      "method": "POST",
+      "path": "/adsApi/v1/query/campaigns",
+      "preferred_name": "AdsAPIv1SponsoredProducts_SPQueryCampaign",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SPQueryTarget",
+      "method": "POST",
+      "path": "/adsApi/v1/query/targets",
+      "preferred_name": "AdsAPIv1SponsoredProducts_SPQueryTarget",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SPUpdateAdExtension",
+      "method": "POST",
+      "path": "/adsApi/v1/update/adExtensions",
+      "preferred_name": "AdsAPIv1SponsoredProducts_SPUpdateAdExtension",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SPUpdateAdGroup",
+      "method": "POST",
+      "path": "/adsApi/v1/update/adGroups",
+      "preferred_name": "AdsAPIv1SponsoredProducts_SPUpdateAdGroup",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SPUpdateAd",
+      "method": "POST",
+      "path": "/adsApi/v1/update/ads",
+      "preferred_name": "AdsAPIv1SponsoredProducts_SPUpdateAd",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SPUpdateCampaign",
+      "method": "POST",
+      "path": "/adsApi/v1/update/campaigns",
+      "preferred_name": "AdsAPIv1SponsoredProducts_SPUpdateCampaign",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SPUpdateTarget",
+      "method": "POST",
+      "path": "/adsApi/v1/update/targets",
+      "preferred_name": "AdsAPIv1SponsoredProducts_SPUpdateTarget",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    }
+  ]
+}

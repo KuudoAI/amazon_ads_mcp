@@ -1,0 +1,183 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "AdsAPIv1SponsoredBrands",
+  "tools": [
+    {
+      "operationId": "SBCreateAdGroup",
+      "method": "POST",
+      "path": "/adsApi/v1/create/adGroups",
+      "preferred_name": "AdsAPIv1SponsoredBrands_SBCreateAdGroup",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SBCreateAd",
+      "method": "POST",
+      "path": "/adsApi/v1/create/ads",
+      "preferred_name": "AdsAPIv1SponsoredBrands_SBCreateAd",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SBCreateCampaign",
+      "method": "POST",
+      "path": "/adsApi/v1/create/campaigns",
+      "preferred_name": "AdsAPIv1SponsoredBrands_SBCreateCampaign",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SBCreateTarget",
+      "method": "POST",
+      "path": "/adsApi/v1/create/targets",
+      "preferred_name": "AdsAPIv1SponsoredBrands_SBCreateTarget",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SBDeleteAdGroup",
+      "method": "POST",
+      "path": "/adsApi/v1/delete/adGroups",
+      "preferred_name": "AdsAPIv1SponsoredBrands_SBDeleteAdGroup",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SBDeleteAd",
+      "method": "POST",
+      "path": "/adsApi/v1/delete/ads",
+      "preferred_name": "AdsAPIv1SponsoredBrands_SBDeleteAd",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SBDeleteCampaign",
+      "method": "POST",
+      "path": "/adsApi/v1/delete/campaigns",
+      "preferred_name": "AdsAPIv1SponsoredBrands_SBDeleteCampaign",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SBDeleteTarget",
+      "method": "POST",
+      "path": "/adsApi/v1/delete/targets",
+      "preferred_name": "AdsAPIv1SponsoredBrands_SBDeleteTarget",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SBQueryAdGroup",
+      "method": "POST",
+      "path": "/adsApi/v1/query/adGroups",
+      "preferred_name": "AdsAPIv1SponsoredBrands_SBQueryAdGroup",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SBQueryAd",
+      "method": "POST",
+      "path": "/adsApi/v1/query/ads",
+      "preferred_name": "AdsAPIv1SponsoredBrands_SBQueryAd",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SBQueryCampaign",
+      "method": "POST",
+      "path": "/adsApi/v1/query/campaigns",
+      "preferred_name": "AdsAPIv1SponsoredBrands_SBQueryCampaign",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SBQueryTarget",
+      "method": "POST",
+      "path": "/adsApi/v1/query/targets",
+      "preferred_name": "AdsAPIv1SponsoredBrands_SBQueryTarget",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SBUpdateAdGroup",
+      "method": "POST",
+      "path": "/adsApi/v1/update/adGroups",
+      "preferred_name": "AdsAPIv1SponsoredBrands_SBUpdateAdGroup",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SBUpdateAd",
+      "method": "POST",
+      "path": "/adsApi/v1/update/ads",
+      "preferred_name": "AdsAPIv1SponsoredBrands_SBUpdateAd",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SBUpdateCampaign",
+      "method": "POST",
+      "path": "/adsApi/v1/update/campaigns",
+      "preferred_name": "AdsAPIv1SponsoredBrands_SBUpdateCampaign",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SBUpdateTarget",
+      "method": "POST",
+      "path": "/adsApi/v1/update/targets",
+      "preferred_name": "AdsAPIv1SponsoredBrands_SBUpdateTarget",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    }
+  ]
+}

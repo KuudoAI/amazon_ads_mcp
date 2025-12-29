@@ -13,6 +13,22 @@ from typing import List, Optional
 
 logger = logging.getLogger(__name__)
 
+def _decode_export_id(export_id: str) -> Optional[str]:
+    """Decode an export ID payload to text, if it looks base64-encoded."""
+    if not export_id:
+        return None
+
+    pad_len = (-len(export_id)) % 4
+    padded = export_id + ("=" * pad_len)
+
+    for decoder in (base64.urlsafe_b64decode, base64.b64decode):
+        try:
+            decoded_bytes = decoder(padded)
+            return decoded_bytes.decode("utf-8")
+        except Exception:
+            continue
+    return None
+
 
 def resolve_export_content_type(export_id: str) -> Optional[str]:
     """
@@ -39,9 +55,9 @@ def resolve_export_content_type(export_id: str) -> Optional[str]:
 
         # Try to decode to check for pattern
         try:
-            # Add padding if needed for base64 decode
-            padded = export_id + "=" * (4 - len(export_id) % 4)
-            decoded = base64.b64decode(padded).decode("utf-8")
+            decoded = _decode_export_id(export_id)
+            if not decoded:
+                raise ValueError("Export ID did not decode")
             if "," in decoded:
                 _, suffix = decoded.rsplit(",", 1)
                 suffix = suffix.upper()
@@ -51,6 +67,8 @@ def resolve_export_content_type(export_id: str) -> Optional[str]:
                     "C": "application/vnd.campaignsexport.v1+json",
                     "A": "application/vnd.adgroupsexport.v1+json",
                     "AD": "application/vnd.adsexport.v1+json",
+                    # Some export IDs use ',R' for ads exports.
+                    "R": "application/vnd.adsexport.v1+json",
                     "T": "application/vnd.targetsexport.v1+json",
                 }
 

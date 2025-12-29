@@ -1,0 +1,7 @@
+{
+  "version": "1.0",
+  "namespace": "AdsAPIv1SponsoredProducts",
+  "content_types": [
+    "application/json"
+  ]
+}

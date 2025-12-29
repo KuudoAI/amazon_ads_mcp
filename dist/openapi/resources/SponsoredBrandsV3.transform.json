@@ -14,105 +14,6 @@
     },
     {
       "match": {
-        "operationId": "listKeywords"
-      },
-      "output_transform": {
-        "sample_n": 10,
-        "artifact_threshold_bytes": 10240
-      }
-    },
-    {
-      "match": {
-        "operationId": "updateKeywords"
-      },
-      "output_transform": {
-        "sample_n": 10,
-        "artifact_threshold_bytes": 10240
-      }
-    },
-    {
-      "match": {
-        "operationId": "createKeywords"
-      },
-      "output_transform": {
-        "sample_n": 10,
-        "artifact_threshold_bytes": 10240
-      }
-    },
-    {
-      "match": {
-        "operationId": "getKeyword"
-      },
-      "output_transform": {
-        "sample_n": 10,
-        "artifact_threshold_bytes": 10240
-      }
-    },
-    {
-      "match": {
-        "operationId": "archiveKeyword"
-      },
-      "output_transform": {
-        "sample_n": 10,
-        "artifact_threshold_bytes": 10240
-      }
-    },
-    {
-      "match": {
-        "operationId": "listNegativeKeywords"
-      },
-      "output_transform": {
-        "sample_n": 10,
-        "artifact_threshold_bytes": 10240
-      }
-    },
-    {
-      "match": {
-        "operationId": "updateNegativeKeywords"
-      },
-      "output_transform": {
-        "sample_n": 10,
-        "artifact_threshold_bytes": 10240
-      }
-    },
-    {
-      "match": {
-        "operationId": "createNegativeKeywords"
-      },
-      "output_transform": {
-        "sample_n": 10,
-        "artifact_threshold_bytes": 10240
-      }
-    },
-    {
-      "match": {
-        "operationId": "getNegativeKeyword"
-      },
-      "output_transform": {
-        "sample_n": 10,
-        "artifact_threshold_bytes": 10240
-      }
-    },
-    {
-      "match": {
-        "operationId": "archiveNegativeKeyword"
-      },
-      "output_transform": {
-        "sample_n": 10,
-        "artifact_threshold_bytes": 10240
-      }
-    },
-    {
-      "match": {
-        "operationId": "listAsins"
-      },
-      "output_transform": {
-        "sample_n": 10,
-        "artifact_threshold_bytes": 10240
-      }
-    },
-    {
-      "match": {
         "operationId": "completeUpload"
       },
       "output_transform": {
@@ -131,25 +32,7 @@
     },
     {
       "match": {
-        "operationId": "listAssets"
-      },
-      "output_transform": {
-        "sample_n": 10,
-        "artifact_threshold_bytes": 10240
-      }
-    },
-    {
-      "match": {
-        "operationId": "createAsset"
-      },
-      "output_transform": {
-        "sample_n": 10,
-        "artifact_threshold_bytes": 10240
-      }
-    },
-    {
-      "match": {
-        "operationId": "getBidsRecommendations"
+        "operationId": "listAsins"
       },
       "output_transform": {
         "sample_n": 10,
@@ -167,7 +50,7 @@
     },
     {
       "match": {
-        "operationId": "getKeywordRecommendations"
+        "operationId": "listKeywords"
       },
       "output_transform": {
         "sample_n": 10,
@@ -176,7 +59,7 @@
     },
     {
       "match": {
-        "operationId": "listTargets"
+        "operationId": "createKeywords"
       },
       "output_transform": {
         "sample_n": 10,
@@ -185,7 +68,7 @@
     },
     {
       "match": {
-        "operationId": "updateTargets"
+        "operationId": "updateKeywords"
       },
       "output_transform": {
         "sample_n": 10,
@@ -194,7 +77,7 @@
     },
     {
       "match": {
-        "operationId": "createTargets"
+        "operationId": "archiveKeyword"
       },
       "output_transform": {
         "sample_n": 10,
@@ -203,7 +86,7 @@
     },
     {
       "match": {
-        "operationId": "getTarget"
+        "operationId": "getKeyword"
       },
       "output_transform": {
         "sample_n": 10,
@@ -212,7 +95,7 @@
     },
     {
       "match": {
-        "operationId": "archiveTarget"
+        "operationId": "listNegativeKeywords"
       },
       "output_transform": {
         "sample_n": 10,
@@ -221,7 +104,7 @@
     },
     {
       "match": {
-        "operationId": "listNegativeTargets"
+        "operationId": "createNegativeKeywords"
       },
       "output_transform": {
         "sample_n": 10,
@@ -230,7 +113,25 @@
     },
     {
       "match": {
-        "operationId": "updateNegativeTargets"
+        "operationId": "updateNegativeKeywords"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "archiveNegativeKeyword"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "getNegativeKeyword"
       },
       "output_transform": {
         "sample_n": 10,
@@ -248,7 +149,16 @@
     },
     {
       "match": {
-        "operationId": "getNegativeTarget"
+        "operationId": "updateNegativeTargets"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "listNegativeTargets"
       },
       "output_transform": {
         "sample_n": 10,
@@ -266,7 +176,7 @@
     },
     {
       "match": {
-        "operationId": "sbListThemes"
+        "operationId": "getNegativeTarget"
       },
       "output_transform": {
         "sample_n": 10,
@@ -275,7 +185,7 @@
     },
     {
       "match": {
-        "operationId": "sbUpdateThemes"
+        "operationId": "getBidsRecommendations"
       },
       "output_transform": {
         "sample_n": 10,
@@ -284,7 +194,7 @@
     },
     {
       "match": {
-        "operationId": "sbCreateThemes"
+        "operationId": "getKeywordRecommendations"
       },
       "output_transform": {
         "sample_n": 10,
@@ -293,7 +203,7 @@
     },
     {
       "match": {
-        "operationId": "getProductRecommendations"
+        "operationId": "getBrandRecommendations"
       },
       "output_transform": {
         "sample_n": 10,
@@ -311,7 +221,97 @@
     },
     {
       "match": {
-        "operationId": "getBrandRecommendations"
+        "operationId": "getProductRecommendations"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "createTargets"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "updateTargets"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "listTargets"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "archiveTarget"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "getTarget"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "sbCreateThemes"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "sbUpdateThemes"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "sbListThemes"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "listAssets"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "createAsset"
       },
       "output_transform": {
         "sample_n": 10,

@@ -15,28 +15,6 @@
       }
     },
     {
-      "operationId": "getKeywordBidRecommendations",
-      "method": "GET",
-      "path": "/v2/sp/keywords/{keywordId}/bidRecommendations",
-      "preferred_name": "SPSnapshotsSuggestedKeywords_getKeywordBidRecommendations",
-      "complexity": {
-        "parameters": 3,
-        "has_body": false,
-        "responses": 2
-      }
-    },
-    {
-      "operationId": "createKeywordBidRecommendations",
-      "method": "POST",
-      "path": "/v2/sp/keywords/bidRecommendations",
-      "preferred_name": "SPSnapshotsSuggestedKeywords_createKeywordBidRecommendations",
-      "complexity": {
-        "parameters": 2,
-        "has_body": true,
-        "responses": 3
-      }
-    },
-    {
       "operationId": "getAdGroupSuggestedKeywords",
       "method": "GET",
       "path": "/v2/sp/adGroups/{adGroupId}/suggested/keywords",
@@ -59,17 +37,6 @@
       }
     },
     {
-      "operationId": "getAsinSuggestedKeywords",
-      "method": "GET",
-      "path": "/v2/sp/asins/{asinValue}/suggested/keywords",
-      "preferred_name": "SPSnapshotsSuggestedKeywords_getAsinSuggestedKeywords",
-      "complexity": {
-        "parameters": 4,
-        "has_body": false,
-        "responses": 2
-      }
-    },
-    {
       "operationId": "bulkGetAsinSuggestedKeywords",
       "method": "POST",
       "path": "/v2/sp/asins/suggested/keywords",
@@ -81,24 +48,35 @@
       }
     },
     {
-      "operationId": "getBidRecommendations",
-      "method": "POST",
-      "path": "/v2/sp/targets/bidRecommendations",
-      "preferred_name": "SPSnapshotsSuggestedKeywords_getBidRecommendations",
+      "operationId": "getAsinSuggestedKeywords",
+      "method": "GET",
+      "path": "/v2/sp/asins/{asinValue}/suggested/keywords",
+      "preferred_name": "SPSnapshotsSuggestedKeywords_getAsinSuggestedKeywords",
       "complexity": {
-        "parameters": 0,
-        "has_body": true,
+        "parameters": 4,
+        "has_body": false,
         "responses": 2
       }
     },
     {
-      "operationId": "requestSnapshot",
+      "operationId": "createKeywordBidRecommendations",
       "method": "POST",
-      "path": "/v2/sp/{recordType}/snapshot",
-      "preferred_name": "SPSnapshotsSuggestedKeywords_requestSnapshot",
+      "path": "/v2/sp/keywords/bidRecommendations",
+      "preferred_name": "SPSnapshotsSuggestedKeywords_createKeywordBidRecommendations",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 3
+      }
+    },
+    {
+      "operationId": "getKeywordBidRecommendations",
+      "method": "GET",
+      "path": "/v2/sp/keywords/{keywordId}/bidRecommendations",
+      "preferred_name": "SPSnapshotsSuggestedKeywords_getKeywordBidRecommendations",
       "complexity": {
         "parameters": 3,
-        "has_body": true,
+        "has_body": false,
         "responses": 2
       }
     },
@@ -122,6 +100,28 @@
         "parameters": 3,
         "has_body": false,
         "responses": 3
+      }
+    },
+    {
+      "operationId": "getBidRecommendations",
+      "method": "POST",
+      "path": "/v2/sp/targets/bidRecommendations",
+      "preferred_name": "SPSnapshotsSuggestedKeywords_getBidRecommendations",
+      "complexity": {
+        "parameters": 0,
+        "has_body": true,
+        "responses": 2
+      }
+    },
+    {
+      "operationId": "requestSnapshot",
+      "method": "POST",
+      "path": "/v2/sp/{recordType}/snapshot",
+      "preferred_name": "SPSnapshotsSuggestedKeywords_requestSnapshot",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 2
       }
     }
   ]
