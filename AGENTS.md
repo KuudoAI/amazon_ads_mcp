@@ -232,6 +232,46 @@ export MCP_MASK_ERROR_DETAILS=true
 export MCP_ON_DUPLICATE_TOOLS=warn
 ```
 
+### Security-Related Environment Variables
+
+```bash
+# Token Persistence (disabled by default for security)
+# When false (default): Tokens stored in memory only, lost on restart
+# When true: Refresh tokens cached to disk/volume, persist across restarts
+export AMAZON_ADS_TOKEN_PERSIST="false"  # Set to "true" to enable persistence
+
+# Token Encryption (required when AMAZON_ADS_TOKEN_PERSIST=true)
+# If not set, a random key is auto-generated and stored alongside tokens
+# For production: Generate with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`
+export AMAZON_ADS_ENCRYPTION_KEY="your-44-char-base64-key"
+
+# Plaintext Storage (INSECURE - testing only!)
+# Only enable if cryptography library is unavailable AND you accept the risk
+export AMAZON_ADS_ALLOW_PLAINTEXT_PERSIST="false"  # Never set to "true" in production
+```
+
+**Security Implications of Token Persistence:**
+
+When `AMAZON_ADS_TOKEN_PERSIST=true`:
+- ✅ Convenience: Refresh tokens survive container restarts (no re-authentication)
+- ⚠️ Risk: Tokens are encrypted but stored with their decryption key on same volume
+- ⚠️ Risk: Anyone with filesystem/volume access can potentially extract tokens
+- 🔒 Mitigation: Set `AMAZON_ADS_ENCRYPTION_KEY` from external secrets manager
+- 🔒 Best Practice: Use in-memory storage (default) unless persistence is required
+
+**Recommended Configurations:**
+
+```bash
+# Development (local laptop): In-memory is usually sufficient
+AMAZON_ADS_TOKEN_PERSIST=false
+
+# Shared/Production: Either in-memory OR persistence with external key
+AMAZON_ADS_TOKEN_PERSIST=false  # Preferred if feasible
+# OR
+AMAZON_ADS_TOKEN_PERSIST=true
+AMAZON_ADS_ENCRYPTION_KEY=${VAULT_SECRET}  # From secrets manager
+```
+
 ### Code Standards
 
 - Python ≥ 3.10 with full type annotations

@@ -157,7 +157,7 @@ class OpenBridgeProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
 
         if not self.refresh_token:
             raise ValueError(
-                "No refresh token available. Provide it via config or Authorization header."
+                "No OpenBridge token available. Set OPENBRIDGE_REFRESH_TOKEN (or OPENBRIDGE_API_KEY), or pass it via Authorization header."
             )
 
         return await self._refresh_jwt_token()

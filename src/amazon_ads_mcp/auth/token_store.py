@@ -372,6 +372,16 @@ class PersistentTokenStore(InMemoryTokenStore):
         # Load existing tokens on startup
         self._load_from_disk()
 
+        # Warn about security implications of token persistence
+        logger.info(
+            f"Token persistence ENABLED. Refresh tokens will be stored at {self._storage_path}\n"
+            f"Security considerations:\n"
+            f"  - Tokens are encrypted at rest, but the encryption key is stored alongside\n"
+            f"  - Anyone with access to the volume/filesystem can potentially decrypt tokens\n"
+            f"  - For production use, set AMAZON_ADS_ENCRYPTION_KEY externally\n"
+            f"  - Consider in-memory-only storage (AMAZON_ADS_TOKEN_PERSIST=false) if possible"
+        )
+
     async def set(self, key: TokenKey, entry: TokenEntry) -> None:
         """Store token, persisting refresh tokens to disk."""
         await super().set(key, entry)
