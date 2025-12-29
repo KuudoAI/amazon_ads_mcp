@@ -1,0 +1,161 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "AdsAPIv1SponsoredTelevision",
+  "tools": [
+    {
+      "operationId": "STCreateAdGroup",
+      "method": "POST",
+      "path": "/adsApi/v1/create/adGroups",
+      "preferred_name": "AdsAPIv1SponsoredTelevision_STCreateAdGroup",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "STCreateAd",
+      "method": "POST",
+      "path": "/adsApi/v1/create/ads",
+      "preferred_name": "AdsAPIv1SponsoredTelevision_STCreateAd",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "STCreateCampaign",
+      "method": "POST",
+      "path": "/adsApi/v1/create/campaigns",
+      "preferred_name": "AdsAPIv1SponsoredTelevision_STCreateCampaign",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "STCreateTarget",
+      "method": "POST",
+      "path": "/adsApi/v1/create/targets",
+      "preferred_name": "AdsAPIv1SponsoredTelevision_STCreateTarget",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "STDeleteAd",
+      "method": "POST",
+      "path": "/adsApi/v1/delete/ads",
+      "preferred_name": "AdsAPIv1SponsoredTelevision_STDeleteAd",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "STDeleteTarget",
+      "method": "POST",
+      "path": "/adsApi/v1/delete/targets",
+      "preferred_name": "AdsAPIv1SponsoredTelevision_STDeleteTarget",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "STQueryAdGroup",
+      "method": "POST",
+      "path": "/adsApi/v1/query/adGroups",
+      "preferred_name": "AdsAPIv1SponsoredTelevision_STQueryAdGroup",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "STQueryAd",
+      "method": "POST",
+      "path": "/adsApi/v1/query/ads",
+      "preferred_name": "AdsAPIv1SponsoredTelevision_STQueryAd",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "STQueryCampaign",
+      "method": "POST",
+      "path": "/adsApi/v1/query/campaigns",
+      "preferred_name": "AdsAPIv1SponsoredTelevision_STQueryCampaign",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "STQueryTarget",
+      "method": "POST",
+      "path": "/adsApi/v1/query/targets",
+      "preferred_name": "AdsAPIv1SponsoredTelevision_STQueryTarget",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "STUpdateAdGroup",
+      "method": "POST",
+      "path": "/adsApi/v1/update/adGroups",
+      "preferred_name": "AdsAPIv1SponsoredTelevision_STUpdateAdGroup",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "STUpdateAd",
+      "method": "POST",
+      "path": "/adsApi/v1/update/ads",
+      "preferred_name": "AdsAPIv1SponsoredTelevision_STUpdateAd",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "STUpdateCampaign",
+      "method": "POST",
+      "path": "/adsApi/v1/update/campaigns",
+      "preferred_name": "AdsAPIv1SponsoredTelevision_STUpdateCampaign",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "STUpdateTarget",
+      "method": "POST",
+      "path": "/adsApi/v1/update/targets",
+      "preferred_name": "AdsAPIv1SponsoredTelevision_STUpdateTarget",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    }
+  ]
+}

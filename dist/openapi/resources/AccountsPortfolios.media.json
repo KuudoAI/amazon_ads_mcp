@@ -1,0 +1,9 @@
+{
+  "version": "1.0",
+  "namespace": "AccountsPortfolios",
+  "content_types": [
+    "application/json",
+    "application/vnd.portfoliobudgetusage.v1+json",
+    "application/vnd.spPortfolio.v3+json"
+  ]
+}

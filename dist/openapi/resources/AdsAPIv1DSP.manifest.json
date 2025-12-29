@@ -1,0 +1,183 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "AdsAPIv1DSP",
+  "tools": [
+    {
+      "operationId": "DSPCreateAdAssociation",
+      "method": "POST",
+      "path": "/adsApi/v1/create/adAssociations",
+      "preferred_name": "AdsAPIv1DSP_DSPCreateAdAssociation",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPCreateAdGroup",
+      "method": "POST",
+      "path": "/adsApi/v1/create/adGroups",
+      "preferred_name": "AdsAPIv1DSP_DSPCreateAdGroup",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPCreateAd",
+      "method": "POST",
+      "path": "/adsApi/v1/create/ads",
+      "preferred_name": "AdsAPIv1DSP_DSPCreateAd",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPCreateCampaign",
+      "method": "POST",
+      "path": "/adsApi/v1/create/campaigns",
+      "preferred_name": "AdsAPIv1DSP_DSPCreateCampaign",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPCreateTarget",
+      "method": "POST",
+      "path": "/adsApi/v1/create/targets",
+      "preferred_name": "AdsAPIv1DSP_DSPCreateTarget",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPDeleteAdAssociation",
+      "method": "POST",
+      "path": "/adsApi/v1/delete/adAssociations",
+      "preferred_name": "AdsAPIv1DSP_DSPDeleteAdAssociation",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPDeleteTarget",
+      "method": "POST",
+      "path": "/adsApi/v1/delete/targets",
+      "preferred_name": "AdsAPIv1DSP_DSPDeleteTarget",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPQueryAdAssociation",
+      "method": "POST",
+      "path": "/adsApi/v1/query/adAssociations",
+      "preferred_name": "AdsAPIv1DSP_DSPQueryAdAssociation",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPQueryAdGroup",
+      "method": "POST",
+      "path": "/adsApi/v1/query/adGroups",
+      "preferred_name": "AdsAPIv1DSP_DSPQueryAdGroup",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPQueryAd",
+      "method": "POST",
+      "path": "/adsApi/v1/query/ads",
+      "preferred_name": "AdsAPIv1DSP_DSPQueryAd",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPQueryCampaign",
+      "method": "POST",
+      "path": "/adsApi/v1/query/campaigns",
+      "preferred_name": "AdsAPIv1DSP_DSPQueryCampaign",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPQueryTarget",
+      "method": "POST",
+      "path": "/adsApi/v1/query/targets",
+      "preferred_name": "AdsAPIv1DSP_DSPQueryTarget",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPUpdateAdAssociation",
+      "method": "POST",
+      "path": "/adsApi/v1/update/adAssociations",
+      "preferred_name": "AdsAPIv1DSP_DSPUpdateAdAssociation",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPUpdateAdGroup",
+      "method": "POST",
+      "path": "/adsApi/v1/update/adGroups",
+      "preferred_name": "AdsAPIv1DSP_DSPUpdateAdGroup",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPUpdateAd",
+      "method": "POST",
+      "path": "/adsApi/v1/update/ads",
+      "preferred_name": "AdsAPIv1DSP_DSPUpdateAd",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPUpdateCampaign",
+      "method": "POST",
+      "path": "/adsApi/v1/update/campaigns",
+      "preferred_name": "AdsAPIv1DSP_DSPUpdateCampaign",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    }
+  ]
+}

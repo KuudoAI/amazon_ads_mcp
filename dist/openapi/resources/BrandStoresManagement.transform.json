@@ -5,25 +5,16 @@
   "tools": [
     {
       "match": {
-        "operationId": "UpdateBrandStoreEditionPublishVersion"
-      },
-      "output_transform": {
-        "sample_n": 10,
-        "artifact_threshold_bytes": 10240
-      }
-    },
-    {
-      "match": {
-        "operationId": "UpdateBrandStorePage"
-      },
-      "output_transform": {
-        "sample_n": 10,
-        "artifact_threshold_bytes": 10240
-      }
-    },
-    {
-      "match": {
         "operationId": "ListBrandStoreEdition"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "QueryBrandStoreEditionPublishVersion"
       },
       "output_transform": {
         "sample_n": 10,
@@ -41,7 +32,16 @@
     },
     {
       "match": {
-        "operationId": "QueryBrandStoreEditionPublishVersion"
+        "operationId": "UpdateBrandStoreEditionPublishVersion"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "UpdateBrandStorePage"
       },
       "output_transform": {
         "sample_n": 10,

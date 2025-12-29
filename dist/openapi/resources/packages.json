@@ -35,7 +35,6 @@
     "creative-assets": "CreativesAssets",
     "change-history": "ChangeHistory",
     "data-provider-data": "DataProviderData",
-    "data-provider-hashed": "DataProviderHashed",
     "products-metadata": "ProductsMetadata",
     "products-eligibility": "ProductsEligibility",
     "unified-pre-moderation-results": "UnifiedPreModerationResults",
@@ -48,7 +47,12 @@
     "amc-administration": "AMCAdmin",
     "amc-workflow": "AMCWorkflow",
     "amc-rule-audience": "AMCRuleAudience",
-    "amc-ad-audience": "AMCAdAudience"
+    "amc-ad-audience": "AMCAdAudience",
+    "ads-api-v1-sp": "AdsAPIv1SponsoredProducts",
+    "ads-api-v1-sb": "AdsAPIv1SponsoredBrands",
+    "ads-api-v1-dsp": "AdsAPIv1DSP",
+    "ads-api-v1-sd": "AdsAPIv1SponsoredDisplay",
+    "ads-api-v1-st": "AdsAPIv1SponsoredTelevision"
   },
   "prefixes": {
     "AccountsProfiles": "ac",
@@ -84,7 +88,6 @@
     "CreativesAssets": "creat",
     "ChangeHistory": "ac",
     "DataProviderData": "dp",
-    "DataProviderHashed": "dp",
     "ProductsMetadata": "pm",
     "ProductsEligibility": "prod",
     "UnifiedPreModerationResults": "mod",
@@ -97,7 +100,12 @@
     "AMCAdmin": "amc",
     "AMCWorkflow": "amc",
     "AMCRuleAudience": "amc",
-    "AMCAdAudience": "amc"
+    "AMCAdAudience": "amc",
+    "AdsAPIv1SponsoredProducts": "spv1",
+    "AdsAPIv1SponsoredBrands": "sbv1",
+    "AdsAPIv1DSP": "dspv1",
+    "AdsAPIv1SponsoredDisplay": "sdv1",
+    "AdsAPIv1SponsoredTelevision": "stv1"
   },
   "aliases": {
     "profiles": "AccountsProfiles",
@@ -133,7 +141,6 @@
     "creative-assets": "CreativesAssets",
     "change-history": "ChangeHistory",
     "data-provider-data": "DataProviderData",
-    "data-provider-hashed": "DataProviderHashed",
     "products-metadata": "ProductsMetadata",
     "products-eligibility": "ProductsEligibility",
     "unified-pre-moderation-results": "UnifiedPreModerationResults",
@@ -146,7 +153,12 @@
     "amc-administration": "AMCAdmin",
     "amc-workflow": "AMCWorkflow",
     "amc-rule-audience": "AMCRuleAudience",
-    "amc-ad-audience": "AMCAdAudience"
+    "amc-ad-audience": "AMCAdAudience",
+    "ads-api-v1-sp": "AdsAPIv1SponsoredProducts",
+    "ads-api-v1-sb": "AdsAPIv1SponsoredBrands",
+    "ads-api-v1-dsp": "AdsAPIv1DSP",
+    "ads-api-v1-sd": "AdsAPIv1SponsoredDisplay",
+    "ads-api-v1-st": "AdsAPIv1SponsoredTelevision"
   },
   "groups": {
     "core": [

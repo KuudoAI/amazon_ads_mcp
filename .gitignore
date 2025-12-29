@@ -267,6 +267,7 @@ sandbox_config.json
 # MCP server specific
 mcp_cache/
 .mcp/
+.mcp.client.json
 mcp_logs/
 
 # FastMCP

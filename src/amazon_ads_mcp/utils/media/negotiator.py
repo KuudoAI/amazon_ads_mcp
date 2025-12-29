@@ -18,6 +18,16 @@ from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
+def _decode_export_id(export_id: str) -> Optional[str]:
+    pad_len = (-len(export_id)) % 4
+    padded = export_id + ("=" * pad_len)
+    for decoder in (base64.urlsafe_b64decode, base64.b64decode):
+        try:
+            return decoder(padded).decode("utf-8")
+        except Exception:
+            continue
+    return None
+
 
 class ResourceTypeNegotiator:
     """Negotiator for determining media types based on resource types.
@@ -141,14 +151,17 @@ class ResourceTypeNegotiator:
             return None
         export_id = m.group(1)
         try:
-            padded = export_id + "=" * (4 - len(export_id) % 4)
-            decoded = base64.b64decode(padded).decode("utf-8")
+            decoded = _decode_export_id(export_id)
+            if not decoded:
+                return None
             if "," in decoded:
                 _, suffix = decoded.rsplit(",", 1)
                 suffix_map = {
                     "C": "application/vnd.campaignsexport.v1+json",
                     "A": "application/vnd.adgroupsexport.v1+json",
                     "AD": "application/vnd.adsexport.v1+json",
+                    # Some export IDs use ',R' for ads exports.
+                    "R": "application/vnd.adsexport.v1+json",
                     "T": "application/vnd.targetsexport.v1+json",
                 }
                 ct = suffix_map.get(suffix.upper())

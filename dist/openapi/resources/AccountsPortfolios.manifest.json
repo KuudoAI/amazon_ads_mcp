@@ -1,0 +1,51 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "AccountsPortfolios",
+  "tools": [
+    {
+      "operationId": "CreatePortfolios",
+      "method": "POST",
+      "path": "/portfolios",
+      "preferred_name": "AccountsPortfolios_CreatePortfolios",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "UpdatePortfolios",
+      "method": "PUT",
+      "path": "/portfolios",
+      "preferred_name": "AccountsPortfolios_UpdatePortfolios",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "portfolioBudgetUsage",
+      "method": "POST",
+      "path": "/portfolios/budget/usage",
+      "preferred_name": "AccountsPortfolios_portfolioBudgetUsage",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 7
+      }
+    },
+    {
+      "operationId": "ListPortfolios",
+      "method": "POST",
+      "path": "/portfolios/list",
+      "preferred_name": "AccountsPortfolios_ListPortfolios",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 7
+      }
+    }
+  ]
+}

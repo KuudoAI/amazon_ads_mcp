@@ -86,7 +86,30 @@ Here is a representative list of the various Amazon API services in the MCP:
 - Locations
 - Exports
 - Media Planning
+- Amazon Ads API v1 (Beta)
 
+### 🧪 Amazon Ads API v1 (Beta)
+
+The Amazon Ads API v1 represents a reimagined approach to the Amazon Ads API, built from the ground up to provide a seamless experience across all Amazon advertising products through a common model. One major benefit of this common model is improved compatibility with code generation tools such as client library generators.
+
+> **⚠️ Beta Notice**: These APIs are currently in beta at Amazon. Features and endpoints may change. Use in production with caution.
+
+| Package Name | Description | Prefix |
+|-------------|-------------|--------|
+| `ads-api-v1-sp` | Sponsored Products v1 | `spv1_` |
+| `ads-api-v1-sb` | Sponsored Brands v1 | `sbv1_` |
+| `ads-api-v1-dsp` | Amazon DSP v1 | `dspv1_` |
+| `ads-api-v1-sd` | Sponsored Display v1 | `sdv1_` |
+| `ads-api-v1-st` | Sponsored Television v1 | `stv1_` |
+
+To activate Ads API v1 packages, add them to your `AMAZON_AD_API_PACKAGES` environment variable:
+
+```bash
+# Example: Enable Sponsored Products v1 and DSP v1
+AMAZON_AD_API_PACKAGES="profiles,ads-api-v1-sp,ads-api-v1-dsp"
+```
+
+For more information, see Amazon's [Campaign Management Overview](https://advertising.amazon.com/API/docs/en-us/guides/campaign-management/overview).
 
 ## Installation
 
@@ -271,6 +294,11 @@ Here is the list of tool packages available in the server:
 - `amc-workflow`
 - `amc-rule-audience`
 - `amc-ad-audience`
+- `ads-api-v1-sp` *(Beta)*
+- `ads-api-v1-sb` *(Beta)*
+- `ads-api-v1-dsp` *(Beta)*
+- `ads-api-v1-sd` *(Beta)*
+- `ads-api-v1-st` *(Beta)*
 
 You will note that some are broken up into smaller groupings. For example, Amazon Marketing Cloud has bundles; `amc-ad-audience`, `amc-administration`, `amc-rule-audience`, and `amc-workflow`. This is done to create efficiencies and optimizations that reduce context limits in many AI clients. 
 
@@ -279,11 +307,16 @@ You will note that some are broken up into smaller groupings. For example, Amazo
 Amazon Ads MCP tools have prefixes (like `cp_` for Campaign Performance or `amc_` for Amazon Marketing Cloud) to help organize the specific Ads API operation.
 
 Example prefixes:
-- `cp_` → campaign/advertising APIs  
-- `amc_` → AMC-related APIs  
-- `dsp_` → DSP APIs  
-- `sd_` → Sponsored Display  
-- `ams_` → Amazon Marketing Stream  
+- `cp_` → campaign/advertising APIs
+- `amc_` → AMC-related APIs
+- `dsp_` → DSP APIs
+- `sd_` → Sponsored Display
+- `ams_` → Amazon Marketing Stream
+- `spv1_` → Sponsored Products v1 *(Beta)*
+- `sbv1_` → Sponsored Brands v1 *(Beta)*
+- `dspv1_` → Amazon DSP v1 *(Beta)*
+- `sdv1_` → Sponsored Display v1 *(Beta)*
+- `stv1_` → Sponsored Television v1 *(Beta)*  
 
 This will translate into collections of tools that align with the API operations that are available:
 

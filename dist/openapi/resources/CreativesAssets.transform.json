@@ -14,7 +14,7 @@
     },
     {
       "match": {
-        "operationId": "getAssetsBatchRegister"
+        "operationId": "assetsBatchRegister"
       },
       "output_transform": {
         "sample_n": 10,
@@ -23,7 +23,7 @@
     },
     {
       "match": {
-        "operationId": "assetsBatchRegister"
+        "operationId": "getAssetsBatchRegister"
       },
       "output_transform": {
         "sample_n": 10,
@@ -41,7 +41,7 @@
     },
     {
       "match": {
-        "operationId": "getUploadLocation"
+        "operationId": "searchAssets"
       },
       "output_transform": {
         "sample_n": 10,
@@ -50,7 +50,7 @@
     },
     {
       "match": {
-        "operationId": "searchAssets"
+        "operationId": "getUploadLocation"
       },
       "output_transform": {
         "sample_n": 10,
