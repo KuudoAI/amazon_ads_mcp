@@ -359,6 +359,13 @@ You may not know what profile(s) authorization grants you access to. You can lis
 * Tool: `ac_listProfiles`
 * Example prompt: *"List my advertiser profile ids"*
 
+**Warning:** Large accounts can return very large profile lists that may exceed client context limits. Prefer these bounded tools for discovery:
+
+* Tool: `summarize_profiles` — *"Summarize my advertiser profiles"*
+* Tool: `search_profiles` — *"Find profiles with Acme in the name in US"*
+* Tool: `page_profiles` — *"Show the first 20 UK profiles"*
+* Tool: `refresh_profiles_cache` — *"Refresh my profile list cache"*
+
 Response includes profile details:
 - profileId, countryCode, currencyCode
 - dailyBudget, timezone

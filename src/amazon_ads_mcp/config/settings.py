@@ -175,6 +175,13 @@ class Settings(BaseSettings):
         description="Default sampling rate (0.0-1.0)",
     )
 
+    # Response Caching Configuration
+    enable_response_caching: bool = Field(
+        False,
+        alias="ENABLE_RESPONSE_CACHING",
+        description="Enable response caching for safe read-only tools",
+    )
+
     @field_validator("auth_method")
     @classmethod
     def auto_detect_auth_method(cls, v: str, info) -> str:
