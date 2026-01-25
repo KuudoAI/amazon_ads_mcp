@@ -474,12 +474,14 @@ class AuthManager:
             ):
                 return self._active_credentials
 
+            identity_id = "default"
+
             # Get token and headers from provider
             token = await self.provider.get_token()
             headers = await self.provider.get_headers()
 
             credentials = AuthCredentials(
-                identity_id="default",
+                identity_id=identity_id,
                 access_token=token.value,
                 expires_at=token.expires_at,
                 base_url=(
