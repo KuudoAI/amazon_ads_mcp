@@ -12,13 +12,19 @@ class FakeHandler:
         self.base_dir = base_dir
         self.file_path = file_path
         self.calls = []
-        self.downloads = {}
+        self.downloads = []  # Changed to flat list format
 
-    async def handle_export_response(self, export_response, export_type=None):
-        self.calls.append({"export_response": export_response, "export_type": export_type})
+    async def handle_export_response(
+        self, export_response, export_type=None, profile_id=None
+    ):
+        self.calls.append({
+            "export_response": export_response,
+            "export_type": export_type,
+            "profile_id": profile_id,
+        })
         return self.file_path
 
-    def list_downloads(self, resource_type=None):
+    def list_downloads(self, resource_type=None, profile_id=None):
         return self.downloads
 
 
@@ -66,20 +72,19 @@ async def test_check_and_download_export_failed(monkeypatch, tmp_path):
 @pytest.mark.asyncio
 async def test_list_downloaded_files_summarizes(monkeypatch, tmp_path):
     handler = FakeHandler(tmp_path)
-    handler.downloads = {
-        "exports/campaigns": [
-            {"size": 10},
-            {"size": 5},
-        ],
-        "reports/general": [{"size": 20}],
-    }
+    # New flat list format
+    handler.downloads = [
+        {"name": "file1.csv", "size": 10, "path": "exports/campaigns/file1.csv"},
+        {"name": "file2.csv", "size": 5, "path": "exports/campaigns/file2.csv"},
+        {"name": "report.json", "size": 20, "path": "reports/general/report.json"},
+    ]
     monkeypatch.setattr(download_tools, "get_download_handler", lambda: handler)
 
     result = await download_tools.list_downloaded_files()
 
     assert result["total_files"] == 3
     assert result["total_size_bytes"] == 35
-    assert result["downloads"] == handler.downloads
+    assert result["files"] == handler.downloads
 
 
 @pytest.mark.asyncio

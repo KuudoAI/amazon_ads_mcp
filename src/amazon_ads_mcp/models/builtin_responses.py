@@ -336,6 +336,27 @@ class ListDownloadsResponse(BaseModel):
     download_dir: str
 
 
+class GetDownloadUrlResponse(BaseModel):
+    """Response from get_download_url tool.
+
+    :param success: Whether the URL was generated successfully
+    :param download_url: HTTP URL to download the file
+    :param file_name: Name of the file
+    :param size_bytes: File size in bytes
+    :param profile_id: Profile ID the file belongs to
+    :param error: Error message if failed
+    :param hint: Helpful hint for resolving issues
+    """
+
+    success: bool
+    download_url: Optional[str] = None
+    file_name: Optional[str] = None
+    size_bytes: Optional[int] = None
+    profile_id: Optional[str] = None
+    error: Optional[str] = None
+    hint: Optional[str] = None
+
+
 # ============================================================================
 # Reporting Tool Responses
 # ============================================================================

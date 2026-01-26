@@ -32,6 +32,7 @@ from ..models.builtin_responses import (
     ClearProfileResponse,
     DownloadedFile,
     DownloadExportResponse,
+    GetDownloadUrlResponse,
     GetProfileResponse,
     GetRegionResponse,
     ListDownloadsResponse,
@@ -423,6 +424,10 @@ async def register_download_tools(server: FastMCP):
 
         handler = get_download_handler()
 
+        # Get active profile for scoped storage
+        auth_mgr = get_auth_manager()
+        profile_id = auth_mgr.get_active_profile_id() if auth_mgr else None
+
         # Determine export type from ID
         try:
             padded = export_id + "=" * (4 - len(export_id) % 4)
@@ -446,7 +451,10 @@ async def register_download_tools(server: FastMCP):
         await progress.increment()
 
         file_path = await handler.download_export(
-            export_url=export_url, export_id=export_id, export_type=export_type
+            export_url=export_url,
+            export_id=export_id,
+            export_type=export_type,
+            profile_id=profile_id,
         )
 
         # Report progress: complete
@@ -462,35 +470,124 @@ async def register_download_tools(server: FastMCP):
 
     @server.tool(
         name="list_downloads",
-        description="List all downloaded exports and reports",
+        description="List all downloaded exports and reports for the active profile",
     )
     async def list_downloads_tool(
         ctx: Context, resource_type: Optional[str] = None
     ) -> ListDownloadsResponse:
-        """List downloaded files."""
+        """List downloaded files for the active profile."""
         from ..tools.download_tools import list_downloaded_files
 
-        result = await list_downloaded_files(resource_type)
+        # Get active profile for scoped listing
+        auth_mgr = get_auth_manager()
+        profile_id = auth_mgr.get_active_profile_id() if auth_mgr else None
 
-        # Transform the nested downloads dict into a flat list of DownloadedFile
+        result = await list_downloaded_files(resource_type, profile_id=profile_id)
+
+        # Transform flat file list into DownloadedFile objects
         files = []
-        for rtype, file_list in result.get("downloads", {}).items():
-            for f in file_list:
-                files.append(
-                    DownloadedFile(
-                        filename=f.get("name", ""),
-                        path=f.get("path", ""),
-                        size=f.get("size", 0),
-                        modified=f.get("modified", ""),
-                        resource_type=rtype,
-                    )
+        for f in result.get("files", []):
+            # Extract resource_type from path (e.g., "exports/campaigns/file.json")
+            path_parts = f.get("path", "").split("/")
+            rtype = path_parts[0] if path_parts else "unknown"
+
+            files.append(
+                DownloadedFile(
+                    filename=f.get("name", ""),
+                    path=f.get("path", ""),
+                    size=f.get("size", 0),
+                    modified=f.get("modified", ""),
+                    resource_type=rtype,
                 )
+            )
 
         return ListDownloadsResponse(
             success=True,
             files=files,
             count=result.get("total_files", len(files)),
             download_dir=result.get("base_directory", ""),
+        )
+
+    @server.tool(
+        name="get_download_url",
+        description="""Get the HTTP URL for downloading a file.
+
+Use with list_downloads to find available files, then get their download URLs.
+The URL can be opened in a browser or used with curl/wget to download the file.
+
+Note: Requires HTTP transport (not stdio).
+""",
+    )
+    async def get_download_url_tool(
+        ctx: Context,
+        file_path: str,
+    ) -> GetDownloadUrlResponse:
+        """Generate the download URL for a file.
+
+        :param ctx: MCP context
+        :param file_path: Relative path from list_downloads output
+        :return: Response with download URL
+        """
+        from pathlib import Path
+        from urllib.parse import quote
+
+        # Try to get HTTP request context
+        try:
+            from fastmcp.server.dependencies import get_http_request
+
+            request = get_http_request()
+        except (ImportError, RuntimeError):
+            return GetDownloadUrlResponse(
+                success=False,
+                error="HTTP transport required for file downloads",
+                hint="Run server with --transport http",
+            )
+
+        # Get current profile
+        auth_mgr = get_auth_manager()
+        profile_id = auth_mgr.get_active_profile_id() if auth_mgr else None
+
+        if not profile_id:
+            return GetDownloadUrlResponse(
+                success=False,
+                error="No active profile",
+                hint="Set active profile before getting download URLs",
+            )
+
+        # Validate file exists
+        from ..utils.export_download_handler import get_download_handler
+
+        handler = get_download_handler()
+        profile_dir = handler.base_dir / "profiles" / profile_id
+        full_path = profile_dir / file_path
+
+        if not full_path.exists():
+            return GetDownloadUrlResponse(
+                success=False,
+                error="File not found",
+                hint="Use list_downloads to see available files",
+            )
+
+        # Build URL with proper encoding
+        base_url = str(request.base_url).rstrip("/")
+
+        # Handle forwarded headers from reverse proxy
+        forwarded_proto = request.headers.get("X-Forwarded-Proto")
+        forwarded_host = request.headers.get("X-Forwarded-Host")
+        if forwarded_proto and forwarded_host:
+            base_url = f"{forwarded_proto}://{forwarded_host}"
+
+        # URL-encode path segments
+        encoded_path = "/".join(
+            quote(part, safe="") for part in Path(file_path).parts
+        )
+
+        return GetDownloadUrlResponse(
+            success=True,
+            download_url=f"{base_url}/downloads/{encoded_path}",
+            file_name=full_path.name,
+            size_bytes=full_path.stat().st_size,
+            profile_id=profile_id,
         )
 
 
@@ -646,11 +743,17 @@ async def register_reporting_tools(server: FastMCP):
             from ..utils.export_download_handler import get_download_handler
 
             handler = get_download_handler()
+
+            # Get active profile for scoped storage
+            auth_mgr = get_auth_manager()
+            profile_id = auth_mgr.get_active_profile_id() if auth_mgr else None
+
             file_path = await handler.download_export(
                 export_url=download_url,
                 export_id=report_id,
                 export_type=f"report_{report_type}",
                 metadata={"report_config": report_config},
+                profile_id=profile_id,
             )
 
             await progress.set_message("Report download complete!")

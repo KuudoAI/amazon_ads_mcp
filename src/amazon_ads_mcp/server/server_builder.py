@@ -85,6 +85,9 @@ class ServerBuilder:
         # Setup OAuth callback route for HTTP transport
         await self._setup_oauth_callback()
 
+        # Setup file download routes for HTTP transport
+        await self._setup_file_routes()
+
         return self.server
 
     async def _setup_default_identity(self):
@@ -736,3 +739,13 @@ class ServerBuilder:
                     return HTMLResponse(html, status_code=500)
 
             logger.info("Registered OAuth callback route at /auth/callback")
+
+    async def _setup_file_routes(self):
+        """Setup HTTP file download routes.
+
+        Registers custom routes for downloading files via HTTP.
+        Only effective with HTTP transport (not stdio).
+        """
+        from .file_routes import register_file_routes
+
+        register_file_routes(self.server)
