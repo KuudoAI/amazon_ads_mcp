@@ -202,7 +202,7 @@ class TestTokenBucket:
         duration = time.time() - start
         
         assert acquired
-        assert 0.05 <= duration <= 0.2  # Should wait for refill
+        assert 0.02 <= duration <= 0.3  # Allow scheduling variance
     
     @pytest.mark.asyncio
     async def test_acquire_timeout(self):

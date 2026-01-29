@@ -89,17 +89,47 @@ class ExportDownloadHandler:
             f"Download handler initialized with base directory: {self.base_dir}"
         )
 
-    def get_resource_path(self, url: str, export_type: str | None = None) -> Path:
+    def get_profile_base_dir(self, profile_id: str | None) -> Path:
+        """Get the base directory for a profile.
+
+        For profile-scoped storage: data/profiles/{profile_id}/
+        For legacy storage (no profile): data/
+
+        :param profile_id: Profile ID for scoping, or None for legacy mode
+        :type profile_id: str | None
+        :return: Base directory for the profile
+        :rtype: Path
+        """
+        if profile_id:
+            profile_dir = self.base_dir / "profiles" / profile_id
+            profile_dir.mkdir(parents=True, exist_ok=True)
+            return profile_dir
+        return self.base_dir
+
+    def get_resource_path(
+        self,
+        url: str,
+        export_type: str | None = None,
+        profile_id: str | None = None,
+    ) -> Path:
         """Determine the resource path from URL and export type.
 
         Analyzes the URL structure to determine the appropriate directory
         for storing the downloaded file. Creates the directory structure
         if it doesn't exist.
 
+        When profile_id is provided, files are stored under:
+            data/profiles/{profile_id}/{resource_type}/{sub_type}/
+
+        When profile_id is None (legacy mode):
+            data/{resource_type}/{sub_type}/
+
         :param url: The URL being accessed
         :type url: str
         :param export_type: Optional explicit export type (campaign, adgroup, etc.)
         :type export_type: str | None
+        :param profile_id: Optional profile ID for scoped storage
+        :type profile_id: str | None
         :return: Path object for the resource directory
         :rtype: Path
         """
@@ -166,8 +196,11 @@ class ExportDownloadHandler:
             resource_type = "downloads"
             sub_type = path_parts[0] if path_parts else "general"
 
+        # Get the appropriate base directory (profile-scoped or legacy)
+        base = self.get_profile_base_dir(profile_id)
+
         # Create the directory structure
-        resource_path = self.base_dir / resource_type / sub_type
+        resource_path = base / resource_type / sub_type
         resource_path.mkdir(parents=True, exist_ok=True)
 
         return resource_path
@@ -299,12 +332,16 @@ class ExportDownloadHandler:
         export_id: str,
         export_type: str | None = None,
         metadata: dict[str, Any] | None = None,
+        profile_id: str | None = None,
     ) -> Path:
         """Download an export file and store it locally.
 
         Downloads an export file from the provided URL and stores it in the
         appropriate local directory structure. Automatically detects file
         extensions and creates metadata files.
+
+        When profile_id is provided, files are stored under:
+            data/profiles/{profile_id}/{resource_type}/{sub_type}/
 
         :param export_url: URL to download the export from
         :type export_url: str
@@ -314,13 +351,15 @@ class ExportDownloadHandler:
         :type export_type: str | None
         :param metadata: Optional metadata to store alongside the file
         :type metadata: dict[str, Any] | None
+        :param profile_id: Optional profile ID for scoped storage
+        :type profile_id: str | None
         :return: Path to the downloaded file
         :rtype: Path
         :raises httpx.HTTPStatusError: When download fails
         :raises Exception: When file operations fail
         """
-        # Determine where to save
-        resource_path = self.get_resource_path(export_url, export_type)
+        # Determine where to save (profile-scoped or legacy)
+        resource_path = self.get_resource_path(export_url, export_type, profile_id)
 
         # Use plain httpx client for S3 URLs (they don't need auth headers)
         async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
@@ -375,6 +414,8 @@ class ExportDownloadHandler:
             metadata["content_type"] = ct
             metadata["gzipped"] = is_gzipped
             metadata["saved_path"] = str(final_path)
+            if profile_id:
+                metadata["profile_id"] = profile_id
 
             with open(meta_path, "w", encoding="utf-8") as f:
                 json.dump(metadata, f, indent=2)
@@ -386,6 +427,7 @@ class ExportDownloadHandler:
         self,
         export_response: dict[str, Any],
         export_type: str | None = None,
+        profile_id: str | None = None,
     ) -> Path | None:
         """Handle an export response, downloading if ready.
 
@@ -397,6 +439,8 @@ class ExportDownloadHandler:
         :type export_response: dict[str, Any]
         :param export_type: Type of export for organization
         :type export_type: str | None
+        :param profile_id: Optional profile ID for scoped storage
+        :type profile_id: str | None
         :return: Path to downloaded file if successful, None if not ready
         :rtype: Path | None
         """
@@ -413,6 +457,7 @@ class ExportDownloadHandler:
                         export_id=export_id,
                         export_type=export_type,
                         metadata=export_response,
+                        profile_id=profile_id,
                     )
                     return file_path
                 except Exception as e:
@@ -432,56 +477,73 @@ class ExportDownloadHandler:
             logger.warning(f"Export {export_id} has unknown status: {status}")
             return None
 
-    def list_downloads(self, resource_type: str | None = None) -> dict[str, list]:
+    def list_downloads(
+        self,
+        resource_type: str | None = None,
+        profile_id: str | None = None,
+    ) -> list[dict[str, Any]]:
         """List all downloaded files.
 
         Scans the download directory structure and returns information about
-        all downloaded files, optionally filtered by resource type.
+        all downloaded files, optionally filtered by resource type and/or profile.
+
+        When profile_id is provided:
+            - Lists files only from data/profiles/{profile_id}/
+
+        When profile_id is None:
+            - Lists files only from legacy (non-profile) directories
+            - Excludes the profiles/ directory
 
         :param resource_type: Optional filter by resource type
         :type resource_type: str | None
-        :return: Dictionary mapping resource paths to file lists
-        :rtype: dict[str, list]
+        :param profile_id: Optional profile ID for scoped listing
+        :type profile_id: str | None
+        :return: List of file information dictionaries
+        :rtype: list[dict[str, Any]]
         """
-        downloads = {}
+        files = []
 
-        if resource_type:
-            search_paths = [self.base_dir / resource_type]
+        # Determine base directory based on profile scoping
+        if profile_id:
+            base = self.base_dir / "profiles" / profile_id
+            if not base.exists():
+                return []
         else:
-            search_paths = [p for p in self.base_dir.iterdir() if p.is_dir()]
+            # Legacy mode: list from base_dir, but exclude profiles/
+            base = self.base_dir
+
+        # Determine search paths
+        if resource_type:
+            search_paths = [base / resource_type]
+        else:
+            search_paths = [
+                p for p in base.iterdir()
+                if p.is_dir() and p.name != "profiles"  # Exclude profiles dir in legacy
+            ]
 
         for resource_dir in search_paths:
             if not resource_dir.exists():
                 continue
 
-            for sub_dir in resource_dir.iterdir():
-                if sub_dir.is_dir():
-                    files = []
-                    for file_path in sub_dir.iterdir():
-                        if file_path.is_file() and not file_path.name.endswith(
-                            ".meta.json"
-                        ):
-                            # Get file info
-                            stat = file_path.stat()
-                            files.append(
-                                {
-                                    "name": file_path.name,
-                                    "path": str(file_path),
-                                    "size": stat.st_size,
-                                    "modified": datetime.fromtimestamp(
-                                        stat.st_mtime
-                                    ).isoformat(),
-                                    "has_metadata": file_path.with_suffix(
-                                        ".meta.json"
-                                    ).exists(),
-                                }
-                            )
+            # Recursively find all files
+            for file_path in resource_dir.rglob("*"):
+                if file_path.is_file() and not file_path.name.endswith(".meta.json"):
+                    stat = file_path.stat()
+                    relative_path = file_path.relative_to(base)
+                    files.append(
+                        {
+                            "name": file_path.name,
+                            "path": str(relative_path),
+                            "full_path": str(file_path),
+                            "size": stat.st_size,
+                            "modified": datetime.fromtimestamp(
+                                stat.st_mtime
+                            ).isoformat(),
+                            "has_metadata": file_path.with_suffix(".meta.json").exists(),
+                        }
+                    )
 
-                    if files:
-                        relative_path = sub_dir.relative_to(self.base_dir)
-                        downloads[str(relative_path)] = files
-
-        return downloads
+        return files
 
 
 # Global handler instance

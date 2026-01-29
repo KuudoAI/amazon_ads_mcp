@@ -22,6 +22,7 @@ async def check_and_download_export(
     export_id: str,
     export_response: Dict[str, Any],
     export_type: Optional[str] = None,
+    profile_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Check export status and download if ready.
 
@@ -35,6 +36,8 @@ async def check_and_download_export(
     :type export_response: Dict[str, Any]
     :param export_type: Optional export type (campaign, adgroup, etc.)
     :type export_type: Optional[str]
+    :param profile_id: Optional profile ID for scoped storage
+    :type profile_id: Optional[str]
     :return: Dictionary containing status and download information
     :rtype: Dict[str, Any]
     """
@@ -60,8 +63,10 @@ async def check_and_download_export(
         except (AttributeError, TypeError, ValueError, KeyError):
             export_type = "general"
 
-    # Handle the export response
-    file_path = await handler.handle_export_response(export_response, export_type)
+    # Handle the export response with profile scoping
+    file_path = await handler.handle_export_response(
+        export_response, export_type, profile_id=profile_id
+    )
 
     if file_path:
         return {
@@ -100,6 +105,7 @@ async def check_and_download_export(
 
 async def list_downloaded_files(
     resource_type: Optional[str] = None,
+    profile_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """List all downloaded files in the data directory.
 
@@ -107,23 +113,32 @@ async def list_downloaded_files(
     of all available downloads. Can filter by resource type to show only
     specific types of downloads.
 
+    When profile_id is provided:
+        - Lists files only from data/profiles/{profile_id}/
+
+    When profile_id is None:
+        - Lists files only from legacy (non-profile) directories
+
     :param resource_type: Optional filter to show only specific resource types
     :type resource_type: Optional[str]
+    :param profile_id: Optional profile ID for scoped listing
+    :type profile_id: Optional[str]
     :return: Dictionary containing download summary and file listings
     :rtype: Dict[str, Any]
     """
     handler = get_download_handler()
-    downloads = handler.list_downloads(resource_type)
+    # handler.list_downloads returns a flat list of file dicts
+    files = handler.list_downloads(resource_type, profile_id=profile_id)
 
-    # Calculate totals
-    total_files = sum(len(files) for files in downloads.values())
-    total_size = sum(sum(f["size"] for f in files) for files in downloads.values())
+    # Calculate totals from the flat list
+    total_files = len(files)
+    total_size = sum(f.get("size", 0) for f in files)
 
     return {
         "base_directory": str(handler.base_dir),
         "total_files": total_files,
         "total_size_bytes": total_size,
-        "downloads": downloads,
+        "files": files,  # Flat list format
     }
 
 
@@ -170,15 +185,22 @@ async def get_download_metadata(file_path: str) -> Dict[str, Any]:
 
 
 async def clean_old_downloads(
-    resource_type: Optional[str] = None, days_old: int = 7
+    profile_id: str,
+    resource_type: Optional[str] = None,
+    days_old: int = 7,
 ) -> Dict[str, Any]:
-    """Clean up old downloaded files.
+    """Clean up old downloaded files for a specific profile.
 
     Removes downloaded files that are older than the specified number
-    of days. This helps manage disk space by cleaning up outdated
-    export data. Can filter by resource type to clean only specific
-    types of downloads.
+    of days within the profile's storage directory. This helps manage
+    disk space by cleaning up outdated export data. Can filter by
+    resource type to clean only specific types of downloads.
 
+    IMPORTANT: This function is profile-scoped to maintain multi-tenant
+    isolation. It only deletes files within data/profiles/{profile_id}/.
+
+    :param profile_id: Profile ID for scoped cleanup (required)
+    :type profile_id: str
     :param resource_type: Optional filter by resource type
     :type resource_type: Optional[str]
     :param days_old: Delete files older than this many days
@@ -188,16 +210,31 @@ async def clean_old_downloads(
     """
     from datetime import datetime, timedelta
 
+    if not profile_id:
+        return {
+            "success": False,
+            "error": "profile_id is required for cleanup operations",
+            "deleted_files": 0,
+            "deleted_size_bytes": 0,
+            "files": [],
+        }
+
     handler = get_download_handler()
     cutoff_date = datetime.now() - timedelta(days=days_old)
+
+    # Use profile-scoped base directory for multi-tenant isolation
+    profile_base = handler.get_profile_base_dir(profile_id)
 
     deleted_files = []
     deleted_size = 0
 
     if resource_type:
-        search_paths = [handler.base_dir / resource_type]
+        search_paths = [profile_base / resource_type]
     else:
-        search_paths = [p for p in handler.base_dir.iterdir() if p.is_dir()]
+        # Only search directories within the profile's storage
+        search_paths = [
+            p for p in profile_base.iterdir() if p.is_dir()
+        ] if profile_base.exists() else []
 
     for resource_dir in search_paths:
         if not resource_dir.exists():
@@ -222,8 +259,9 @@ async def clean_old_downloads(
 
     return {
         "success": True,
+        "profile_id": profile_id,
         "deleted_files": len(deleted_files),
         "deleted_size_bytes": deleted_size,
         "files": deleted_files,
-        "message": f"Deleted {len(deleted_files)} files older than {days_old} days",
+        "message": f"Deleted {len(deleted_files)} files older than {days_old} days for profile {profile_id}",
     }

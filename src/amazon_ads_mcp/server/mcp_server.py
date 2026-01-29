@@ -3,6 +3,8 @@
 
 This is a refactored version of the MCP server that uses modular components
 for better maintainability and testability.
+
+Implements the FastMCP server lifespan pattern for clean startup/shutdown.
 """
 
 import argparse
@@ -13,11 +15,13 @@ import os
 import signal
 import sys
 import types
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Any, Optional
 
-# CRITICAL: Set parser mode BEFORE importing ServerBuilder
-# ServerBuilder imports FastMCP, which checks this flag at import time
-os.environ["FASTMCP_EXPERIMENTAL_ENABLE_NEW_OPENAPI_PARSER"] = "true"
+# Note: FASTMCP_EXPERIMENTAL_ENABLE_NEW_OPENAPI_PARSER removed in v0.1.18
+# The new OpenAPI parser is now standard in FastMCP 2.14.0+
+# See: https://gofastmcp.com/v2/development/upgrade-guide
 
 from ..utils.http import http_client_manager
 from ..utils.security import setup_secure_logging
@@ -26,12 +30,102 @@ from .server_builder import ServerBuilder
 logger = logging.getLogger(__name__)
 
 
+@asynccontextmanager
+async def server_lifespan(server: Any) -> AsyncIterator[None]:
+    """Server lifespan context manager for clean startup and shutdown.
+
+    This lifespan function handles all server initialization and cleanup
+    in a single, testable async context manager. It's passed to the FastMCP
+    constructor to ensure proper resource management.
+
+    FastMCP 2.14+ passes the server instance to lifespan functions, which
+    enables access to server state during startup/shutdown.
+
+    Startup:
+        - Validates authentication configuration
+        - Initializes HTTP client connections
+        - Logs server state
+
+    Shutdown:
+        - Closes all HTTP client connections
+        - Shuts down the authentication manager
+        - Performs graceful cleanup
+
+    Usage:
+        server = FastMCP("Server", lifespan=server_lifespan)
+
+    :param server: The FastMCP server instance (provided by FastMCP)
+    :yield: Control to the running server
+    :rtype: AsyncIterator[None]
+    """
+    _ = server  # Server instance available if needed for future enhancements
+    logger.info("Server lifespan: Starting up...")
+
+    # Startup phase
+    try:
+        # Log initial state
+        from ..auth.manager import get_auth_manager
+
+        auth_mgr = get_auth_manager()
+        if auth_mgr and auth_mgr.provider:
+            provider_type = getattr(auth_mgr.provider, "provider_type", "unknown")
+            logger.info(f"Auth provider initialized: {provider_type}")
+        else:
+            logger.warning("No auth provider configured")
+
+        logger.info("Server lifespan: Startup complete")
+    except Exception as e:
+        logger.error(f"Server lifespan: Startup error: {e}")
+        raise
+
+    try:
+        # Yield control to the running server
+        yield
+    finally:
+        # Shutdown phase - coordinate with fallback cleanup handlers
+        global _cleanup_done
+
+        if _cleanup_done:
+            logger.debug("Server lifespan: Cleanup already done by fallback handler")
+            return
+
+        logger.info("Server lifespan: Shutting down...")
+
+        # Close HTTP clients
+        try:
+            await http_client_manager.close_all()
+            logger.info("HTTP clients closed")
+        except Exception as e:
+            logger.error(f"Error closing HTTP clients: {e}")
+
+        # Close auth manager
+        try:
+            from ..auth.manager import get_auth_manager
+
+            am = get_auth_manager()
+            if am:
+                await am.close()
+                logger.info("Auth manager closed")
+        except Exception as e:
+            logger.error(f"Error closing auth manager: {e}")
+
+        # Mark cleanup done to prevent fallback handlers from running again
+        _cleanup_done = True
+        logger.info("Server lifespan: Shutdown complete")
+
+
 async def create_amazon_ads_server() -> Any:
     """Create and configure the Amazon Ads MCP server using modular components.
 
     This function creates a new Amazon Ads MCP server instance using the
-    modular ServerBuilder. The server is fully configured with builtin tools
-    and authentication middleware.
+    modular ServerBuilder. The server is fully configured with builtin tools,
+    authentication middleware, and lifespan management.
+
+    The lifespan pattern (FastMCP 2.14+) handles:
+    - Clean startup with auth validation
+    - Graceful shutdown with resource cleanup
+    - HTTP client connection management
+    - Auth manager lifecycle
 
     :return: Configured FastMCP server instance
     :raises Exception: If server initialization fails
@@ -43,13 +137,14 @@ async def create_amazon_ads_server() -> Any:
         server = await create_amazon_ads_server()
         await server.run()
     """
-    builder = ServerBuilder()
+    # Pass the lifespan to the builder for clean startup/shutdown
+    builder = ServerBuilder(lifespan=server_lifespan)
     server = await builder.build()
 
     # Built-in tools are registered in ServerBuilder._setup_builtin_tools()
     # FastMCP handles prompts automatically
 
-    logger.info("MCP server setup complete")
+    logger.info("MCP server setup complete (lifespan pattern enabled)")
     return server
 
 
