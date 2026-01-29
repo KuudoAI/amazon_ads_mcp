@@ -344,6 +344,7 @@ class GetDownloadUrlResponse(BaseModel):
     :param file_name: Name of the file
     :param size_bytes: File size in bytes
     :param profile_id: Profile ID the file belongs to
+    :param instructions: Instructions for using the download URL
     :param error: Error message if failed
     :param hint: Helpful hint for resolving issues
     """
@@ -353,6 +354,7 @@ class GetDownloadUrlResponse(BaseModel):
     file_name: Optional[str] = None
     size_bytes: Optional[int] = None
     profile_id: Optional[str] = None
+    instructions: Optional[str] = None
     error: Optional[str] = None
     hint: Optional[str] = None
 

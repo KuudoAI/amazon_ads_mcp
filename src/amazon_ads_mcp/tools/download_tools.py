@@ -185,15 +185,22 @@ async def get_download_metadata(file_path: str) -> Dict[str, Any]:
 
 
 async def clean_old_downloads(
-    resource_type: Optional[str] = None, days_old: int = 7
+    profile_id: str,
+    resource_type: Optional[str] = None,
+    days_old: int = 7,
 ) -> Dict[str, Any]:
-    """Clean up old downloaded files.
+    """Clean up old downloaded files for a specific profile.
 
     Removes downloaded files that are older than the specified number
-    of days. This helps manage disk space by cleaning up outdated
-    export data. Can filter by resource type to clean only specific
-    types of downloads.
+    of days within the profile's storage directory. This helps manage
+    disk space by cleaning up outdated export data. Can filter by
+    resource type to clean only specific types of downloads.
 
+    IMPORTANT: This function is profile-scoped to maintain multi-tenant
+    isolation. It only deletes files within data/profiles/{profile_id}/.
+
+    :param profile_id: Profile ID for scoped cleanup (required)
+    :type profile_id: str
     :param resource_type: Optional filter by resource type
     :type resource_type: Optional[str]
     :param days_old: Delete files older than this many days
@@ -203,16 +210,31 @@ async def clean_old_downloads(
     """
     from datetime import datetime, timedelta
 
+    if not profile_id:
+        return {
+            "success": False,
+            "error": "profile_id is required for cleanup operations",
+            "deleted_files": 0,
+            "deleted_size_bytes": 0,
+            "files": [],
+        }
+
     handler = get_download_handler()
     cutoff_date = datetime.now() - timedelta(days=days_old)
+
+    # Use profile-scoped base directory for multi-tenant isolation
+    profile_base = handler.get_profile_base_dir(profile_id)
 
     deleted_files = []
     deleted_size = 0
 
     if resource_type:
-        search_paths = [handler.base_dir / resource_type]
+        search_paths = [profile_base / resource_type]
     else:
-        search_paths = [p for p in handler.base_dir.iterdir() if p.is_dir()]
+        # Only search directories within the profile's storage
+        search_paths = [
+            p for p in profile_base.iterdir() if p.is_dir()
+        ] if profile_base.exists() else []
 
     for resource_dir in search_paths:
         if not resource_dir.exists():
@@ -237,8 +259,9 @@ async def clean_old_downloads(
 
     return {
         "success": True,
+        "profile_id": profile_id,
         "deleted_files": len(deleted_files),
         "deleted_size_bytes": deleted_size,
         "files": deleted_files,
-        "message": f"Deleted {len(deleted_files)} files older than {days_old} days",
+        "message": f"Deleted {len(deleted_files)} files older than {days_old} days for profile {profile_id}",
     }

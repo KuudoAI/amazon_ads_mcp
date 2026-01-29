@@ -9,6 +9,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+mcp-name: io.github.kuudoai/amazon_ads_mcp
 
 
 </div>
@@ -403,6 +404,7 @@ Files are stored per-profile to ensure data isolation:
 - Each profile's files are in `data/profiles/{profile_id}/`
 - You can only access files for your active profile
 - Set your profile first: *"Set my active profile to 123456789"*
+HTTP download endpoints and download tools serve profile-scoped files only. Move legacy files into a profile directory for access.
 
 ## Advertiser Profiles & Regions
 

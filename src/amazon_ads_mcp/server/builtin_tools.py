@@ -582,12 +582,18 @@ Note: Requires HTTP transport (not stdio).
             quote(part, safe="") for part in Path(file_path).parts
         )
 
+        download_url = f"{base_url}/downloads/{encoded_path}"
         return GetDownloadUrlResponse(
             success=True,
-            download_url=f"{base_url}/downloads/{encoded_path}",
+            download_url=download_url,
             file_name=full_path.name,
             size_bytes=full_path.stat().st_size,
             profile_id=profile_id,
+            instructions=(
+                f"Use HTTP GET to download: curl -O '{download_url}'. "
+                "If authentication is enabled, add header: "
+                "Authorization: Bearer <token>"
+            ),
         )
 
 
