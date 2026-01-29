@@ -9,6 +9,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+mcp-name: io.github.kuudoai/amazon_ads_mcp
 
 
 </div>
@@ -346,8 +347,64 @@ Users would see tools like:
 - **"Create an AMC workflow"**  
   → Claude uses: `amc_createWorkflow`
 
-- **"Export my sponsored products ads data"**  
+- **"Export my sponsored products ads data"**
   → Claude uses: `export_createAdExport`
+
+## 📥 Downloading Reports & Exports
+
+When you request a report or export, the data is downloaded server-side and stored in profile-scoped directories. You can then retrieve files via HTTP.
+
+### Download Workflow
+
+```
+1. Request Report          2. List Downloads           3. Get Download URL        4. Download File
+────────────────           ───────────────            ─────────────────         ─────────────────
+"Generate a campaign       "List my downloaded        "Get URL for the          Open URL in browser
+ performance report"        files"                     campaign report"          or use curl
+         │                        │                          │                         │
+         ▼                        ▼                          ▼                         ▼
+request_and_download      list_downloads()          get_download_url()        GET /downloads/...
+    _report()                     │                          │
+         │                        │                          │
+         ▼                        ▼                          ▼
+   data/profiles/         Returns file list          Returns HTTP URL
+   {profile_id}/          with metadata              like:
+   reports/...                                       http://localhost:9080/
+                                                     downloads/reports/...
+```
+
+### Example Prompts
+
+| Task | Example Prompt |
+|------|----------------|
+| Download a report | *"Generate a Sponsored Products report for January 2026"* |
+| List available files | *"Show me my downloaded files"* |
+| Get download link | *"Get the download URL for the report we just created"* |
+| Filter by type | *"List my downloaded campaign exports"* |
+
+### HTTP Download API
+
+Once you have a download URL, you can retrieve files directly:
+
+```bash
+# List available downloads
+curl http://localhost:9080/downloads
+
+# Download a specific file
+curl -O http://localhost:9080/downloads/reports/async/report_123.json.gz
+
+# With authentication (if enabled)
+curl -H "Authorization: Bearer your-token" \
+     -O http://localhost:9080/downloads/exports/campaigns/export.json
+```
+
+### Profile Isolation
+
+Files are stored per-profile to ensure data isolation:
+- Each profile's files are in `data/profiles/{profile_id}/`
+- You can only access files for your active profile
+- Set your profile first: *"Set my active profile to 123456789"*
+HTTP download endpoints and download tools serve profile-scoped files only. Move legacy files into a profile directory for access.
 
 ## Advertiser Profiles & Regions
 
@@ -358,6 +415,13 @@ You may not know what profile(s) authorization grants you access to. You can lis
 
 * Tool: `ac_listProfiles`
 * Example prompt: *"List my advertiser profile ids"*
+
+**Warning:** Large accounts can return very large profile lists that may exceed client context limits. Prefer these bounded tools for discovery:
+
+* Tool: `summarize_profiles` — *"Summarize my advertiser profiles"*
+* Tool: `search_profiles` — *"Find profiles with Acme in the name in US"*
+* Tool: `page_profiles` — *"Show the first 20 UK profiles"*
+* Tool: `refresh_profiles_cache` — *"Refresh my profile list cache"*
 
 Response includes profile details:
 - profileId, countryCode, currencyCode

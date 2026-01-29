@@ -122,6 +122,58 @@ When modifying Amazon Ads functionality, changes typically affect:
 - **DSP** (`dsp_*` tools for programmatic advertising)
 - **AMC** (`amc_*` tools for Amazon Marketing Cloud)
 - **Authentication** (OAuth flows, token management)
+- **File Downloads** (HTTP download routes for exports and reports)
+
+## File Downloads (HTTP Data Plane)
+
+The MCP server provides HTTP endpoints for downloading exported files. This separates the control plane (MCP tools) from the data plane (HTTP file serving).
+
+### Architecture
+
+```
+MCP Tools (Control Plane)          HTTP Routes (Data Plane)
+─────────────────────────          ────────────────────────
+list_downloads()          ──▶      GET /downloads
+get_download_url()        ──▶      GET /downloads/{path}
+download_export()         ──▶      Saves to profile-scoped storage
+```
+
+### Profile-Scoped Storage
+
+All downloaded files are stored under profile-specific directories:
+
+```
+data/
+├── profiles/
+│   ├── {profile_id_1}/
+│   │   ├── exports/campaigns/
+│   │   └── reports/async/
+│   └── {profile_id_2}/
+│       └── ...
+```
+
+### Download Workflow
+
+1. **Download a report**: Use `request_and_download_report` or `download_export`
+2. **List available files**: Use `list_downloads` tool
+3. **Get download URL**: Use `get_download_url` tool
+4. **Download via HTTP**: Open URL in browser or use curl
+
+### HTTP Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/downloads` | GET | List all files with download URLs |
+| `/downloads/{path}` | GET | Download a specific file |
+| `/downloads?type=reports` | GET | Filter by resource type |
+
+### Security Features
+
+- **Profile isolation**: Files scoped to active profile only
+- **Path traversal prevention**: `Path.relative_to()` validation
+- **Bearer token auth**: Optional `AMAZON_ADS_DOWNLOAD_AUTH_TOKEN`
+- **Sensitive file blocking**: `.env`, credentials, keys blocked
+- **Size limits**: Configurable max file size
 
 ## Writing Style
 
@@ -230,6 +282,22 @@ export MCP_TIMEOUT=300
 export MAX_MCP_OUTPUT_TOKENS=25000
 export MCP_MASK_ERROR_DETAILS=true
 export MCP_ON_DUPLICATE_TOOLS=warn
+```
+
+### File Download Environment Variables
+
+```bash
+# Download authentication (optional - if unset, auth is disabled)
+export AMAZON_ADS_DOWNLOAD_AUTH_TOKEN="your-secret-token"
+
+# Maximum file size for downloads (default: 512MB)
+export AMAZON_ADS_DOWNLOAD_MAX_FILE_SIZE=536870912
+
+# Allowed file extensions (optional whitelist, comma-separated)
+export AMAZON_ADS_DOWNLOAD_ALLOWED_EXTENSIONS=".json,.csv,.txt,.gz"
+
+# Base download directory (default: ./data)
+export AMAZON_ADS_DOWNLOAD_DIR="./data"
 ```
 
 ### Security-Related Environment Variables
@@ -546,6 +614,9 @@ openapi/resources/*.transform.json  # API transformations
 4. **Import errors**: Run `uv sync` to install dependencies
 5. **Rate limit errors**: Implement exponential backoff
 6. **MCP timeout**: Increase `MCP_TIMEOUT` environment variable
+7. **File download 401**: Set `AMAZON_ADS_DOWNLOAD_AUTH_TOKEN` or check Bearer token
+8. **File download 404**: Verify active profile with `get_active_profile`, file may be in different profile
+9. **Download "No active profile"**: Call `set_active_profile` before downloading files
 
 ## Performance Optimization
 

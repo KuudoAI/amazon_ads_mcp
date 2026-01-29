@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Dict, Optional
 
 from fastmcp import FastMCP
+from fastmcp.server.middleware.error_handling import ErrorHandlingMiddleware
 
 from ..auth.manager import get_auth_manager
 from ..config.settings import settings
@@ -39,10 +40,16 @@ class ServerBuilder:
     making it easier to test and maintain.
     """
 
-    def __init__(self):
-        """Initialize the server builder."""
+    def __init__(self, lifespan=None):
+        """Initialize the server builder.
+
+        :param lifespan: Optional async context manager for server lifespan.
+                        If provided, handles startup/shutdown logic.
+        :type lifespan: Optional[Callable[[], AsyncContextManager]]
+        """
         # Parser flag will be set at runtime in main(), not at import time
         self.server: Optional[FastMCP] = None
+        self.lifespan = lifespan  # Server lifespan context manager
         self.auth_manager = get_auth_manager()
         self.media_registry = MediaTypeRegistry()
         self.header_resolver = HeaderNameResolver()
@@ -78,6 +85,9 @@ class ServerBuilder:
         # Setup OAuth callback route for HTTP transport
         await self._setup_oauth_callback()
 
+        # Setup file download routes for HTTP transport
+        await self._setup_file_routes()
+
         return self.server
 
     async def _setup_default_identity(self):
@@ -94,7 +104,12 @@ class ServerBuilder:
         :rtype: FastMCP
         """
         # Create server with appropriate configuration
-        server = FastMCP("Amazon Ads MCP Server", version="1.0.0")
+        # Include lifespan if provided for clean startup/shutdown handling
+        server = FastMCP(
+            "Amazon Ads MCP Server",
+            version="1.0.0",
+            lifespan=self.lifespan,  # FastMCP 2.14+ lifespan pattern
+        )
 
         # Setup server-side sampling handler if enabled
         if settings.enable_sampling:
@@ -127,6 +142,28 @@ class ServerBuilder:
     async def _setup_middleware(self):
         """Setup server middleware."""
         middleware_list = []
+
+        # Error callback for logging
+        def error_callback(error: Exception) -> None:
+            logger.error(f"Tool execution error: {type(error).__name__}: {error}")
+
+        # Add ErrorHandlingMiddleware FIRST to catch all errors from other middleware/tools
+        # Production config: no tracebacks exposed, consistent error transformation
+        error_middleware = ErrorHandlingMiddleware(
+            include_traceback=False,  # Don't expose internal details
+            transform_errors=True,  # Provide consistent error responses
+            error_callback=error_callback,  # Log errors for debugging
+        )
+        middleware_list.append(error_middleware)
+        logger.info("Added ErrorHandlingMiddleware for consistent error handling")
+
+        # Add response caching middleware (security-aware whitelist)
+        if settings.enable_response_caching:
+            from ..middleware.caching import create_caching_middleware
+
+            caching_middleware = create_caching_middleware()
+            middleware_list.append(caching_middleware)
+            logger.info("Added ResponseCachingMiddleware with security-aware whitelist")
 
         # Add sampling middleware if configured
         from ..utils.sampling_wrapper import get_sampling_wrapper
@@ -473,8 +510,12 @@ class ServerBuilder:
             prefix = namespace_mapping.get(namespace, namespace)
 
             # Create sub-server from OpenAPI spec
+            # Default timeout of 60s to prevent hanging on slow API responses
             sub_server = FastMCP.from_openapi(
-                openapi_spec=spec, client=self.client, name=prefix
+                openapi_spec=spec,
+                client=self.client,
+                name=prefix,
+                timeout=60.0,  # 60 second timeout for all OpenAPI-generated tools
             )
 
             # Mount the sub-server with prefix
@@ -698,3 +739,13 @@ class ServerBuilder:
                     return HTMLResponse(html, status_code=500)
 
             logger.info("Registered OAuth callback route at /auth/callback")
+
+    async def _setup_file_routes(self):
+        """Setup HTTP file download routes.
+
+        Registers custom routes for downloading files via HTTP.
+        Only effective with HTTP transport (not stdio).
+        """
+        from .file_routes import register_file_routes
+
+        register_file_routes(self.server)

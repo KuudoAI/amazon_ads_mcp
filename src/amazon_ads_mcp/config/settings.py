@@ -175,6 +175,32 @@ class Settings(BaseSettings):
         description="Default sampling rate (0.0-1.0)",
     )
 
+    # Response Caching Configuration
+    enable_response_caching: bool = Field(
+        False,
+        alias="ENABLE_RESPONSE_CACHING",
+        description="Enable response caching for safe read-only tools",
+    )
+
+    # File Download Configuration
+    download_auth_token: Optional[str] = Field(
+        None,
+        validation_alias=AliasChoices(
+            "AMAZON_ADS_DOWNLOAD_AUTH_TOKEN", "DOWNLOAD_AUTH_TOKEN"
+        ),
+        description="Bearer token for authenticating download requests (optional)",
+    )
+    download_max_file_size: int = Field(
+        512 * 1024 * 1024,  # 512MB default
+        alias="AMAZON_ADS_DOWNLOAD_MAX_FILE_SIZE",
+        description="Maximum file size in bytes for downloads (default 512MB)",
+    )
+    download_allowed_extensions: Optional[str] = Field(
+        None,
+        alias="AMAZON_ADS_DOWNLOAD_ALLOWED_EXTENSIONS",
+        description="Comma-separated list of allowed file extensions (e.g., '.json,.csv,.gz')",
+    )
+
     @field_validator("auth_method")
     @classmethod
     def auto_detect_auth_method(cls, v: str, info) -> str:
