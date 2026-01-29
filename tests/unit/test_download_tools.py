@@ -27,6 +27,14 @@ class FakeHandler:
     def list_downloads(self, resource_type=None, profile_id=None):
         return self.downloads
 
+    def get_profile_base_dir(self, profile_id: str | None) -> Path:
+        """Get profile-scoped base directory."""
+        if profile_id:
+            profile_dir = self.base_dir / "profiles" / profile_id
+            profile_dir.mkdir(parents=True, exist_ok=True)
+            return profile_dir
+        return self.base_dir
+
 
 @pytest.mark.asyncio
 async def test_check_and_download_export_downloaded(monkeypatch, tmp_path):
@@ -112,8 +120,11 @@ async def test_get_download_metadata_missing_file(tmp_path):
 
 @pytest.mark.asyncio
 async def test_clean_old_downloads_removes_files(monkeypatch, tmp_path):
+    """Test that clean_old_downloads only removes files within a profile's directory."""
     base_dir = tmp_path / "data"
-    resource_dir = base_dir / "exports" / "campaigns"
+    profile_id = "test_profile_123"
+    # Profile-scoped directory: data/profiles/{profile_id}/exports/campaigns/
+    resource_dir = base_dir / "profiles" / profile_id / "exports" / "campaigns"
     resource_dir.mkdir(parents=True)
 
     old_file = resource_dir / "old.csv"
@@ -138,10 +149,66 @@ async def test_clean_old_downloads_removes_files(monkeypatch, tmp_path):
     handler = FakeHandler(base_dir)
     monkeypatch.setattr(download_tools, "get_download_handler", lambda: handler)
 
-    result = await download_tools.clean_old_downloads(resource_type="exports", days_old=7)
+    result = await download_tools.clean_old_downloads(
+        profile_id=profile_id, resource_type="exports", days_old=7
+    )
 
     assert result["success"] is True
+    assert result["profile_id"] == profile_id
     assert result["deleted_files"] == 1
     assert not old_file.exists()
     assert not old_meta.exists()
     assert new_file.exists()
+
+
+@pytest.mark.asyncio
+async def test_clean_old_downloads_requires_profile_id(monkeypatch, tmp_path):
+    """Test that clean_old_downloads fails without profile_id."""
+    handler = FakeHandler(tmp_path)
+    monkeypatch.setattr(download_tools, "get_download_handler", lambda: handler)
+
+    result = await download_tools.clean_old_downloads(
+        profile_id="", resource_type="exports", days_old=7
+    )
+
+    assert result["success"] is False
+    assert "profile_id is required" in result["error"]
+
+
+@pytest.mark.asyncio
+async def test_clean_old_downloads_isolates_profiles(monkeypatch, tmp_path):
+    """Test that clean_old_downloads doesn't touch other profiles' files."""
+    base_dir = tmp_path / "data"
+
+    # Create files in two different profiles
+    profile_a = "profile_A"
+    profile_b = "profile_B"
+
+    dir_a = base_dir / "profiles" / profile_a / "exports" / "campaigns"
+    dir_b = base_dir / "profiles" / profile_b / "exports" / "campaigns"
+    dir_a.mkdir(parents=True)
+    dir_b.mkdir(parents=True)
+
+    old_file_a = dir_a / "old_a.csv"
+    old_file_b = dir_b / "old_b.csv"
+    old_file_a.write_text("old_a")
+    old_file_b.write_text("old_b")
+
+    old_time = (datetime.now() - timedelta(days=10)).timestamp()
+    import os
+
+    os.utime(old_file_a, (old_time, old_time))
+    os.utime(old_file_b, (old_time, old_time))
+
+    handler = FakeHandler(base_dir)
+    monkeypatch.setattr(download_tools, "get_download_handler", lambda: handler)
+
+    # Clean only profile_a
+    result = await download_tools.clean_old_downloads(
+        profile_id=profile_a, resource_type="exports", days_old=7
+    )
+
+    assert result["success"] is True
+    assert result["deleted_files"] == 1
+    assert not old_file_a.exists()  # Deleted
+    assert old_file_b.exists()  # Untouched - different profile

@@ -17,7 +17,6 @@ Security:
 
 import json
 import logging
-import os
 from pathlib import Path
 from typing import Optional
 from urllib.parse import quote
@@ -144,7 +143,8 @@ def register_file_routes(server) -> None:
         # 5. Security validation
         security_error = _validate_file_access(resolved_path, profile_dir)
         if security_error:
-            return JSONResponse(security_error, status_code=403)
+            response = JSONResponse(security_error, status_code=403)
+            return _add_cors_headers(response)
 
         # 6. Serve file
         logger.info(f"Serving file: {resolved_path} for profile: {profile_id}")
@@ -389,7 +389,7 @@ def _validate_file_access(file_path: Path, base_dir: Path) -> Optional[dict]:
     # 3. File size enforcement
     cfg = _get_settings()
     file_size = file_path.stat().st_size
-    max_size = getattr(cfg, "download_max_file_size", 512 * 1024 * 1024)
+    max_size = cfg.download_max_file_size
     if file_size > max_size:
         return {
             "error": f"File too large: {file_size} bytes exceeds {max_size} bytes",
@@ -400,7 +400,7 @@ def _validate_file_access(file_path: Path, base_dir: Path) -> Optional[dict]:
         }
 
     # 4. Extension whitelist (if configured)
-    allowed_ext_str = getattr(cfg, "download_allowed_extensions", None)
+    allowed_ext_str = cfg.download_allowed_extensions
     if allowed_ext_str:
         allowed_extensions = {
             ext.strip().lower() for ext in allowed_ext_str.split(",") if ext.strip()
@@ -449,9 +449,8 @@ async def _verify_download_auth(request: Request) -> Optional[JSONResponse]:
         JSONResponse with 401 if auth fails
     """
     cfg = _get_settings()
-    auth_token = getattr(cfg, "download_auth_token", None) or os.getenv(
-        "DOWNLOAD_AUTH_TOKEN"
-    )
+    # Settings now loads from AMAZON_ADS_DOWNLOAD_AUTH_TOKEN or DOWNLOAD_AUTH_TOKEN
+    auth_token = cfg.download_auth_token
 
     if not auth_token:
         # Auth disabled - allow access
@@ -464,7 +463,7 @@ async def _verify_download_auth(request: Request) -> Optional[JSONResponse]:
         if provided_token == auth_token:
             return None  # Auth success
 
-    return JSONResponse(
+    response = JSONResponse(
         {
             "error": "Unauthorized",
             "error_code": "UNAUTHORIZED",
@@ -472,6 +471,7 @@ async def _verify_download_auth(request: Request) -> Optional[JSONResponse]:
         },
         status_code=401,
     )
+    return _add_cors_headers(response)
 
 
 def _get_base_url(request: Request) -> str:
@@ -507,7 +507,7 @@ def _create_error_response(
     status_code: int = 400,
     **extra_fields,
 ) -> JSONResponse:
-    """Create standardized error response.
+    """Create standardized error response with CORS headers.
 
     Args:
         error: Human-readable error message
@@ -516,7 +516,7 @@ def _create_error_response(
         **extra_fields: Additional fields to include
 
     Returns:
-        JSONResponse with error details
+        JSONResponse with error details and CORS headers
     """
     body = {
         "error": error,
@@ -525,7 +525,8 @@ def _create_error_response(
     if "hint" in extra_fields:
         body["hint"] = extra_fields.pop("hint")
     body.update(extra_fields)
-    return JSONResponse(body, status_code=status_code)
+    response = JSONResponse(body, status_code=status_code)
+    return _add_cors_headers(response)
 
 
 def _add_cors_headers(response: Response) -> Response:

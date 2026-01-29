@@ -603,6 +603,23 @@ class TestErrorResponse:
         assert body["file_path"] == "/some/path"
         assert body["profile_id"] == "123"
 
+    def test_error_response_includes_cors_headers(self):
+        """Error responses should include CORS headers for browser access."""
+        from amazon_ads_mcp.server.file_routes import _create_error_response
+
+        response = _create_error_response(
+            error="Test error",
+            error_code="TEST_ERROR",
+            status_code=400,
+        )
+
+        # Verify CORS headers are present
+        assert response.headers.get("Access-Control-Allow-Origin") == "*"
+        assert "GET" in response.headers.get("Access-Control-Allow-Methods", "")
+        assert "Authorization" in response.headers.get(
+            "Access-Control-Allow-Headers", ""
+        )
+
 
 # =============================================================================
 # Test: CORS Headers
@@ -702,6 +719,7 @@ class TestGetDownloadUrlResponse:
             file_name="report.json",
             size_bytes=1234,
             profile_id="profile_123",
+            instructions="Use HTTP GET to download the file",
         )
 
         assert response.success is True
@@ -709,6 +727,7 @@ class TestGetDownloadUrlResponse:
         assert response.file_name == "report.json"
         assert response.size_bytes == 1234
         assert response.profile_id == "profile_123"
+        assert response.instructions == "Use HTTP GET to download the file"
         assert response.error is None
 
     def test_error_response(self):
