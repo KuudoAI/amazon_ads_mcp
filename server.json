@@ -1,6 +1,6 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
-  "name": "io.github.kuudoai/amazon_ads_mcp",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.tspicer/amazon_ads_mcp",
   "description": "Amazon Ads API MCP server for Amazon Advertising API",
   "version": "0.2.0",
   "repository": {
