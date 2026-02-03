@@ -249,11 +249,14 @@ jobs:
         if: success()
         run: |
           pip install build
-          python -m build
+          # Build to a clean directory to avoid non-package files
+          mkdir -p dist_upload
+          python -m build --outdir dist_upload
 
       - name: Publish to PyPI (Trusted Publishing)
         if: success()
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
+          packages-dir: dist_upload/
           skip-existing: true
           verbose: true
