@@ -20,6 +20,7 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
+  id-token: write  # Required for PyPI Trusted Publishing
 
 jobs:
   release:
@@ -244,13 +245,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish to PyPI (optional)
+      - name: Build package
         if: success()
-        continue-on-error: true
         run: |
-          pip install build twine
+          pip install build
           python -m build
-          python -m twine upload dist/* --skip-existing
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+
+      - name: Publish to PyPI (Trusted Publishing)
+        if: success()
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
+          verbose: true
