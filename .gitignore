@@ -312,3 +312,5 @@ local/
 *.prof
 *.lprof
 profile_output/
+# MCP Registry tokens
+.mcpregistry_*
