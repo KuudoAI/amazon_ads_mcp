@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.tspicer/amazon_ads_mcp",
   "description": "Amazon Ads API MCP server for Amazon Advertising API",
-  "version": "0.2.0",
+  "version": "0.2.4",
   "repository": {
     "url": "https://github.com/KuudoAI/amazon_ads_mcp",
     "source": "github"
@@ -11,96 +11,12 @@
     {
       "registryType": "pypi",
       "identifier": "amazon-ads-mcp",
-      "version": "0.2.0",
+      "version": "0.2.4",
       "transport": {
-        "type": "streamable-http",
+        "type": "stdio",
         "args": [
           "-m",
-          "amazon_ads_mcp.server.mcp_server",
-          "--transport",
-          "streamable-http"
-        ]
-      },
-      "environmentVariables": [
-        {
-          "name": "AMAZON_ADS_AUTH_METHOD",
-          "description": "Authentication method: direct or openbridge.",
-          "isRequired": false,
-          "isSecret": false
-        },
-        {
-          "name": "AMAZON_AD_API_CLIENT_ID",
-          "description": "Amazon Ads API client ID for direct auth.",
-          "isRequired": false,
-          "isSecret": false
-        },
-        {
-          "name": "AMAZON_AD_API_CLIENT_SECRET",
-          "description": "Amazon Ads API client secret for direct auth.",
-          "isRequired": false,
-          "isSecret": true
-        },
-        {
-          "name": "AMAZON_AD_API_REFRESH_TOKEN",
-          "description": "Amazon Ads API refresh token for direct auth.",
-          "isRequired": false,
-          "isSecret": true
-        },
-        {
-          "name": "AMAZON_AD_API_PROFILE_ID",
-          "description": "Amazon Ads profile ID for direct auth.",
-          "isRequired": false,
-          "isSecret": false
-        },
-        {
-          "name": "OPENBRIDGE_REFRESH_TOKEN",
-          "description": "Openbridge refresh token (API key).",
-          "isRequired": false,
-          "isSecret": true
-        },
-        {
-          "name": "OPENBRIDGE_API_KEY",
-          "description": "Openbridge API key (alias for OPENBRIDGE_REFRESH_TOKEN).",
-          "isRequired": false,
-          "isSecret": true
-        },
-        {
-          "name": "OPENBRIDGE_REMOTE_IDENTITY_ID",
-          "description": "Openbridge remote identity ID.",
-          "isRequired": false,
-          "isSecret": false
-        },
-        {
-          "name": "AMAZON_ADS_REGION",
-          "description": "Amazon Ads API region (na/eu/fe).",
-          "isRequired": false,
-          "isSecret": false
-        },
-        {
-          "name": "AMAZON_AD_API_PACKAGES",
-          "description": "Comma-separated API packages to load.",
-          "isRequired": false,
-          "isSecret": false
-        },
-        {
-          "name": "AMAZON_ADS_DOWNLOAD_AUTH_TOKEN",
-          "description": "Optional bearer token to protect download routes.",
-          "isRequired": false,
-          "isSecret": true
-        }
-      ]
-    },
-    {
-      "registryType": "oci",
-      "identifier": "openbridgeops/amazon-ads-mcp",
-      "version": "latest",
-      "transport": {
-        "type": "streamable-http",
-        "args": [
-          "-m",
-          "amazon_ads_mcp.server.mcp_server",
-          "--transport",
-          "streamable-http"
+          "amazon_ads_mcp.server.mcp_server"
         ]
       },
       "environmentVariables": [
