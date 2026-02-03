@@ -1,62 +1,83 @@
+# Include any files or directories that you don't want to be copied to your
+# container here (e.g., local build artifacts, temporary files, etc.).
+#
+# For more help, visit the .dockerignore file reference guide at
+# https://docs.docker.com/engine/reference/builder/#dockerignore-file
+
+# OS and editor artifacts
+**/.DS_Store
+**/.vscode
+**/.idea
+**/*.swp
+**/*.swo
+**/*~
+
 # Version control
 .git
 .gitignore
 .github/
 
 # Python artifacts
-.venv
-venv/
-env/
-__pycache__
-*.pyc
-*.pyo
-*.pyd
-*.pdb
-.pytest_cache
-.coverage
-htmlcov/
-.mypy_cache/
-.ruff_cache/
-*.egg-info/
+**/__pycache__
+**/.venv
+**/venv/
+**/env/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/*.pdb
+**/.pytest_cache
+**/.coverage
+**/htmlcov/
+**/.mypy_cache/
+**/.ruff_cache/
+**/*.egg-info/
+**/build/
 # dist/ contains OpenAPI resources needed at runtime - DO NOT IGNORE
 # dist/
-build/
 
 # Environment and secrets
-.env
-.env.*
-*.env
-.env.local
-.env.*.local
-*.key
-*.pem
-*.crt
-*.p12
-credentials.json
-secrets.yaml
-secrets.json
+**/.env
+**/.env.*
+**/*.env
+**/.env.local
+**/.env.*.local
+**/*.key
+**/*.pem
+**/*.crt
+**/*.p12
+**/credentials.json
+**/secrets.yaml
+**/secrets.json
+**/secrets.dev.yaml
+**/values.dev.yaml
 
-# IDE and editor files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
+# MCP Registry tokens
+.mcpregistry_*
+
+# Docker/Compose files (don't copy into image)
+**/docker-compose*
+**/compose*
+**/Dockerfile*
+**/.dockerignore
+
+# Node (if any JS tooling)
+**/node_modules
+**/npm-debug.log
 
 # Development artifacts
 .build
 .claude
 .debug
-*.log
-*.pid
-*.seed
-*.pid.lock
+**/*.log
+**/*.pid
+**/*.seed
+**/*.pid.lock
 
 # Test and documentation
 tests/
 docs/
-*.md
+**/*.md
 !README.md
 
 # Project specific
@@ -68,15 +89,18 @@ examples/credentials/
 examples/.env*
 
 # Temporary files
-tmp/
-temp/
-*.tmp
-*.bak
-*.backup
-*.old
+**/tmp/
+**/temp/
+**/*.tmp
+**/*.bak
+**/*.backup
+**/*.old
 
 # Debug and profiling
-*.prof
-*.lprof
-core.*
-heapdump.*
+**/*.prof
+**/*.lprof
+**/core.*
+**/heapdump.*
+
+# Build outputs (except what we need)
+dist_upload/
