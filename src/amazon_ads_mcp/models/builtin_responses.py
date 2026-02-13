@@ -494,3 +494,59 @@ class SamplingTestResponse(BaseModel):
     used_fallback: Optional[str] = None
     error: Optional[str] = None
     note: Optional[str] = None
+
+
+# ============================================================================
+# Tool Group (Progressive Disclosure) Responses
+# ============================================================================
+
+
+class ToolGroupInfo(BaseModel):
+    """Information about a single tool group.
+
+    :param prefix: Tool name prefix (e.g., 'cm', 'dsp')
+    :param tool_count: Number of tools in this group
+    :param enabled: Whether the group is currently enabled
+    """
+
+    prefix: str
+    tool_count: int
+    enabled: bool
+
+
+class ToolGroupsResponse(BaseModel):
+    """Response from list_tool_groups tool.
+
+    :param success: Whether the operation succeeded
+    :param groups: Available tool groups
+    :param total_tools: Total tool count across all groups
+    :param enabled_tools: Number of currently enabled tools
+    :param message: Human-readable summary
+    """
+
+    success: bool
+    groups: List[ToolGroupInfo] = Field(default_factory=list)
+    total_tools: int = 0
+    enabled_tools: int = 0
+    message: Optional[str] = None
+
+
+class EnableToolGroupResponse(BaseModel):
+    """Response from enable_tool_group tool.
+
+    :param success: Whether the operation succeeded
+    :param prefix: The group prefix that was enabled/disabled
+    :param enabled: Whether the group is now enabled
+    :param tool_count: Number of tools affected
+    :param tool_names: Exact tool names available after enable
+    :param message: Human-readable result
+    :param error: Error message if operation failed
+    """
+
+    success: bool
+    prefix: Optional[str] = None
+    enabled: bool = False
+    tool_count: int = 0
+    tool_names: List[str] = Field(default_factory=list)
+    message: Optional[str] = None
+    error: Optional[str] = None
