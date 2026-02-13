@@ -4,7 +4,12 @@ This module provides utilities for processing OpenAPI specifications,
 including slimming large descriptions and managing spec resources.
 """
 
-from typing import Any, Dict, Optional
+import copy
+import logging
+import os
+from typing import Any, Dict, Optional, Set
+
+logger = logging.getLogger(__name__)
 
 
 def truncate_text(text: Optional[str], max_len: int) -> Optional[str]:
@@ -25,11 +30,170 @@ def truncate_text(text: Optional[str], max_len: int) -> Optional[str]:
     return text[: max(0, max_len - len(tail))] + tail
 
 
+def _env_flag(name: str) -> bool:
+    """Return True if an environment variable is set to a truthy value."""
+    return os.getenv(name, "").lower() in ("1", "true", "yes")
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers for Phases 2-4
+# ---------------------------------------------------------------------------
+
+def _collect_all_refs(obj: Any, refs: Set[str]) -> None:
+    """Recursively collect all ``$ref`` targets from a JSON-like structure."""
+    if isinstance(obj, dict):
+        ref = obj.get("$ref")
+        if isinstance(ref, str) and ref.startswith("#/"):
+            refs.add(ref)
+        for value in obj.values():
+            _collect_all_refs(value, refs)
+    elif isinstance(obj, list):
+        for item in obj:
+            _collect_all_refs(item, refs)
+
+
+def _resolve_transitive_refs(spec: Dict[str, Any], refs: Set[str]) -> Set[str]:
+    """Expand *refs* to include transitively referenced schemas."""
+    schemas = spec.get("components", {}).get("schemas", {})
+    resolved: Set[str] = set()
+    queue = list(refs)
+
+    while queue:
+        ref = queue.pop()
+        if ref in resolved:
+            continue
+        resolved.add(ref)
+        # Only follow component/schema refs
+        prefix = "#/components/schemas/"
+        if not ref.startswith(prefix):
+            continue
+        name = ref[len(prefix):]
+        schema = schemas.get(name)
+        if not isinstance(schema, dict):
+            continue
+        nested: Set[str] = set()
+        _collect_all_refs(schema, nested)
+        for nr in nested:
+            if nr not in resolved:
+                queue.append(nr)
+
+    return resolved
+
+
+def _strip_response_bodies(spec: Dict[str, Any]) -> None:
+    """Phase 2: Strip response *content* (schemas) while keeping valid stubs.
+
+    OpenAPI 3.0 requires ``responses`` on every operation, so we cannot
+    remove the key entirely.  Instead we keep status codes and descriptions
+    but drop ``content``, ``headers``, and ``links`` - the heavy parts that
+    FastMCP uses to build ``outputSchema``.
+    """
+    for _path, methods in (spec.get("paths") or {}).items():
+        if not isinstance(methods, dict):
+            continue
+        for method, op in methods.items():
+            if not isinstance(op, dict):
+                continue
+            responses = op.get("responses")
+            if not isinstance(responses, dict):
+                continue
+            for status, response in responses.items():
+                if isinstance(response, dict):
+                    desc = response.get("description", "OK")
+                    response.clear()
+                    response["description"] = desc
+
+    components = spec.get("components")
+    if isinstance(components, dict):
+        components.pop("responses", None)
+
+
+def _eliminate_dead_schemas(spec: Dict[str, Any]) -> None:
+    """Phase 3: Remove component schemas not referenced anywhere in the spec."""
+    schemas = spec.get("components", {}).get("schemas", {})
+    if not schemas:
+        return
+
+    # Collect every $ref in paths + non-schema components
+    live_refs: Set[str] = set()
+    _collect_all_refs(spec.get("paths", {}), live_refs)
+    components = spec.get("components", {})
+    for section in ("parameters", "requestBodies", "headers"):
+        _collect_all_refs(components.get(section, {}), live_refs)
+
+    # Expand transitively
+    live_refs = _resolve_transitive_refs(spec, live_refs)
+
+    # Schema names that are still alive
+    alive = {
+        ref.split("/")[-1]
+        for ref in live_refs
+        if ref.startswith("#/components/schemas/")
+    }
+
+    for name in list(schemas.keys()):
+        if name not in alive:
+            del schemas[name]
+
+
+def _clean_schema_metadata(obj: Any) -> None:
+    """Phase 4: Strip noise fields from all schemas (component and inline)."""
+    noise_keys = {"title", "xml", "deprecated", "example", "examples", "externalDocs"}
+    if isinstance(obj, dict):
+        for key in noise_keys:
+            obj.pop(key, None)
+        for value in obj.values():
+            _clean_schema_metadata(value)
+    elif isinstance(obj, list):
+        for item in obj:
+            _clean_schema_metadata(item)
+
+
+def _validate_request_schemas(spec: Dict[str, Any]) -> bool:
+    """Return True if every requestBody schema is non-empty.
+
+    A schema is "non-empty" if it has at least one of ``type``, ``$ref``,
+    or ``properties``.
+    """
+    for _path, methods in (spec.get("paths") or {}).items():
+        if not isinstance(methods, dict):
+            continue
+        for method, op in methods.items():
+            if not isinstance(op, dict):
+                continue
+            req = op.get("requestBody")
+            if not isinstance(req, dict):
+                continue
+            content = req.get("content")
+            if not isinstance(content, dict):
+                continue
+            for _media, media_obj in content.items():
+                if not isinstance(media_obj, dict):
+                    continue
+                schema = media_obj.get("schema")
+                if isinstance(schema, dict) and not (
+                    schema.get("type")
+                    or schema.get("$ref")
+                    or schema.get("properties")
+                ):
+                    return False
+    return True
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
 def slim_openapi_for_tools(spec: Dict[str, Any], max_desc: int = 200) -> None:
     """Reduce large descriptions in OpenAPI operations and parameters.
 
     This helps keep tool metadata small when clients ingest tool definitions.
     Modifies the spec in place.
+
+    **Phase 1** (always): Auth header removal + description truncation.
+    **Phase 2** (``SLIM_OPENAPI_STRIP_RESPONSES=true``): Strip response bodies.
+    **Phase 3** (``SLIM_OPENAPI_AGGRESSIVE=true``): Dead schema elimination.
+    **Phase 4** (``SLIM_OPENAPI_AGGRESSIVE=true``): Schema metadata cleanup.
 
     :param spec: OpenAPI specification to slim
     :type spec: Dict[str, Any]
@@ -37,6 +201,9 @@ def slim_openapi_for_tools(spec: Dict[str, Any], max_desc: int = 200) -> None:
     :type max_desc: int
     """
     try:
+        # ----------------------------------------------------------------
+        # Phase 1 - Auth header removal + description truncation (always)
+        # ----------------------------------------------------------------
         auth_header_names = {
             "Authorization",
             "Amazon-Advertising-API-ClientId",
@@ -153,6 +320,50 @@ def slim_openapi_for_tools(spec: Dict[str, Any], max_desc: int = 200) -> None:
             if isinstance(params, dict):
                 for key in auth_parameter_keys:
                     params.pop(key, None)
+
+        # ----------------------------------------------------------------
+        # Phases 2-4 - Gated behind env flags (default off)
+        # ----------------------------------------------------------------
+        strip_responses = _env_flag("SLIM_OPENAPI_STRIP_RESPONSES")
+        aggressive = _env_flag("SLIM_OPENAPI_AGGRESSIVE")
+
+        if strip_responses or aggressive:
+            # Snapshot for safety rollback
+            snapshot = copy.deepcopy(spec)
+
+            # Phase 2 - Strip response bodies
+            if strip_responses:
+                _strip_response_bodies(spec)
+
+            # Phase 3 - Dead schema elimination
+            if aggressive:
+                _eliminate_dead_schemas(spec)
+
+            # Phase 4 - Clean schema metadata
+            if aggressive:
+                _clean_schema_metadata(spec.get("components", {}).get("schemas", {}))
+                # Also clean inline schemas in paths
+                for _path, methods in (spec.get("paths") or {}).items():
+                    if not isinstance(methods, dict):
+                        continue
+                    for method, op in methods.items():
+                        if not isinstance(op, dict):
+                            continue
+                        req = op.get("requestBody")
+                        if isinstance(req, dict):
+                            _clean_schema_metadata(req)
+                        for prm in op.get("parameters") or []:
+                            if isinstance(prm, dict) and "schema" in prm:
+                                _clean_schema_metadata(prm["schema"])
+
+            # Safety: validate requestBody schemas are non-empty
+            if not _validate_request_schemas(spec):
+                logger.warning(
+                    "Aggressive slim produced empty requestBody schema; reverted"
+                )
+                spec.clear()
+                spec.update(snapshot)
+
     except Exception:
         # Do not fail mounting if slimming fails
         pass
