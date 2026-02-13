@@ -7,7 +7,7 @@ including middleware setup, client configuration, and resource mounting.
 import logging
 import os
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from fastmcp import FastMCP
 from fastmcp.server.middleware.error_handling import ErrorHandlingMiddleware
@@ -53,7 +53,7 @@ class ServerBuilder:
         self.auth_manager = get_auth_manager()
         self.media_registry = MediaTypeRegistry()
         self.header_resolver = HeaderNameResolver()
-        self.mounted_servers: Dict[str, FastMCP] = {}
+        self.mounted_servers: Dict[str, List[FastMCP]] = {}
 
     async def build(self) -> FastMCP:
         """Build and configure the MCP server.
@@ -75,6 +75,9 @@ class ServerBuilder:
 
         # Mount resource servers
         await self._mount_resource_servers()
+
+        # Progressive disclosure: disable mounted tools by default
+        await self._disable_mounted_tools()
 
         # Setup built-in tools
         await self._setup_builtin_tools()
@@ -520,7 +523,7 @@ class ServerBuilder:
 
             # Mount the sub-server with prefix
             self.server.mount(server=sub_server, prefix=prefix)
-            self.mounted_servers[namespace] = sub_server
+            self.mounted_servers.setdefault(prefix, []).append(sub_server)
 
             # Apply sidecars (transforms) to the mounted sub-server
             from .sidecar_loader import apply_sidecars
@@ -532,11 +535,54 @@ class ServerBuilder:
         except Exception as e:
             logger.error(f"Failed to mount {spec_path}: {e}")
 
+    def _progressive_disclosure_enabled(self) -> bool:
+        """Check if progressive tool disclosure is enabled via env flag.
+
+        Defaults to **off** because Claude Desktop (and most MCP clients)
+        do not re-fetch ``tools/list`` mid-conversation after receiving a
+        ``tools/list_changed`` notification.  Enable for clients that do.
+        """
+        val = os.getenv("PROGRESSIVE_TOOL_DISCLOSURE", "false").lower()
+        return val in ("1", "true", "yes")
+
+    async def _disable_mounted_tools(self):
+        """Disable all mounted OpenAPI tools for progressive disclosure.
+
+        When progressive disclosure is active, OpenAPI-derived tools start
+        hidden.  Users call ``enable_tool_group(prefix)`` to reveal them.
+        This keeps the initial ``tools/list`` response minimal.
+        """
+        if not self._progressive_disclosure_enabled():
+            logger.info("Progressive tool disclosure disabled; all tools visible")
+            return
+
+        total_disabled = 0
+        for prefix, sub_servers in self.mounted_servers.items():
+            group_count = 0
+            for sub_server in sub_servers:
+                tools = await sub_server.get_tools()
+                for tool in tools.values():
+                    tool.disable()
+                group_count += len(tools)
+            total_disabled += group_count
+            logger.debug(
+                "Disabled %d tools in group '%s'", group_count, prefix
+            )
+
+        logger.info(
+            "Progressive disclosure: disabled %d tools across %d groups",
+            total_disabled,
+            len(self.mounted_servers),
+        )
+
     async def _setup_builtin_tools(self):
         """Setup built-in tools for the server."""
         from ..server.builtin_tools import register_all_builtin_tools
 
-        await register_all_builtin_tools(self.server)
+        await register_all_builtin_tools(
+            self.server,
+            mounted_servers=self.mounted_servers,
+        )
 
     async def _setup_builtin_prompts(self):
         """Setup built-in prompts for the server."""
