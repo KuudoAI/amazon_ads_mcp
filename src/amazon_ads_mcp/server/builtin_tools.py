@@ -19,7 +19,7 @@ Examples
 """
 
 import logging
-from typing import Optional
+from typing import Dict, Optional
 
 from fastmcp import Context, FastMCP
 
@@ -32,6 +32,7 @@ from ..models.builtin_responses import (
     ClearProfileResponse,
     DownloadedFile,
     DownloadExportResponse,
+    EnableToolGroupResponse,
     GetDownloadUrlResponse,
     GetProfileResponse,
     GetRegionResponse,
@@ -46,6 +47,8 @@ from ..models.builtin_responses import (
     SamplingTestResponse,
     SetProfileResponse,
     SetRegionResponse,
+    ToolGroupInfo,
+    ToolGroupsResponse,
 )
 from ..tools import identity, profile, profile_listing, region
 from ..tools.oauth import OAuthTools
@@ -930,10 +933,119 @@ async def register_oauth_tools_builtin(server: FastMCP):
 # Removed diagnostic tools - not core operations
 
 
-async def register_all_builtin_tools(server: FastMCP):
+async def register_tool_group_tools(
+    server: FastMCP, mounted_servers: Dict[str, list]
+):
+    """Register progressive tool disclosure tools.
+
+    These tools let MCP clients discover and selectively enable API tool
+    groups, keeping the initial ``tools/list`` response minimal.
+
+    :param server: FastMCP server instance.
+    :param mounted_servers: Map of prefix -> list of sub-servers for mounted groups.
+    """
+
+    @server.tool(
+        name="list_tool_groups",
+        description=(
+            "List available API tool groups. "
+            "Groups are disabled by default; use enable_tool_group to activate."
+        ),
+    )
+    async def list_tool_groups_tool(ctx: Context) -> ToolGroupsResponse:
+        """List available tool groups with enable/disable status."""
+        groups = []
+        total = 0
+        enabled_count = 0
+
+        for prefix, sub_servers in mounted_servers.items():
+            count = 0
+            active = 0
+            for sub in sub_servers:
+                tools = await sub.get_tools()
+                count += len(tools)
+                active += sum(1 for t in tools.values() if t.enabled)
+            groups.append(
+                ToolGroupInfo(
+                    prefix=prefix,
+                    tool_count=count,
+                    enabled=active > 0,
+                )
+            )
+            total += count
+            enabled_count += active
+
+        return ToolGroupsResponse(
+            success=True,
+            groups=groups,
+            total_tools=total,
+            enabled_tools=enabled_count,
+            message=(
+                f"{len(groups)} groups, {enabled_count}/{total} tools enabled. "
+                "Use enable_tool_group(prefix) to activate a group."
+            ),
+        )
+
+    @server.tool(
+        name="enable_tool_group",
+        description=(
+            "Enable or disable an API tool group by prefix. "
+            "Call list_tool_groups first to see available groups."
+        ),
+    )
+    async def enable_tool_group_tool(
+        ctx: Context,
+        prefix: str,
+        enable: bool = True,
+    ) -> EnableToolGroupResponse:
+        """Enable or disable a tool group.
+
+        :param prefix: Tool group prefix (e.g., 'cm', 'dsp').
+        :param enable: True to enable, False to disable.
+        """
+        if prefix not in mounted_servers:
+            available = ", ".join(sorted(mounted_servers.keys()))
+            return EnableToolGroupResponse(
+                success=False,
+                prefix=prefix,
+                error=f"Unknown group '{prefix}'. Available: {available}",
+            )
+
+        affected = 0
+        tool_names: list[str] = []
+        for sub in mounted_servers[prefix]:
+            tools = await sub.get_tools()
+            for tool in tools.values():
+                if enable:
+                    tool.enable()
+                else:
+                    tool.disable()
+                tool_names.append(f"{prefix}_{tool.name}")
+            affected += len(tools)
+
+        action = "enabled" if enable else "disabled"
+        return EnableToolGroupResponse(
+            success=True,
+            prefix=prefix,
+            enabled=enable,
+            tool_count=affected,
+            tool_names=sorted(tool_names),
+            message=f"{action.capitalize()} {affected} tools in group '{prefix}'.",
+        )
+
+    logger.info(
+        "Registered tool group tools (%d groups)", len(mounted_servers)
+    )
+
+
+async def register_all_builtin_tools(
+    server: FastMCP,
+    mounted_servers: Optional[Dict[str, FastMCP]] = None,
+):
     """Register all built-in tools with the server.
 
     :param server: FastMCP server instance.
+    :param mounted_servers: Optional map of prefix -> sub-server for tool groups.
     """
     # Register common tools that work for all auth types
     await register_profile_tools(server)
@@ -958,5 +1070,9 @@ async def register_all_builtin_tools(server: FastMCP):
                 # OpenBridge identity management tools
                 await register_identity_tools(server)
                 logger.info("Registered OpenBridge identity tools")
+
+    # Register tool group tools for progressive disclosure
+    if mounted_servers:
+        await register_tool_group_tools(server, mounted_servers)
 
     logger.info("Registered all built-in tools")
