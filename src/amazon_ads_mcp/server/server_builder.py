@@ -7,10 +7,13 @@ including middleware setup, client configuration, and resource mounting.
 import logging
 import os
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from fastmcp import FastMCP
 from fastmcp.server.middleware.error_handling import ErrorHandlingMiddleware
+from fastmcp.server.middleware.middleware import (
+    Middleware,
+)
 
 from ..auth.manager import get_auth_manager
 from ..config.settings import settings
@@ -31,6 +34,68 @@ from .openapi_utils import slim_openapi_for_tools
 from .sidecar_loader import _json_load as json_load
 
 logger = logging.getLogger(__name__)
+
+
+def _break_circular_refs(
+    obj: Any, _seen: set | None = None
+) -> Any:
+    """Deep-copy a JSON-like structure, replacing circular refs.
+
+    OpenAPI specs can produce recursive schema dicts (e.g. a
+    MapDataType whose key/value types reference itself).  When
+    FastMCP resolves ``$ref`` pointers it creates real Python
+    object cycles.  Pydantic's ``model_dump()`` then raises
+    ``ValueError: Circular reference detected``.
+
+    This function walks the tree and replaces any back-edge with
+    ``{"type": "object", "description": "Recursive reference"}``
+    so serialisation succeeds.
+    """
+    if _seen is None:
+        _seen = set()
+
+    if isinstance(obj, dict):
+        obj_id = id(obj)
+        if obj_id in _seen:
+            return {
+                "type": "object",
+                "description": "Recursive reference",
+            }
+        _seen.add(obj_id)
+        result = {
+            k: _break_circular_refs(v, _seen) for k, v in obj.items()
+        }
+        _seen.discard(obj_id)
+        return result
+
+    if isinstance(obj, list):
+        return [_break_circular_refs(item, _seen) for item in obj]
+
+    return obj
+
+
+class CircularRefMiddleware(Middleware):
+    """Break circular Python object refs in tool schemas.
+
+    FastMCP's ``from_openapi()`` resolves ``$ref`` pointers into
+    shared Python dicts.  Recursive OpenAPI types (e.g. AMC
+    MapDataType) then become actual object cycles.  When the MCP
+    SDK tries ``model_dump()`` on the ``ListToolsResult``, Pydantic
+    raises ``ValueError: Circular reference detected``.
+
+    This middleware intercepts ``on_list_tools`` and deep-copies
+    the parameters, replacing back-edges with a stub.
+    """
+
+    async def on_list_tools(self, context, call_next):
+        tools = await call_next(context)
+        for tool in tools:
+            tool.parameters = _break_circular_refs(tool.parameters)
+            if tool.output_schema:
+                tool.output_schema = _break_circular_refs(
+                    tool.output_schema
+                )
+        return tools
 
 
 class ServerBuilder:
@@ -54,6 +119,7 @@ class ServerBuilder:
         self.media_registry = MediaTypeRegistry()
         self.header_resolver = HeaderNameResolver()
         self.mounted_servers: Dict[str, List[FastMCP]] = {}
+        self.group_tool_counts: Dict[str, int] = {}
 
     async def build(self) -> FastMCP:
         """Build and configure the MCP server.
@@ -91,6 +157,9 @@ class ServerBuilder:
         # Setup file download routes for HTTP transport
         await self._setup_file_routes()
 
+        # Setup health check endpoint for container orchestration
+        await self._setup_health_check()
+
         return self.server
 
     async def _setup_default_identity(self):
@@ -112,6 +181,11 @@ class ServerBuilder:
             "Amazon Ads MCP Server",
             version="1.0.0",
             lifespan=self.lifespan,  # FastMCP 2.14+ lifespan pattern
+            # Disable $ref dereferencing: our OpenAPI schemas contain
+            # circular references that cause infinite recursion in
+            # FastMCP's _has_ref() walker. Schemas are already
+            # pre-processed by the build-time LLM optimizer.
+            dereference_schemas=False,
         )
 
         # Setup server-side sampling handler if enabled
@@ -204,6 +278,11 @@ class ServerBuilder:
             oauth_middleware = create_oauth_middleware()
             middleware_list.append(oauth_middleware)
             logger.info("Added OAuth middleware for web authentication")
+
+        # Add circular reference breaker for OpenAPI schemas.
+        # Must run LAST (outermost) so it catches all tool schemas
+        # after transforms have created copies.
+        middleware_list.append(CircularRefMiddleware())
 
         # Apply middleware to server
         for middleware in middleware_list:
@@ -513,17 +592,22 @@ class ServerBuilder:
             prefix = namespace_mapping.get(namespace, namespace)
 
             # Create sub-server from OpenAPI spec
-            # Default timeout of 60s to prevent hanging on slow API responses
+            # HTTP client already has 60s read timeout configured
             sub_server = FastMCP.from_openapi(
                 openapi_spec=spec,
                 client=self.client,
                 name=prefix,
-                timeout=60.0,  # 60 second timeout for all OpenAPI-generated tools
             )
 
-            # Mount the sub-server with prefix
-            self.server.mount(server=sub_server, prefix=prefix)
+            # Mount the sub-server with namespace (v3: prefix → namespace)
+            self.server.mount(server=sub_server, namespace=prefix)
             self.mounted_servers.setdefault(prefix, []).append(sub_server)
+
+            # Track tool count for progressive disclosure totals
+            tools = await sub_server.list_tools()
+            self.group_tool_counts[prefix] = (
+                self.group_tool_counts.get(prefix, 0) + len(tools)
+            )
 
             # Apply sidecars (transforms) to the mounted sub-server
             from .sidecar_loader import apply_sidecars
@@ -558,12 +642,9 @@ class ServerBuilder:
 
         total_disabled = 0
         for prefix, sub_servers in self.mounted_servers.items():
-            group_count = 0
+            group_count = self.group_tool_counts.get(prefix, 0)
             for sub_server in sub_servers:
-                tools = await sub_server.get_tools()
-                for tool in tools.values():
-                    tool.disable()
-                group_count += len(tools)
+                sub_server.disable(components={"tool"})
             total_disabled += group_count
             logger.debug(
                 "Disabled %d tools in group '%s'", group_count, prefix
@@ -582,6 +663,7 @@ class ServerBuilder:
         await register_all_builtin_tools(
             self.server,
             mounted_servers=self.mounted_servers,
+            group_tool_counts=self.group_tool_counts,
         )
 
     async def _setup_builtin_prompts(self):
@@ -795,3 +877,25 @@ class ServerBuilder:
         from .file_routes import register_file_routes
 
         register_file_routes(self.server)
+
+    async def _setup_health_check(self):
+        """Register /health endpoint for container orchestration.
+
+        Returns 200 with basic server info. Used by load balancers,
+        Cloudflare Containers, Kubernetes probes, etc.
+        """
+        if not hasattr(self.server, "custom_route"):
+            return
+
+        from starlette.requests import Request
+        from starlette.responses import JSONResponse
+
+        @self.server.custom_route("/health", methods=["GET"])
+        async def health_check(request: Request) -> JSONResponse:
+            return JSONResponse(
+                {
+                    "status": "healthy",
+                    "service": "amazon-ads-mcp",
+                    "version": "1.0.0",
+                }
+            )

@@ -934,7 +934,9 @@ async def register_oauth_tools_builtin(server: FastMCP):
 
 
 async def register_tool_group_tools(
-    server: FastMCP, mounted_servers: Dict[str, list]
+    server: FastMCP,
+    mounted_servers: Dict[str, list],
+    group_tool_counts: Optional[Dict[str, int]] = None,
 ):
     """Register progressive tool disclosure tools.
 
@@ -943,7 +945,9 @@ async def register_tool_group_tools(
 
     :param server: FastMCP server instance.
     :param mounted_servers: Map of prefix -> list of sub-servers for mounted groups.
+    :param group_tool_counts: Pre-counted total tools per group (including disabled).
     """
+    _tool_counts = group_tool_counts or {}
 
     @server.tool(
         name="list_tool_groups",
@@ -959,12 +963,15 @@ async def register_tool_group_tools(
         enabled_count = 0
 
         for prefix, sub_servers in mounted_servers.items():
-            count = 0
+            # Total count from pre-stored values (includes disabled tools)
+            count = _tool_counts.get(prefix, 0)
             active = 0
             for sub in sub_servers:
-                tools = await sub.get_tools()
-                count += len(tools)
-                active += sum(1 for t in tools.values() if t.enabled)
+                visible = await sub.list_tools()
+                active += len(visible)
+            # Fall back to active count if no pre-stored total
+            if count == 0 and active > 0:
+                count = active
             groups.append(
                 ToolGroupInfo(
                     prefix=prefix,
@@ -1014,13 +1021,15 @@ async def register_tool_group_tools(
         affected = 0
         tool_names: list[str] = []
         for sub in mounted_servers[prefix]:
-            tools = await sub.get_tools()
-            for tool in tools.values():
-                if enable:
-                    tool.enable()
-                else:
-                    tool.disable()
-                tool_names.append(f"{prefix}_{tool.name}")
+            if enable:
+                # Enable first, then list to get visible tools
+                sub.enable(components={"tool"})
+                tools = await sub.list_tools()
+            else:
+                # List while visible, then disable
+                tools = await sub.list_tools()
+                sub.disable(components={"tool"})
+            tool_names.extend(f"{prefix}_{t.name}" for t in tools)
             affected += len(tools)
 
         action = "enabled" if enable else "disabled"
@@ -1041,11 +1050,13 @@ async def register_tool_group_tools(
 async def register_all_builtin_tools(
     server: FastMCP,
     mounted_servers: Optional[Dict[str, FastMCP]] = None,
+    group_tool_counts: Optional[Dict[str, int]] = None,
 ):
     """Register all built-in tools with the server.
 
     :param server: FastMCP server instance.
     :param mounted_servers: Optional map of prefix -> sub-server for tool groups.
+    :param group_tool_counts: Pre-counted total tools per group (including disabled).
     """
     # Register common tools that work for all auth types
     await register_profile_tools(server)
@@ -1073,6 +1084,8 @@ async def register_all_builtin_tools(
 
     # Register tool group tools for progressive disclosure
     if mounted_servers:
-        await register_tool_group_tools(server, mounted_servers)
+        await register_tool_group_tools(
+            server, mounted_servers, group_tool_counts=group_tool_counts
+        )
 
     logger.info("Registered all built-in tools")
