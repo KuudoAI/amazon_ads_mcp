@@ -7,13 +7,10 @@ including middleware setup, client configuration, and resource mounting.
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from fastmcp import FastMCP
 from fastmcp.server.middleware.error_handling import ErrorHandlingMiddleware
-from fastmcp.server.middleware.middleware import (
-    Middleware,
-)
 
 from ..auth.manager import get_auth_manager
 from ..config.settings import settings
@@ -35,67 +32,6 @@ from .sidecar_loader import _json_load as json_load
 
 logger = logging.getLogger(__name__)
 
-
-def _break_circular_refs(
-    obj: Any, _seen: set | None = None
-) -> Any:
-    """Deep-copy a JSON-like structure, replacing circular refs.
-
-    OpenAPI specs can produce recursive schema dicts (e.g. a
-    MapDataType whose key/value types reference itself).  When
-    FastMCP resolves ``$ref`` pointers it creates real Python
-    object cycles.  Pydantic's ``model_dump()`` then raises
-    ``ValueError: Circular reference detected``.
-
-    This function walks the tree and replaces any back-edge with
-    ``{"type": "object", "description": "Recursive reference"}``
-    so serialisation succeeds.
-    """
-    if _seen is None:
-        _seen = set()
-
-    if isinstance(obj, dict):
-        obj_id = id(obj)
-        if obj_id in _seen:
-            return {
-                "type": "object",
-                "description": "Recursive reference",
-            }
-        _seen.add(obj_id)
-        result = {
-            k: _break_circular_refs(v, _seen) for k, v in obj.items()
-        }
-        _seen.discard(obj_id)
-        return result
-
-    if isinstance(obj, list):
-        return [_break_circular_refs(item, _seen) for item in obj]
-
-    return obj
-
-
-class CircularRefMiddleware(Middleware):
-    """Break circular Python object refs in tool schemas.
-
-    FastMCP's ``from_openapi()`` resolves ``$ref`` pointers into
-    shared Python dicts.  Recursive OpenAPI types (e.g. AMC
-    MapDataType) then become actual object cycles.  When the MCP
-    SDK tries ``model_dump()`` on the ``ListToolsResult``, Pydantic
-    raises ``ValueError: Circular reference detected``.
-
-    This middleware intercepts ``on_list_tools`` and deep-copies
-    the parameters, replacing back-edges with a stub.
-    """
-
-    async def on_list_tools(self, context, call_next):
-        tools = await call_next(context)
-        for tool in tools:
-            tool.parameters = _break_circular_refs(tool.parameters)
-            if tool.output_schema:
-                tool.output_schema = _break_circular_refs(
-                    tool.output_schema
-                )
-        return tools
 
 
 class ServerBuilder:
@@ -181,11 +117,6 @@ class ServerBuilder:
             "Amazon Ads MCP Server",
             version="1.0.0",
             lifespan=self.lifespan,  # FastMCP 2.14+ lifespan pattern
-            # Disable $ref dereferencing: our OpenAPI schemas contain
-            # circular references that cause infinite recursion in
-            # FastMCP's _has_ref() walker. Schemas are already
-            # pre-processed by the build-time LLM optimizer.
-            dereference_schemas=False,
         )
 
         # Setup server-side sampling handler if enabled
@@ -278,11 +209,6 @@ class ServerBuilder:
             oauth_middleware = create_oauth_middleware()
             middleware_list.append(oauth_middleware)
             logger.info("Added OAuth middleware for web authentication")
-
-        # Add circular reference breaker for OpenAPI schemas.
-        # Must run LAST (outermost) so it catches all tool schemas
-        # after transforms have created copies.
-        middleware_list.append(CircularRefMiddleware())
 
         # Apply middleware to server
         for middleware in middleware_list:
