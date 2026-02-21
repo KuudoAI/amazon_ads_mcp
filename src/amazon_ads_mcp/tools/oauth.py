@@ -98,7 +98,7 @@ class OAuthTools:
             auth_url=auth_url,
             expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
         )
-        ctx.set_state("oauth_state", oauth_state.model_dump())
+        await ctx.set_state("oauth_state", oauth_state.model_dump())
 
         return {
             "status": "success",
@@ -114,7 +114,7 @@ class OAuthTools:
         Returns whether authentication is complete and token status.
         """
         # First check context for tokens
-        tokens_data = ctx.get_state("oauth_tokens")
+        tokens_data = await ctx.get_state("oauth_tokens")
 
         # If not in context, check persistent stores
         if not tokens_data:
@@ -138,7 +138,7 @@ class OAuthTools:
                         ).isoformat(),
                     }
                     # Cache in context for this request
-                    ctx.set_state("oauth_tokens", tokens_data)
+                    await ctx.set_state("oauth_tokens", tokens_data)
             except Exception as e:
                 logger.debug(f"Could not check secure store: {e}")
 
@@ -164,7 +164,7 @@ class OAuthTools:
                             "obtained_at": datetime.now(timezone.utc).isoformat(),
                         }
                         # Cache in context
-                        ctx.set_state("oauth_tokens", tokens_data)
+                        await ctx.set_state("oauth_tokens", tokens_data)
             except Exception as e:
                 logger.debug(f"Could not check auth manager: {e}")
 
@@ -177,7 +177,7 @@ class OAuthTools:
                 refresh_token=tokens["refresh_token"],
                 expires_in=tokens["expires_in"],
             )
-            ctx.set_state("oauth_tokens", oauth_tokens.model_dump())
+            await ctx.set_state("oauth_tokens", oauth_tokens.model_dump())
 
             # Clear the callback tokens after storing
             delattr(self, "_callback_tokens")
@@ -206,7 +206,7 @@ class OAuthTools:
             }
         else:
             # No tokens found - check OAuth flow state
-            oauth_state = ctx.get_state("oauth_state")
+            oauth_state = await ctx.get_state("oauth_state")
             if oauth_state:
                 state_obj = OAuthState(**oauth_state)
                 if state_obj.completed:
@@ -245,7 +245,7 @@ class OAuthTools:
         refresh_token = None
 
         # 1. Check context state (request-scoped)
-        tokens_data = ctx.get_state("oauth_tokens")
+        tokens_data = await ctx.get_state("oauth_tokens")
         if tokens_data:
             tokens = OAuthTokens(**tokens_data)
             refresh_token = tokens.refresh_token
@@ -326,7 +326,7 @@ class OAuthTools:
                 tokens.refresh_token = token_response["refresh_token"]
 
             # Store updated tokens in context
-            ctx.set_state("oauth_tokens", tokens.model_dump())
+            await ctx.set_state("oauth_tokens", tokens.model_dump())
 
             # Store updated tokens securely
             try:
@@ -401,8 +401,8 @@ class OAuthTools:
 
         Use this to reset authentication or switch accounts.
         """
-        ctx.set_state("oauth_tokens", None)
-        ctx.set_state("oauth_state", None)
+        await ctx.set_state("oauth_tokens", None)
+        await ctx.set_state("oauth_state", None)
 
         return {
             "status": "success",
@@ -460,13 +460,13 @@ class OAuthTools:
                 expires_in=token_response.get("expires_in", 3600),
             )
 
-            ctx.set_state("oauth_tokens", tokens.model_dump())
+            await ctx.set_state("oauth_tokens", tokens.model_dump())
 
             # Mark OAuth state as completed
-            oauth_state = ctx.get_state("oauth_state")
+            oauth_state = await ctx.get_state("oauth_state")
             if oauth_state:
                 oauth_state["completed"] = True
-                ctx.set_state("oauth_state", oauth_state)
+                await ctx.set_state("oauth_state", oauth_state)
 
             # Store the refresh token securely
             try:

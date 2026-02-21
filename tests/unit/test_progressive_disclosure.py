@@ -21,12 +21,10 @@ async def test_disable_mounted_tools_hides_from_client():
         """A parent tool."""
         return "world"
 
-    parent.mount(child, prefix="ch")
+    parent.mount(child, namespace="ch")
 
-    # Disable child tools
-    tools = await child.get_tools()
-    for tool in tools.values():
-        tool.disable()
+    # Disable child tools (v3: server-level disable)
+    child.disable(components={"tool"})
 
     # Client should only see parent_tool
     async with Client(parent) as client:
@@ -52,16 +50,11 @@ async def test_enable_restores_tools():
         """A parent tool."""
         return "world"
 
-    parent.mount(child, prefix="ch")
+    parent.mount(child, namespace="ch")
 
-    # Disable then re-enable
-    tools = await child.get_tools()
-    for tool in tools.values():
-        tool.disable()
-
-    tools2 = await child.get_tools()
-    for tool in tools2.values():
-        tool.enable()
+    # Disable then re-enable (v3: server-level operations)
+    child.disable(components={"tool"})
+    child.enable(components={"tool"})
 
     # Client should see both tools
     async with Client(parent) as client:
@@ -146,20 +139,29 @@ async def test_tool_group_list_and_enable():
         """Tool B1."""
         return "b1"
 
-    parent.mount(child_a, prefix="ga")
-    parent.mount(child_b, prefix="gb")
+    parent.mount(child_a, namespace="ga")
+    parent.mount(child_b, namespace="gb")
 
     mounted = {"ga": [child_a], "gb": [child_b]}
 
-    # Disable all
+    # Count tools before disabling (for total counts)
+    group_tool_counts: dict[str, int] = {}
+    for prefix, sub_servers in mounted.items():
+        count = 0
+        for sub in sub_servers:
+            tools = await sub.list_tools()
+            count += len(tools)
+        group_tool_counts[prefix] = count
+
+    # Disable all (v3: server-level disable)
     for sub_servers in mounted.values():
         for sub in sub_servers:
-            tools = await sub.get_tools()
-            for tool in tools.values():
-                tool.disable()
+            sub.disable(components={"tool"})
 
     # Register tool group tools
-    await register_tool_group_tools(parent, mounted)
+    await register_tool_group_tools(
+        parent, mounted, group_tool_counts=group_tool_counts
+    )
 
     # Verify only builtin tools visible
     async with Client(parent) as client:
