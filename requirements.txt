@@ -1,5 +1,5 @@
 # Core dependencies
-fastmcp[tasks]>=3.0.1,<4
+fastmcp[tasks]>=3.0.2,<4
 httpx[http2]>=0.28.1
 pydantic>=2.12.5
 pydantic-settings>=2.12.0
