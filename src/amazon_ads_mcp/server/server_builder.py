@@ -84,6 +84,9 @@ class ServerBuilder:
         # Setup built-in tools
         await self._setup_builtin_tools()
 
+        # Strip outputSchema from all tools (saves ~3K tokens)
+        await self._strip_output_schemas()
+
         # Setup built-in prompts
         await self._setup_builtin_prompts()
 
@@ -591,6 +594,37 @@ class ServerBuilder:
             mounted_servers=self.mounted_servers,
             group_tool_counts=self.group_tool_counts,
         )
+
+    async def _strip_output_schemas(self):
+        """Strip outputSchema from all registered tools.
+
+        MCP clients receive tool definitions including ``outputSchema`` on
+        every ``tools/list`` call.  These response-shape schemas are rarely
+        useful to Claude (it sees the actual return value) but can add
+        thousands of tokens to the context window.
+
+        This method nulls out ``output_schema`` on every tool registered
+        on the main server, saving ~3K tokens for typical builtin tool
+        sets.  OpenAPI-derived tools already have response schemas
+        stripped by Phase 2 (``_strip_response_bodies``).
+        """
+        tools = await self.server.list_tools()
+        stripped = 0
+        for tool_info in tools:
+            try:
+                tool = await self.server.get_tool(tool_info.name)
+                if tool and getattr(tool, "output_schema", None) is not None:
+                    tool.output_schema = None
+                    stripped += 1
+            except Exception:
+                # Skip tools that can't be accessed (e.g. mounted)
+                pass
+
+        if stripped:
+            logger.info(
+                "Stripped outputSchema from %d tools to reduce context usage",
+                stripped,
+            )
 
     async def _setup_builtin_prompts(self):
         """Setup built-in prompts for the server."""
