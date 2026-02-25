@@ -1380,8 +1380,20 @@ def create_openbridge_config() -> AuthConfig:
     config.jwt_verify_iss = False  # Don't validate issuer for OpenBridge
     config.jwt_verify_aud = False  # Don't validate audience for OpenBridge
 
-    # Respect AUTH_ENABLED environment variable
+    # Load any additional settings from environment (JWT keys, cache TTL, etc.)
     config.load_from_env()
+
+    # CRITICAL: OpenBridge ALWAYS needs these enabled - load_from_env() defaults
+    # them to False when env vars aren't set, which silently breaks auth on
+    # deployments (e.g., Cloud Run) that don't explicitly set every env var.
+    config.enabled = True
+    config.refresh_token_enabled = True
+
+    # JWT validation is optional for OpenBridge - the provider handles its own
+    # JWT conversion internally. Only enable if explicitly requested via env var.
+    # Default OFF to match docker-compose behavior (JWT_VALIDATION_ENABLED=false).
+    if not os.getenv("JWT_VALIDATION_ENABLED"):
+        config.jwt_validation_enabled = False
 
     return config
 

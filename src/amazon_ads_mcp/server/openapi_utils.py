@@ -30,9 +30,16 @@ def truncate_text(text: Optional[str], max_len: int) -> Optional[str]:
     return text[: max(0, max_len - len(tail))] + tail
 
 
-def _env_flag(name: str) -> bool:
-    """Return True if an environment variable is set to a truthy value."""
-    return os.getenv(name, "").lower() in ("1", "true", "yes")
+def _env_flag(name: str, default: bool = False) -> bool:
+    """Return True if an environment variable is set to a truthy value.
+
+    :param name: Environment variable name.
+    :param default: Value when the variable is unset. Defaults to False.
+    """
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.lower() in ("1", "true", "yes")
 
 
 # ---------------------------------------------------------------------------
@@ -149,6 +156,223 @@ def _clean_schema_metadata(obj: Any) -> None:
             _clean_schema_metadata(item)
 
 
+def _truncate_enums(
+    spec: Dict[str, Any],
+    max_values: int = 8,
+    min_values_to_truncate: int = 12,
+) -> int:
+    """Phase 5: Truncate large enum arrays in component schemas.
+
+    Enums with many values (e.g. LanguageLocale with 166 entries) get
+    dereferenced inline by FastMCP, bloating every tool that references
+    them.  We keep *max_values* representative samples plus a
+    ``description`` note indicating the total count was trimmed.
+
+    Only modifies enum arrays with more than *min_values_to_truncate*
+    entries to avoid touching small enums that are useful in full.
+
+    :return: Number of enums truncated.
+    """
+    schemas = spec.get("components", {}).get("schemas", {})
+    truncated = 0
+
+    for name, schema in schemas.items():
+        if not isinstance(schema, dict):
+            continue
+        enum_vals = schema.get("enum")
+        if not isinstance(enum_vals, list):
+            continue
+        if len(enum_vals) <= min_values_to_truncate:
+            continue
+
+        original_len = len(enum_vals)
+        # Keep first few + last few for representative spread
+        head = max_values // 2
+        tail = max_values - head
+        kept = enum_vals[:head] + enum_vals[-tail:]
+        schema["enum"] = kept
+        # Append note to description so Claude knows there are more
+        desc = schema.get("description", "")
+        note = f" [{original_len} values total, showing {max_values}]"
+        schema["description"] = (desc + note).strip()
+        truncated += 1
+
+    return truncated
+
+
+def _simplify_large_oneof(
+    spec: Dict[str, Any],
+    max_options: int = 6,
+    min_options_to_simplify: int = 10,
+) -> int:
+    """Phase 6: Simplify large oneOf/anyOf compositions in component schemas.
+
+    Compositions like ``CreateTargetDetails`` with 23 inline wrapper
+    objects generate thousands of tokens after FastMCP dereferences them.
+    We replace the full list with a trimmed set of options plus a
+    description note.
+
+    :return: Number of compositions simplified.
+    """
+    schemas = spec.get("components", {}).get("schemas", {})
+    simplified = 0
+
+    for name, schema in schemas.items():
+        if not isinstance(schema, dict):
+            continue
+
+        for key in ("oneOf", "anyOf"):
+            options = schema.get(key)
+            if not isinstance(options, list):
+                continue
+            if len(options) <= min_options_to_simplify:
+                continue
+
+            original_len = len(options)
+
+            # Extract option names for the description note
+            option_names = []
+            for opt in options:
+                if isinstance(opt, dict):
+                    # Inline wrapper: {"properties": {"keywordTarget": ...}}
+                    props = opt.get("properties", {})
+                    if props:
+                        option_names.extend(props.keys())
+                    # Direct $ref
+                    ref = opt.get("$ref", "")
+                    if ref:
+                        option_names.append(ref.split("/")[-1])
+
+            # Keep first few options for structure, discard the rest
+            schema[key] = options[:max_options]
+            desc = schema.get("description", "")
+            all_names = ", ".join(option_names)
+            note = (
+                f" [{original_len} types total, showing {max_options}. "
+                f"All types: {all_names}]"
+            )
+            schema["description"] = (desc + note).strip()
+            simplified += 1
+
+    return simplified
+
+
+def _flatten_large_schemas(
+    spec: Dict[str, Any],
+    max_schema_bytes: int = 1500,
+) -> int:
+    """Phase 7: Flatten large component schemas to reduce token bloat.
+
+    FastMCP dereferences ``$ref`` chains across multiple component
+    schemas, so even a 3-level-deep schema can expand to 10K+ tokens
+    when inlined.  This phase targets the source: any component schema
+    whose JSON serialization exceeds *max_schema_bytes* gets its nested
+    ``properties`` replaced with type-only stubs.
+
+    For example, a schema like::
+
+        CreateAssetBasedCreativeSettings:
+          properties:
+            headline: {type: string, maxLength: 200, ...}
+            customImage: {type: object, properties: {assetId: ...}}
+            videoCallToActionSettings: {type: object, properties: ...}
+
+    becomes::
+
+        CreateAssetBasedCreativeSettings:
+          description: "... [flattened: headline, customImage, videoCallToActionSettings]"
+          properties:
+            headline: {type: string}
+            customImage: {type: object}
+            videoCallToActionSettings: {type: object}
+
+    This preserves the property *names* and top-level *types* so Claude
+    knows what fields exist, while eliminating the nested definitions
+    that explode token usage.
+
+    :return: Number of schemas flattened.
+    """
+    import json as _json
+
+    schemas = spec.get("components", {}).get("schemas", {})
+    flattened = 0
+
+    for name, schema in list(schemas.items()):
+        if not isinstance(schema, dict):
+            continue
+        # Skip enum-only schemas (already handled by Phase 5)
+        if "enum" in schema and "properties" not in schema:
+            continue
+
+        raw = _json.dumps(schema, separators=(",", ":"))
+        if len(raw) <= max_schema_bytes:
+            continue
+
+        props = schema.get("properties")
+        if not isinstance(props, dict) or not props:
+            continue
+
+        # Build a slim version: keep property names + type only
+        slim_props: Dict[str, Any] = {}
+        prop_names = []
+        for pname, pdef in props.items():
+            prop_names.append(pname)
+            if not isinstance(pdef, dict):
+                slim_props[pname] = pdef
+                continue
+
+            slim: Dict[str, Any] = {}
+            # Preserve type
+            if "type" in pdef:
+                slim["type"] = pdef["type"]
+            elif "$ref" in pdef:
+                slim["type"] = "object"
+            elif "oneOf" in pdef or "anyOf" in pdef:
+                slim["type"] = "object"
+            elif "items" in pdef:
+                slim["type"] = "array"
+                # Keep items type hint
+                items = pdef["items"]
+                if isinstance(items, dict):
+                    if "type" in items:
+                        slim["items"] = {"type": items["type"]}
+                    else:
+                        slim["items"] = {"type": "object"}
+            else:
+                slim["type"] = "object"
+
+            # Keep enum if small
+            if "enum" in pdef and isinstance(pdef["enum"], list):
+                if len(pdef["enum"]) <= 8:
+                    slim["enum"] = pdef["enum"]
+
+            # Keep format for strings (date, date-time, etc.)
+            if "format" in pdef:
+                slim["format"] = pdef["format"]
+
+            # Preserve short description if available
+            desc = pdef.get("description", "")
+            if desc and len(desc) <= 80:
+                slim["description"] = desc
+
+            slim_props[pname] = slim
+
+        # Add required list if present
+        new_schema: Dict[str, Any] = {"type": "object", "properties": slim_props}
+        if "required" in schema:
+            new_schema["required"] = schema["required"]
+
+        # Annotate with original property list
+        desc = schema.get("description", "")
+        note = f" [flattened: {', '.join(prop_names)}]"
+        new_schema["description"] = (desc + note).strip()
+
+        schemas[name] = new_schema
+        flattened += 1
+
+    return flattened
+
+
 def _validate_request_schemas(spec: Dict[str, Any]) -> bool:
     """Return True if every requestBody schema is non-empty.
 
@@ -191,9 +415,9 @@ def slim_openapi_for_tools(spec: Dict[str, Any], max_desc: int = 200) -> None:
     Modifies the spec in place.
 
     **Phase 1** (always): Auth header removal + description truncation.
-    **Phase 2** (``SLIM_OPENAPI_STRIP_RESPONSES=true``): Strip response bodies.
-    **Phase 3** (``SLIM_OPENAPI_AGGRESSIVE=true``): Dead schema elimination.
-    **Phase 4** (``SLIM_OPENAPI_AGGRESSIVE=true``): Schema metadata cleanup.
+    **Phase 2** (on by default, ``SLIM_OPENAPI_STRIP_RESPONSES=false`` to disable): Strip response bodies.
+    **Phase 3-7** (on by default, ``SLIM_OPENAPI_AGGRESSIVE=false`` to disable): Dead schema elimination,
+    metadata cleanup, enum truncation, oneOf simplification, and large schema flattening.
 
     :param spec: OpenAPI specification to slim
     :type spec: Dict[str, Any]
@@ -324,8 +548,8 @@ def slim_openapi_for_tools(spec: Dict[str, Any], max_desc: int = 200) -> None:
         # ----------------------------------------------------------------
         # Phases 2-4 - Gated behind env flags (default off)
         # ----------------------------------------------------------------
-        strip_responses = _env_flag("SLIM_OPENAPI_STRIP_RESPONSES")
-        aggressive = _env_flag("SLIM_OPENAPI_AGGRESSIVE")
+        strip_responses = _env_flag("SLIM_OPENAPI_STRIP_RESPONSES", default=True)
+        aggressive = _env_flag("SLIM_OPENAPI_AGGRESSIVE", default=True)
 
         if strip_responses or aggressive:
             # Snapshot for safety rollback
@@ -355,6 +579,26 @@ def slim_openapi_for_tools(spec: Dict[str, Any], max_desc: int = 200) -> None:
                         for prm in op.get("parameters") or []:
                             if isinstance(prm, dict) and "schema" in prm:
                                 _clean_schema_metadata(prm["schema"])
+
+            # Phase 5 - Truncate large enums (e.g. LanguageLocale 166→8)
+            if aggressive:
+                n_enums = _truncate_enums(spec)
+                if n_enums:
+                    logger.debug("Truncated %d large enum schemas", n_enums)
+
+            # Phase 6 - Simplify large oneOf/anyOf compositions
+            if aggressive:
+                n_oneof = _simplify_large_oneof(spec)
+                if n_oneof:
+                    logger.debug("Simplified %d large oneOf/anyOf schemas", n_oneof)
+
+            # Phase 7 - Flatten large schemas to reduce dereference bloat
+            if aggressive:
+                n_flat = _flatten_large_schemas(spec, max_schema_bytes=1500)
+                if n_flat:
+                    logger.debug(
+                        "Flattened %d large schemas to property stubs", n_flat
+                    )
 
             # Safety: validate requestBody schemas are non-empty
             if not _validate_request_schemas(spec):
