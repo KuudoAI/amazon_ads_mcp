@@ -140,8 +140,12 @@ class OpenBridgeProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
     def set_refresh_token(self, refresh_token: str) -> None:
         """Set the refresh token dynamically.
 
-        This allows the refresh token to be provided via the Authorization header
-        rather than requiring it in the configuration.
+        This allows the refresh token to be provided at runtime via request
+        headers rather than requiring it in the configuration. The middleware
+        checks headers in this order:
+
+        1. ``X-Openbridge-Token`` header (preferred — gateway deployments)
+        2. ``Authorization: Bearer`` header (backward compat — direct mode)
 
         :param refresh_token: The OpenBridge refresh token
         :type refresh_token: str
@@ -157,7 +161,8 @@ class OpenBridgeProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
 
         if not self.refresh_token:
             raise ValueError(
-                "No OpenBridge token available. Set OPENBRIDGE_REFRESH_TOKEN (or OPENBRIDGE_API_KEY), or pass it via Authorization header."
+                "No OpenBridge token available. Set OPENBRIDGE_REFRESH_TOKEN env var, "
+                "or pass via X-Openbridge-Token header (preferred) or Authorization: Bearer header."
             )
 
         return await self._refresh_jwt_token()

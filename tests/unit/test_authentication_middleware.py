@@ -58,6 +58,83 @@ async def test_refresh_token_middleware_sets_provider_refresh_token():
 
 
 @pytest.mark.asyncio
+async def test_refresh_token_middleware_prefers_x_openbridge_token():
+    """X-Openbridge-Token takes priority over Authorization Bearer."""
+    config = AuthConfig()
+    config.enabled = False
+    config.refresh_token_enabled = False
+
+    provider = MagicMock()
+    auth_manager = SimpleNamespace(provider=provider)
+    middleware = RefreshTokenMiddleware(config, auth_manager)
+
+    headers = {
+        "x-openbridge-token": "ob-token:secret123",
+        "authorization": "Bearer should-not-be-used",
+    }
+    ctx = DummyContext(DummyFastMCPContext(headers))
+    call_next = AsyncMock(return_value="ok")
+
+    result = await middleware.on_request(ctx, call_next)
+
+    assert result == "ok"
+    provider.set_refresh_token.assert_called_once_with("ob-token:secret123")
+
+
+@pytest.mark.asyncio
+async def test_refresh_token_middleware_reads_x_openbridge_token_without_bearer_prefix():
+    """X-Openbridge-Token is a raw token, no Bearer prefix needed."""
+    config = AuthConfig()
+    config.enabled = False
+    config.refresh_token_enabled = False
+
+    provider = MagicMock()
+    auth_manager = SimpleNamespace(provider=provider)
+    middleware = RefreshTokenMiddleware(config, auth_manager)
+
+    headers = {"x-openbridge-token": "raw-ob-token:abcdef1234567890"}
+    ctx = DummyContext(DummyFastMCPContext(headers))
+    call_next = AsyncMock(return_value="ok")
+
+    result = await middleware.on_request(ctx, call_next)
+
+    assert result == "ok"
+    provider.set_refresh_token.assert_called_once_with(
+        "raw-ob-token:abcdef1234567890"
+    )
+
+
+@pytest.mark.asyncio
+async def test_gateway_oauth_jwt_in_authorization_does_not_override_provider():
+    """Authorization fallback is for OpenBridge refresh tokens only.
+
+    In gateway mode, Authorization carries the gateway's OAuth JWT (dot-separated,
+    no colon). The pattern guard must reject it so set_refresh_token is NOT called
+    and the provider keeps its env-var-initialized token.
+    """
+    config = AuthConfig()
+    config.enabled = False
+    config.refresh_token_enabled = False
+    # Configure the colon heuristic pattern that OpenBridge uses
+    config.refresh_token_pattern = lambda t: ":" in t and len(t) > 20
+
+    provider = MagicMock()
+    auth_manager = SimpleNamespace(provider=provider)
+    middleware = RefreshTokenMiddleware(config, auth_manager)
+
+    # Gateway OAuth JWT — dot-separated, no colon
+    gateway_jwt = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signature"
+    headers = {"authorization": f"Bearer {gateway_jwt}"}
+    ctx = DummyContext(DummyFastMCPContext(headers))
+    call_next = AsyncMock(return_value="ok")
+
+    result = await middleware.on_request(ctx, call_next)
+
+    assert result == "ok"
+    provider.set_refresh_token.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_validate_jwt_without_signature_success():
     config = AuthConfig()
     config.enabled = True

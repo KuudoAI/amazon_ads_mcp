@@ -1,7 +1,7 @@
-"""Integration tests for Authorization header propagation.
+"""Integration tests for authentication header propagation.
 
-These tests verify that the Authorization header from MCP clients
-is properly propagated through the middleware chain to the OpenBridge
+These tests verify that OpenBridge refresh tokens from MCP clients
+are properly propagated through the middleware chain to the OpenBridge
 provider. This prevents regressions where header-based authentication
 fails silently.
 
@@ -10,6 +10,8 @@ The tests cover:
 2. Authorization header extraction from requests
 3. Token propagation to the OpenBridge provider
 4. End-to-end flow validation
+5. X-Openbridge-Token header support for gateway deployments
+6. Gateway OAuth JWT rejection via pattern guard
 """
 
 import pytest
@@ -418,4 +420,182 @@ class TestContextVariations:
         # Should not raise
         await middleware.on_request(mock_context, call_next)
 
+        mock_auth_manager.provider.set_refresh_token.assert_not_called()
+
+
+class TestXOpenbridgeTokenHeader:
+    """Test X-Openbridge-Token header support for gateway deployments.
+
+    When the MCP server sits behind a gateway, Authorization is reserved for
+    gateway-level OAuth. Platform credentials (OpenBridge tokens) are passed
+    via the X-Openbridge-Token header instead. These tests verify the
+    three-priority token resolution:
+
+    1. X-Openbridge-Token header (preferred)
+    2. Authorization: Bearer (backward compat, pattern-guarded)
+    3. OPENBRIDGE_REFRESH_TOKEN env var (provider init)
+    """
+
+    @pytest.fixture
+    def mock_auth_manager(self):
+        """Create a mock auth manager with an OpenBridge-like provider."""
+        manager = MagicMock()
+        manager.provider = MagicMock()
+        manager.provider.provider_type = "openbridge"
+        manager.provider.set_refresh_token = MagicMock()
+        return manager
+
+    def _make_context(self, headers):
+        """Create a mock context with the given request headers."""
+        mock_request = MagicMock()
+        mock_request.headers = headers
+
+        mock_context = MagicMock()
+        mock_context.fastmcp_context = MagicMock()
+        mock_context.fastmcp_context.request_context = MagicMock()
+        mock_context.fastmcp_context.request_context.request = mock_request
+        return mock_context
+
+    @pytest.mark.asyncio
+    async def test_middleware_extracts_x_openbridge_token_header(
+        self, mock_auth_manager
+    ):
+        """X-Openbridge-Token header is extracted and propagated to provider."""
+        config = AuthConfig()
+        config.enabled = False
+        config.refresh_token_enabled = False
+
+        middleware = RefreshTokenMiddleware(config, mock_auth_manager)
+        ctx = self._make_context(
+            {"x-openbridge-token": "ob-refresh:abc123def456789012"}
+        )
+        call_next = AsyncMock()
+
+        await middleware.on_request(ctx, call_next)
+
+        mock_auth_manager.provider.set_refresh_token.assert_called_once_with(
+            "ob-refresh:abc123def456789012"
+        )
+
+    @pytest.mark.asyncio
+    async def test_x_openbridge_token_takes_priority_over_authorization_bearer(
+        self, mock_auth_manager
+    ):
+        """X-Openbridge-Token wins when both headers are present."""
+        config = AuthConfig()
+        config.enabled = False
+        config.refresh_token_enabled = False
+
+        middleware = RefreshTokenMiddleware(config, mock_auth_manager)
+        ctx = self._make_context({
+            "x-openbridge-token": "preferred-token:secret",
+            "authorization": "Bearer fallback-token:secret",
+        })
+        call_next = AsyncMock()
+
+        await middleware.on_request(ctx, call_next)
+
+        mock_auth_manager.provider.set_refresh_token.assert_called_once_with(
+            "preferred-token:secret"
+        )
+
+    @pytest.mark.asyncio
+    async def test_x_openbridge_token_propagates_when_config_disabled(
+        self, mock_auth_manager
+    ):
+        """Token propagation from X-Openbridge-Token works even when config.enabled=False.
+
+        This preserves the critical invariant: provider always gets the refresh
+        token regardless of JWT processing configuration.
+        """
+        config = AuthConfig()
+        config.enabled = False
+        config.refresh_token_enabled = False
+
+        middleware = RefreshTokenMiddleware(config, mock_auth_manager)
+        ctx = self._make_context(
+            {"x-openbridge-token": "disabled-config-token:abc123456789012"}
+        )
+        call_next = AsyncMock()
+
+        await middleware.on_request(ctx, call_next)
+
+        mock_auth_manager.provider.set_refresh_token.assert_called_once_with(
+            "disabled-config-token:abc123456789012"
+        )
+
+    @pytest.mark.asyncio
+    async def test_x_openbridge_token_whitespace_is_stripped(
+        self, mock_auth_manager
+    ):
+        """Leading/trailing whitespace in X-Openbridge-Token is stripped."""
+        config = AuthConfig()
+        config.enabled = False
+        config.refresh_token_enabled = False
+
+        middleware = RefreshTokenMiddleware(config, mock_auth_manager)
+        ctx = self._make_context(
+            {"x-openbridge-token": "  padded-token:secret123456789  "}
+        )
+        call_next = AsyncMock()
+
+        await middleware.on_request(ctx, call_next)
+
+        mock_auth_manager.provider.set_refresh_token.assert_called_once_with(
+            "padded-token:secret123456789"
+        )
+
+    @pytest.mark.asyncio
+    async def test_empty_x_openbridge_token_falls_back_to_authorization(
+        self, mock_auth_manager
+    ):
+        """Empty X-Openbridge-Token falls back to Authorization Bearer."""
+        config = AuthConfig()
+        config.enabled = False
+        config.refresh_token_enabled = False
+        config.refresh_token_pattern = None  # Accept any token
+
+        middleware = RefreshTokenMiddleware(config, mock_auth_manager)
+        ctx = self._make_context({
+            "x-openbridge-token": "",
+            "authorization": "Bearer fallback-ob-token:secret1234567",
+        })
+        call_next = AsyncMock()
+
+        await middleware.on_request(ctx, call_next)
+
+        mock_auth_manager.provider.set_refresh_token.assert_called_once_with(
+            "fallback-ob-token:secret1234567"
+        )
+
+    @pytest.mark.asyncio
+    async def test_gateway_oauth_jwt_in_authorization_is_rejected(
+        self, mock_auth_manager
+    ):
+        """Authorization fallback accepts OpenBridge refresh tokens only, not arbitrary bearer tokens.
+
+        In gateway mode, Authorization carries an OAuth JWT (dot-separated, no colon).
+        The pattern guard rejects it, so set_refresh_token is NOT called and the
+        provider keeps its env-var-initialized token.
+        """
+        config = AuthConfig()
+        config.enabled = False
+        config.refresh_token_enabled = False
+        # Colon heuristic: OpenBridge tokens contain ":" and are > 20 chars
+        config.refresh_token_pattern = lambda t: ":" in t and len(t) > 20
+
+        middleware = RefreshTokenMiddleware(config, mock_auth_manager)
+
+        # Simulate a gateway OAuth JWT — dot-separated, no colon
+        gateway_jwt = (
+            "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9"
+            ".eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkdhdGV3YXkifQ"
+            ".fake-signature-here"
+        )
+        ctx = self._make_context({"authorization": f"Bearer {gateway_jwt}"})
+        call_next = AsyncMock()
+
+        await middleware.on_request(ctx, call_next)
+
+        # Gateway JWT must NOT reach the provider
         mock_auth_manager.provider.set_refresh_token.assert_not_called()
