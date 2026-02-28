@@ -23,7 +23,7 @@
         {
           "name": "AMAZON_ADS_AUTH_METHOD",
           "description": "Authentication method: direct or openbridge.",
-          "isRequired": false,
+          "isRequired": true,
           "isSecret": false
         },
         {

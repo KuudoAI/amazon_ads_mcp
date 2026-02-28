@@ -505,10 +505,17 @@ class RefreshTokenMiddleware(Middleware):
     async def on_request(self, context: MiddlewareContext, call_next):
         """Convert refresh tokens to JWT tokens if needed.
 
-        This method intercepts incoming requests and checks for refresh
-        tokens in the Authorization header. If a refresh token is detected,
-        it converts it to a JWT token and stores it in context-safe storage
-        for use by other middleware components.
+        This method intercepts incoming requests and extracts OpenBridge
+        refresh tokens from headers using the following priority:
+
+        1. ``X-Openbridge-Token`` header (preferred — gateway deployments)
+        2. ``Authorization: Bearer`` header (backward compat — direct mode,
+           only if the token matches the OpenBridge refresh token pattern)
+        3. ``OPENBRIDGE_REFRESH_TOKEN`` env var (handled at provider init)
+
+        In gateway mode, ``Authorization`` carries the gateway's OAuth access
+        token (a JWT), not an OpenBridge refresh token. The pattern guard
+        (colon heuristic) prevents gateway JWTs from corrupting provider state.
 
         Args:
             context: The FastMCP middleware context.
@@ -522,49 +529,76 @@ class RefreshTokenMiddleware(Middleware):
             >>> # when requests are processed through the middleware chain
         """
         try:
-            # Get headers from the context if available
-            auth_header = ""
+            token = None
+            token_source = None
+
             if context.fastmcp_context and context.fastmcp_context.request_context:
                 request = context.fastmcp_context.request_context.request
                 if request and hasattr(request, "headers"):
-                    auth_header = request.headers.get("authorization", "")
+                    # Priority 1: X-Openbridge-Token (gateway deployments)
+                    # This header carries the platform credential explicitly, no ambiguity.
+                    openbridge_token = request.headers.get(
+                        "x-openbridge-token", ""
+                    ).strip()
+                    if openbridge_token:
+                        token = openbridge_token
+                        token_source = "X-Openbridge-Token header"
 
-            if auth_header:
-                # Extract token more robustly - handle case variations and extra whitespace
-                parts = auth_header.split(" ", 1)
-                if len(parts) == 2 and parts[0].lower() == "bearer":
-                    token = parts[1].strip()  # Remove any leading/trailing whitespace
+                    # Priority 2: Authorization: Bearer (direct mode, backward compat)
+                    # SAFETY: In gateway mode, Authorization carries the gateway's OAuth
+                    # access token (a JWT), NOT an OpenBridge refresh token. We must verify
+                    # the token looks like an OpenBridge refresh token before using it.
+                    if not token:
+                        auth_header = request.headers.get("authorization", "")
+                        if auth_header:
+                            parts = auth_header.split(" ", 1)
+                            if len(parts) == 2 and parts[0].lower() == "bearer":
+                                candidate = parts[1].strip()
+                                # Guard: only accept if it matches OpenBridge pattern
+                                # (colon-separated, len > 20) or no pattern is configured
+                                if (
+                                    not self.config.refresh_token_pattern
+                                    or self.config.refresh_token_pattern(candidate)
+                                ):
+                                    token = candidate
+                                    token_source = "Authorization header"
+                                else:
+                                    # Debug level only; never log token contents
+                                    self.logger.debug(
+                                        "Authorization Bearer token does not match "
+                                        "OpenBridge refresh token pattern — skipping "
+                                        "(likely gateway OAuth token)"
+                                    )
 
-                    # CRITICAL: Always set refresh token in provider if available (for OpenBridge)
-                    # This MUST happen even if config.enabled is False, so tools can use the token
-                    # The provider needs the refresh token to authenticate API calls
-                    if self.auth_manager and hasattr(self.auth_manager, "provider"):
-                        provider = self.auth_manager.provider
-                        if hasattr(provider, "set_refresh_token"):
-                            self.logger.debug(
-                                "Setting refresh token in OpenBridge provider from Authorization header"
-                            )
-                            provider.set_refresh_token(token)
+            if token:
+                # CRITICAL: Always set refresh token in provider if available (for OpenBridge)
+                # This MUST happen even if config.enabled is False, so tools can use the token
+                # The provider needs the refresh token to authenticate API calls
+                if self.auth_manager and hasattr(self.auth_manager, "provider"):
+                    provider = self.auth_manager.provider
+                    if hasattr(provider, "set_refresh_token"):
+                        self.logger.debug(f"Setting refresh token from {token_source}")
+                        provider.set_refresh_token(token)
 
-                    # JWT conversion processing (only if enabled)
-                    if self.config.enabled and self.config.refresh_token_enabled:
-                        # Check if this matches the refresh token pattern for JWT conversion
-                        if self.config.refresh_token_pattern and self.config.refresh_token_pattern(
-                            token
-                        ):
-                            self.logger.debug("Detected refresh token format, checking cache...")
+                # JWT conversion processing (only if enabled)
+                if self.config.enabled and self.config.refresh_token_enabled:
+                    # Check if this matches the refresh token pattern for JWT conversion
+                    if self.config.refresh_token_pattern and self.config.refresh_token_pattern(
+                        token
+                    ):
+                        self.logger.debug("Detected refresh token format, checking cache...")
 
-                            jwt_token = await self._get_cached_or_convert_jwt(token)
-                            if jwt_token:
-                                self.logger.debug("JWT token ready (cached or converted)")
-                                # Store the JWT in context-safe storage for the JWT middleware to use
-                                jwt_token_var.set(jwt_token)
-                            else:
-                                self.logger.error("Failed to convert refresh token to JWT")
+                        jwt_token = await self._get_cached_or_convert_jwt(token)
+                        if jwt_token:
+                            self.logger.debug("JWT token ready (cached or converted)")
+                            # Store the JWT in context-safe storage for the JWT middleware to use
+                            jwt_token_var.set(jwt_token)
                         else:
-                            self.logger.debug(
-                                "Token does not match refresh token pattern - skipping JWT conversion"
-                            )
+                            self.logger.error("Failed to convert refresh token to JWT")
+                    else:
+                        self.logger.debug(
+                            "Token does not match refresh token pattern - skipping JWT conversion"
+                        )
 
         except ToolError:
             # Let ToolError propagate - it's handled by FastMCP

@@ -11,25 +11,29 @@ services:
       # Server runtime
       - TRANSPORT=http
       - HOST=0.0.0.0
-      - PORT=9080
+      - PORT=8000
       - LOG_LEVEL=INFO
-      # Note: This is overridden by .env if AMAZON_AD_API_PACKAGES is set there
-      - AMAZON_AD_API_PACKAGES=profiles,accounts-ads-accounts,exports-snapshots
+      # AMAZON_AD_API_PACKAGES is set in .env (env_file values are overridden by
+      # explicit environment entries, so we keep it in .env only)
       # Token persistence (disabled by default for security)
       # Set to 'true' to cache refresh tokens across restarts (see docs for security implications)
       - AMAZON_ADS_TOKEN_PERSIST=false
       - AMAZON_ADS_CACHE_DIR=/app/.cache/amazon-ads-mcp
-      # Authentication method - REQUIRED for header-based auth!
-      # Set to 'openbridge' when passing credentials via Authorization header from client
+      # Authentication method - set to 'openbridge' for header-based auth
       - AMAZON_ADS_AUTH_METHOD=openbridge
-      # REQUIRED: Enable refresh token middleware to process Authorization headers
-      - REFRESH_TOKEN_ENABLED=true
-      - AUTH_ENABLED=true
-      # Disable JWT validation (OpenBridge handles authentication)
-      - JWT_VALIDATION_ENABLED=false
+      # OpenBridge auth defaults are now built-in:
+      # REFRESH_TOKEN_ENABLED=true, AUTH_ENABLED=true, JWT_VALIDATION_ENABLED=false
+      # Override only if you need non-default behavior
+      # Runtime OpenAPI slimming (on by default - set to 'false' to disable)
+      # SLIM_OPENAPI_STRIP_RESPONSES=false  # Keep response schemas in tool definitions
+      # SLIM_OPENAPI_AGGRESSIVE=false       # Disable enum truncation, schema flattening, etc.
+      # Progressive tool disclosure: hide API tools by default, reveal on demand
+      # Off by default - Claude Desktop doesn't re-fetch tools/list mid-conversation
+      # Enable for MCP clients that support tools/list_changed notifications
+      # PROGRESSIVE_TOOL_DISCLOSURE=true
 
     ports:
-      - "9080:9080"
+      - "8000:8000"
     volumes:
       # Persist downloaded exports/reports
       - downloads:/app/data
@@ -39,7 +43,7 @@ services:
       "python", "-m", "amazon_ads_mcp.server",
       "--transport", "${TRANSPORT:-http}",
       "--host", "${HOST:-0.0.0.0}",
-      "--port", "${PORT:-9080}"
+      "--port", "${PORT:-8000}"
     ]
  
 volumes:

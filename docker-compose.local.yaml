@@ -1,0 +1,38 @@
+# Local development docker-compose
+# Usage: docker compose -f docker-compose.local.yaml up --build
+#
+# Auth method, credentials, and packages are inherited from .env
+# Copy .env.example → .env and fill in your values before running.
+
+services:
+  amazon-ads-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: amazon-ads-mcp:local
+    container_name: amazon-ads-mcp-local
+    env_file:
+      - .env
+    environment:
+      # Server runtime — matches .env.example defaults
+      - TRANSPORT=${TRANSPORT:-http}
+      - HOST=0.0.0.0
+      - PORT=${PORT:-8000}
+      - LOG_LEVEL=${LOG_LEVEL:-DEBUG}
+      # Token persistence — local dev uses host-mounted cache
+      - AMAZON_ADS_TOKEN_PERSIST=${AMAZON_ADS_TOKEN_PERSIST:-true}
+      - AMAZON_ADS_CACHE_DIR=/app/.cache/amazon-ads-mcp
+      # Download directory
+      - AMAZON_ADS_DOWNLOAD_DIR=/app/data
+    ports:
+      - "${PORT:-9080}:${PORT:-8000}"
+    volumes:
+      # Mount local directories for easy inspection
+      - ./data:/app/data
+      - ./.cache:/app/.cache
+    command: [
+      "python", "-m", "amazon_ads_mcp.server",
+      "--transport", "${TRANSPORT:-http}",
+      "--host", "0.0.0.0",
+      "--port", "${PORT:-8000}"
+    ]
