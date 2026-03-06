@@ -175,6 +175,28 @@ class Settings(BaseSettings):
         description="Default sampling rate (0.0-1.0)",
     )
 
+    # Code Mode Configuration
+    code_mode_enabled: bool = Field(
+        False,
+        alias="CODE_MODE",
+        description="Enable code mode (replaces tool catalog with meta-tools)",
+    )
+    code_mode_include_tags: bool = Field(
+        True,
+        alias="CODE_MODE_INCLUDE_TAGS",
+        description="Include tags browsing in code mode discovery (default true)",
+    )
+    code_mode_max_duration_secs: int = Field(
+        30,
+        alias="CODE_MODE_MAX_DURATION_SECS",
+        description="Sandbox execution timeout in seconds",
+    )
+    code_mode_max_memory: int = Field(
+        50_000_000,
+        alias="CODE_MODE_MAX_MEMORY",
+        description="Sandbox memory limit in bytes (default 50MB)",
+    )
+
     # Response Caching Configuration
     enable_response_caching: bool = Field(
         False,

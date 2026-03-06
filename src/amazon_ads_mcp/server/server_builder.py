@@ -63,6 +63,15 @@ class ServerBuilder:
         :return: Configured FastMCP server instance
         :rtype: FastMCP
         """
+        code_mode = settings.code_mode_enabled
+
+        # Warn if both code mode and progressive disclosure are set
+        if code_mode and self._progressive_disclosure_enabled():
+            logger.warning(
+                "Both CODE_MODE and PROGRESSIVE_TOOL_DISCLOSURE are set. "
+                "Code mode supersedes progressive disclosure; tool groups will be skipped."
+            )
+
         # Ensure default identity is loaded if configured
         await self._setup_default_identity()
 
@@ -79,13 +88,21 @@ class ServerBuilder:
         await self._mount_resource_servers()
 
         # Progressive disclosure: disable mounted tools by default
-        await self._disable_mounted_tools()
+        # Skipped when code mode is active (tools must stay visible for CodeMode catalog)
+        if not code_mode:
+            await self._disable_mounted_tools()
 
-        # Setup built-in tools
-        await self._setup_builtin_tools()
+        # Setup built-in tools (skip tool group tools when code mode active)
+        await self._setup_builtin_tools(skip_tool_groups=code_mode)
 
         # Strip outputSchema from all tools (saves ~3K tokens)
+        # Only affects output_schema; input schemas used by GetSchemas are preserved
         await self._strip_output_schemas()
+
+        # Code mode: tag tools by category then apply CodeMode transform
+        if code_mode:
+            await self._tag_tools_for_code_mode()
+            await self._apply_code_mode()
 
         # Setup built-in prompts
         await self._setup_builtin_prompts()
@@ -585,15 +602,69 @@ class ServerBuilder:
             len(self.mounted_servers),
         )
 
-    async def _setup_builtin_tools(self):
-        """Setup built-in tools for the server."""
+    async def _setup_builtin_tools(self, skip_tool_groups: bool = False):
+        """Setup built-in tools for the server.
+
+        :param skip_tool_groups: If True, skip registering tool group tools
+            (list_tool_groups / enable_tool_group). Used when code mode is active
+            since GetTags replaces progressive disclosure browsing.
+        """
         from ..server.builtin_tools import register_all_builtin_tools
 
         await register_all_builtin_tools(
             self.server,
             mounted_servers=self.mounted_servers,
             group_tool_counts=self.group_tool_counts,
+            skip_tool_groups=skip_tool_groups,
         )
+
+    async def _tag_tools_for_code_mode(self):
+        """Tag all tools with human-readable categories for code mode discovery.
+
+        OpenAPI tools are tagged by namespace prefix (e.g. ``cm`` -> ``campaign-management``).
+        Builtin tools are tagged as ``server-management``.
+        Must run before ``_apply_code_mode()`` so CodeMode's GetTags sees the tags.
+        """
+        from .code_mode import tag_builtin_tools, tag_tools_by_prefix
+
+        api_count = await tag_tools_by_prefix(self.server, self.mounted_servers)
+        builtin_count = await tag_builtin_tools(self.server)
+        logger.info(
+            "Code mode tagging complete: %d API tools + %d builtin tools",
+            api_count,
+            builtin_count,
+        )
+
+    async def _apply_code_mode(self):
+        """Apply CodeMode transform to replace tools with meta-tools.
+
+        Code Mode replaces all upstream tools with meta-tools (discovery + execute)
+        that let the LLM discover and invoke tools on-demand via sandboxed Python.
+
+        Token reduction: 98.4% for 55+ tools (34,971 -> 547 tokens).
+
+        :raises ImportError: If ``fastmcp[code-mode]`` extra is not installed
+        """
+        from .code_mode import create_code_mode_transform
+
+        try:
+            transform = create_code_mode_transform()
+            self.server.add_transform(transform)
+
+            tools = await self.server.list_tools()
+            tool_names = [t.name for t in tools]
+            logger.info(
+                "Code mode active: %d meta-tools exposed (%s). "
+                "Original tools accessible via execute.",
+                len(tools),
+                ", ".join(tool_names),
+            )
+        except ImportError:
+            logger.error(
+                "Code mode requires the 'code-mode' extra. "
+                "Install with: pip install 'fastmcp[code-mode]>=3.1.0'"
+            )
+            raise
 
     async def _strip_output_schemas(self):
         """Strip outputSchema from all registered tools.

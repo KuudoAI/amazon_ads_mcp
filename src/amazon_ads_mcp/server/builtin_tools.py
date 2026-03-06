@@ -1051,12 +1051,15 @@ async def register_all_builtin_tools(
     server: FastMCP,
     mounted_servers: Optional[Dict[str, FastMCP]] = None,
     group_tool_counts: Optional[Dict[str, int]] = None,
+    skip_tool_groups: bool = False,
 ):
     """Register all built-in tools with the server.
 
     :param server: FastMCP server instance.
     :param mounted_servers: Optional map of prefix -> sub-server for tool groups.
     :param group_tool_counts: Pre-counted total tools per group (including disabled).
+    :param skip_tool_groups: If True, skip registering list_tool_groups/enable_tool_group.
+        Used when code mode is active (GetTags replaces progressive disclosure).
     """
     # Register common tools that work for all auth types
     await register_profile_tools(server)
@@ -1083,7 +1086,8 @@ async def register_all_builtin_tools(
                 logger.info("Registered OpenBridge identity tools")
 
     # Register tool group tools for progressive disclosure
-    if mounted_servers:
+    # Skipped when code mode is active (GetTags serves the same browsing purpose)
+    if mounted_servers and not skip_tool_groups:
         await register_tool_group_tools(
             server, mounted_servers, group_tool_counts=group_tool_counts
         )
