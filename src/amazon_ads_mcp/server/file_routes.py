@@ -17,6 +17,7 @@ Security:
 
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Optional
 from urllib.parse import quote
@@ -109,13 +110,13 @@ def register_file_routes(server) -> None:
             return auth_error
 
         # 2. Get current profile for tenant isolation
-        profile_id = await _get_current_profile_id()
+        profile_id = await _get_current_profile_id(request)
         if not profile_id:
             return _create_error_response(
                 error="No active profile",
                 error_code="NO_PROFILE",
                 status_code=401,
-                hint="Set active profile using set_active_profile before downloading",
+                hint="Set active profile using set_active_profile before downloading, or pass ?profile_id=<id>",
             )
 
         # 3. Get profile-scoped base directory
@@ -170,13 +171,13 @@ def register_file_routes(server) -> None:
             return auth_error
 
         # Get current profile for tenant isolation
-        profile_id = await _get_current_profile_id()
+        profile_id = await _get_current_profile_id(request)
         if not profile_id:
             return _create_error_response(
                 error="No active profile",
                 error_code="NO_PROFILE",
                 status_code=401,
-                hint="Set active profile before listing files",
+                hint="Set active profile before listing files, or pass ?profile_id=<id>",
             )
 
         handler = get_download_handler()
@@ -259,15 +260,45 @@ def register_file_routes(server) -> None:
 # =============================================================================
 
 
-async def _get_current_profile_id() -> Optional[str]:
-    """Get the current profile ID from auth context.
+async def _get_current_profile_id(request: Optional[Request] = None) -> Optional[str]:
+    """Get the current profile ID from auth context or request params.
+
+    HTTP routes run outside the MCP middleware chain, so ContextVars
+    may not be set. Falls back to a validated ``profile_id`` query
+    parameter when ContextVar-backed auth state is unavailable.
+
+    Priority: ContextVar (via auth_manager) → validated query param → None
+
+    Args:
+        request: Optional Starlette request for query param fallback
 
     Returns:
         Profile ID string or None if not available
     """
+    # Priority 1: ContextVar-backed auth state
     auth_mgr = get_auth_manager()
     if auth_mgr:
-        return auth_mgr.get_active_profile_id()
+        profile_id = auth_mgr.get_active_profile_id()
+        if profile_id:
+            return profile_id
+
+    # Priority 2: Validated query parameter (untrusted input)
+    # Only accepted when auth is completely disabled (no auth manager).
+    # When auth is active, the profile must be set via MCP tools
+    # (set_active_profile) — we cannot validate that an arbitrary
+    # query-param profile_id belongs to the authenticated identity
+    # without an API call on every download request.
+    if request is not None and auth_mgr is None:
+        query_profile_id = request.query_params.get("profile_id", "").strip()
+        if query_profile_id:
+            # Validate format: must be numeric (Amazon Ads profile IDs are numeric)
+            if not re.match(r"^\d+$", query_profile_id):
+                logger.warning(
+                    f"Rejected invalid profile_id format: {query_profile_id!r}"
+                )
+                return None
+            return query_profile_id
+
     return None
 
 

@@ -18,6 +18,7 @@ services:
       - TRANSPORT=${TRANSPORT:-http}
       - HOST=0.0.0.0
       - PORT=${PORT:-8000}
+      - AMAZON_ADS_AUTH_METHOD=${AMAZON_ADS_AUTH_METHOD:-openbridge}
       - LOG_LEVEL=${LOG_LEVEL:-DEBUG}
       # Token persistence — local dev uses host-mounted cache
       - AMAZON_ADS_TOKEN_PERSIST=${AMAZON_ADS_TOKEN_PERSIST:-true}

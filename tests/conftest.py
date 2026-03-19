@@ -26,9 +26,23 @@ def pytest_configure(config):
 
 
 @pytest.fixture(autouse=True)
+def _reset_session_state():
+    """Reset per-request ContextVars between tests.
+
+    Prevents auth state from leaking between tests when using
+    ContextVar-backed session isolation.
+    """
+    from amazon_ads_mcp.auth.session_state import reset_session_state
+
+    reset_session_state()
+    yield
+    reset_session_state()
+
+
+@pytest.fixture(autouse=True)
 def mock_env_vars(monkeypatch):
     """Set required environment variables for tests.
-    
+
     This fixture automatically sets up the minimum required environment
     variables needed for the Settings class to initialize properly during tests.
     """

@@ -128,17 +128,19 @@ async def test_switch_identity_clears_cached_credentials(auth_manager):
     ]
     auth_manager.provider = MultiIdentityProvider(identities)
 
-    auth_manager._active_credentials = AuthCredentials(
+    from amazon_ads_mcp.auth.session_state import get_active_credentials, set_active_credentials
+
+    set_active_credentials(AuthCredentials(
         identity_id="id-1",
         access_token="token",
         expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
         base_url="https://example.com",
         headers={},
-    )
+    ))
 
     await auth_manager.set_active_identity("id-2")
 
-    assert auth_manager._active_credentials is None
+    assert get_active_credentials() is None
 
 
 @pytest.mark.asyncio

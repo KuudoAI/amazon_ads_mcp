@@ -20,6 +20,7 @@ from .base import (
 )
 from .manager import AuthManager, get_auth_manager
 from .registry import ProviderRegistry, register_provider
+from .session_state import reset_session_state
 
 __all__ = [
     "AuthManager",
@@ -30,4 +31,5 @@ __all__ = [
     "BaseIdentityProvider",
     "BaseAmazonAdsProvider",
     "ProviderConfig",
+    "reset_session_state",
 ]

@@ -285,11 +285,15 @@ def parse_retry_after(response: httpx.Response) -> Optional[float]:
         return None
 
     try:
-        # Try delta-seconds first
-        if retry_after.isdigit():
+        # Try delta-seconds first (allow decimals)
+        try:
             delay = float(retry_after)
-            logger.debug(f"Parsed Retry-After as delta-seconds: {delay}")
-            return delay
+        except ValueError:
+            delay = None
+        else:
+            if delay >= 0:
+                logger.debug(f"Parsed Retry-After as delta-seconds: {delay}")
+                return delay
 
         # Try HTTP-date format
         from email.utils import parsedate_to_datetime
