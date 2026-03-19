@@ -571,14 +571,16 @@ class RefreshTokenMiddleware(Middleware):
                                     )
 
             if token:
-                # CRITICAL: Always set refresh token in provider if available (for OpenBridge)
-                # This MUST happen even if config.enabled is False, so tools can use the token
-                # The provider needs the refresh token to authenticate API calls
-                if self.auth_manager and hasattr(self.auth_manager, "provider"):
-                    provider = self.auth_manager.provider
-                    if hasattr(provider, "set_refresh_token"):
-                        self.logger.debug(f"Setting refresh token from {token_source}")
-                        provider.set_refresh_token(token)
+                # Set per-request ContextVar for session isolation.
+                # We intentionally do NOT call provider.set_refresh_token()
+                # here — that would mutate the singleton's default, causing
+                # requests without a header to fall back to the last client's
+                # token (cross-client bleed). The ContextVar is the sole
+                # per-request channel; _get_effective_refresh_token() reads it.
+                from ..auth.session_state import set_refresh_token_override
+
+                set_refresh_token_override(token)
+                self.logger.debug(f"Set per-request refresh token from {token_source}")
 
                 # JWT conversion processing (only if enabled)
                 if self.config.enabled and self.config.refresh_token_enabled:
@@ -606,7 +608,14 @@ class RefreshTokenMiddleware(Middleware):
         except Exception as e:
             self.logger.error(f"RefreshTokenMiddleware error: {e}")
 
-        return await call_next(context)
+        # Wrap call_next in try/finally to ensure ContextVar cleanup
+        # even if the downstream handler raises an exception
+        try:
+            return await call_next(context)
+        finally:
+            from ..auth.session_state import set_refresh_token_override
+
+            set_refresh_token_override(None)
 
     async def _get_cached_or_convert_jwt(self, refresh_token: str) -> Optional[str]:
         """Get JWT from cache or convert refresh token to JWT.

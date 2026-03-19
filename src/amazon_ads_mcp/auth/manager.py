@@ -19,6 +19,15 @@ from typing import Any, Dict, List, Optional
 
 from ..config.settings import Settings
 from ..models import AuthCredentials, Identity
+from .session_state import (
+    get_active_credentials as _ctx_get_credentials,
+    get_active_identity as _ctx_get_identity,
+    get_active_profiles as _ctx_get_profiles,
+    reset_session_state,
+    set_active_credentials as _ctx_set_credentials,
+    set_active_identity as _ctx_set_identity,
+    set_active_profiles as _ctx_set_profiles,
+)
 
 # Import providers to trigger registration
 from .base import BaseAmazonAdsProvider, BaseIdentityProvider, ProviderConfig
@@ -81,8 +90,6 @@ class AuthManager:
         self._initialized = True
         self.settings = Settings()
         self.provider: Optional[BaseAmazonAdsProvider] = None
-        self._active_identity: Optional[Identity] = None
-        self._active_credentials: Optional[AuthCredentials] = None
 
         # Initialize unified token store - persistence disabled by default for security
         # Users can enable with AMAZON_ADS_TOKEN_PERSIST=true if needed
@@ -91,8 +98,9 @@ class AuthManager:
         )
         self._token_store: TokenStore = create_token_store(persist=persist_tokens)
 
-        # Track active profile per identity
-        self._active_profiles: Dict[str, str] = {}
+        # NOTE: Per-request mutable state (_active_identity, _active_credentials,
+        # _active_profiles) has been moved to ContextVars in session_state.py
+        # to prevent cross-client auth leakage in multi-tenant scenarios.
         # Standardize on AMAZON_AD_API_PROFILE_ID but support legacy names
         self._default_profile_id: Optional[str] = (
             os.getenv("AMAZON_AD_API_PROFILE_ID")  # Primary
@@ -326,15 +334,13 @@ class AuthManager:
         if not identity:
             raise ValueError(f"Identity {identity_id} not found")
 
-        self._active_identity = identity
-
-        # Clear cached credentials for previous identity
-        if (
-            self._active_credentials
-            and self._active_credentials.identity_id != identity_id
-        ):
+        # Clear cached credentials if switching to a different identity
+        prev_creds = _ctx_get_credentials()
+        if prev_creds and prev_creds.identity_id != identity_id:
             logger.info("Clearing cached credentials for previous identity")
-            self._active_credentials = None
+            _ctx_set_credentials(None)
+
+        _ctx_set_identity(identity)
 
         logger.info(f"Active identity set to: {identity_id}")
         return identity
@@ -348,7 +354,7 @@ class AuthManager:
         :return: None
         :rtype: None
         """
-        if not self._active_identity and hasattr(self, "_default_identity_id"):
+        if not _ctx_get_identity() and hasattr(self, "_default_identity_id"):
             try:
                 await self.set_active_identity(self._default_identity_id)
             except Exception as e:
@@ -362,7 +368,7 @@ class AuthManager:
         :return: Active identity or None if none set
         :rtype: Optional[Identity]
         """
-        return self._active_identity
+        return _ctx_get_identity()
 
     async def get_active_credentials(self) -> AuthCredentials:
         """Get credentials for the active identity.
@@ -380,10 +386,12 @@ class AuthManager:
 
         # For providers that support multiple identities
         if isinstance(self.provider, BaseIdentityProvider):
-            if not self._active_identity:
+            active_identity = _ctx_get_identity()
+            if not active_identity:
                 # Try to use configured default
                 await self.ensure_default_identity()
-                if not self._active_identity:
+                active_identity = _ctx_get_identity()
+                if not active_identity:
                     logger.error(
                         f"No active identity set for {self.provider.provider_type}. "
                         f"Need to call set_active_identity() or configure default identity"
@@ -392,7 +400,7 @@ class AuthManager:
                         "No active identity set. Use set_active_identity() first."
                     )
 
-            identity_id = self._active_identity.id
+            identity_id = active_identity.id
             logger.info(f"Getting credentials for active identity: {identity_id}")
 
             # Try to get cached credentials from token store
@@ -400,7 +408,7 @@ class AuthManager:
                 provider_type=self.provider.provider_type,
                 identity_id=identity_id,
                 token_kind=TokenKind.ACCESS,
-                region=self._active_identity.attributes.get("region"),
+                region=active_identity.attributes.get("region"),
             )
 
             if cached_access and not cached_access.is_expired():
@@ -430,7 +438,7 @@ class AuthManager:
                             else {}
                         ),
                     )
-                    self._active_credentials = creds
+                    _ctx_set_credentials(creds)
                     return creds
             elif cached_access:
                 logger.info(f"Credentials for {identity_id} expired, refreshing")
@@ -455,10 +463,10 @@ class AuthManager:
                 token=credentials.access_token,
                 expires_at=credentials.expires_at,
                 metadata={"base_url": credentials.base_url},
-                region=self._active_identity.attributes.get("region"),
+                region=active_identity.attributes.get("region"),
             )
 
-            self._active_credentials = credentials
+            _ctx_set_credentials(credentials)
 
             logger.info(
                 f"Got credentials for {identity_id}, expires at {credentials.expires_at}"
@@ -468,11 +476,12 @@ class AuthManager:
         # For single-identity providers, create synthetic credentials
         else:
             # Check if we have cached credentials
+            cached_creds = _ctx_get_credentials()
             if (
-                self._active_credentials
-                and datetime.now(timezone.utc) < self._active_credentials.expires_at
+                cached_creds
+                and datetime.now(timezone.utc) < cached_creds.expires_at
             ):
-                return self._active_credentials
+                return cached_creds
 
             identity_id = "default"
 
@@ -492,7 +501,7 @@ class AuthManager:
                 headers=headers,
             )
 
-            self._active_credentials = credentials
+            _ctx_set_credentials(credentials)
             logger.info(
                 f"Cached credentials for identity {identity_id} with client ID: {credentials.headers.get('Amazon-Advertising-API-ClientId')}"
             )
@@ -537,12 +546,15 @@ class AuthManager:
         :return: None
         :rtype: None
         """
-        if not self._active_identity:
+        active_identity = _ctx_get_identity()
+        if not active_identity:
             # Store as default
             self._default_profile_id = profile_id
         else:
-            identity_id = self._active_identity.id
-            self._active_profiles[identity_id] = profile_id
+            identity_id = active_identity.id
+            # Copy-on-write: create new dict to avoid mutating other contexts
+            current = _ctx_get_profiles()
+            _ctx_set_profiles({**current, identity_id: profile_id})
 
         logger.info(f"Set active profile {profile_id}")
 
@@ -555,11 +567,12 @@ class AuthManager:
         :return: Active profile ID or None if none set
         :rtype: Optional[str]
         """
-        if not self._active_identity:
+        active_identity = _ctx_get_identity()
+        if not active_identity:
             return self._default_profile_id
 
-        identity_id = self._active_identity.id
-        return self._active_profiles.get(identity_id, self._default_profile_id)
+        identity_id = active_identity.id
+        return _ctx_get_profiles().get(identity_id, self._default_profile_id)
 
     def clear_active_profile_id(self) -> None:
         """Clear the active profile ID for the current identity.
@@ -570,10 +583,14 @@ class AuthManager:
         :return: None
         :rtype: None
         """
-        if self._active_identity:
-            identity_id = self._active_identity.id
-            if identity_id in self._active_profiles:
-                del self._active_profiles[identity_id]
+        active_identity = _ctx_get_identity()
+        if active_identity:
+            identity_id = active_identity.id
+            current = _ctx_get_profiles()
+            if identity_id in current:
+                # Copy-on-write: create new dict without the entry
+                updated = {k: v for k, v in current.items() if k != identity_id}
+                _ctx_set_profiles(updated)
                 logger.info(f"Cleared active profile for identity {identity_id}")
 
     def get_active_region(self) -> Optional[str]:
@@ -589,9 +606,10 @@ class AuthManager:
             return self.provider.region
 
         # Try to get from identity attributes
-        if self._active_identity:
+        active_identity = _ctx_get_identity()
+        if active_identity:
             try:
-                attrs = getattr(self._active_identity, "attributes", {})
+                attrs = getattr(active_identity, "attributes", {})
                 region = attrs.get("region")
                 if region and region in {"na", "eu", "fe"}:
                     return region
@@ -609,7 +627,8 @@ class AuthManager:
         :return: 'explicit' if set for current identity, 'default' otherwise
         :rtype: str
         """
-        if self._active_identity and self._active_identity.id in self._active_profiles:
+        active_identity = _ctx_get_identity()
+        if active_identity and active_identity.id in _ctx_get_profiles():
             return "explicit"
         return "default"
 
@@ -621,8 +640,9 @@ class AuthManager:
         :return: Active identity ID or None
         :rtype: Optional[str]
         """
-        if self._active_identity:
-            return self._active_identity.id
+        active_identity = _ctx_get_identity()
+        if active_identity:
+            return active_identity.id
         return None
 
     # Token Store interface methods
@@ -755,6 +775,7 @@ class AuthManager:
         if self.provider:
             await self.provider.close()
         await self._token_store.clear()
+        reset_session_state()
 
     @classmethod
     def reset(cls):
@@ -770,6 +791,7 @@ class AuthManager:
         if cls._instance:
             cls._instance = None
         _auth_manager = None
+        reset_session_state()
 
 
 # Global auth manager instance

@@ -33,7 +33,7 @@ services:
       # PROGRESSIVE_TOOL_DISCLOSURE=true
 
     ports:
-      - "8000:8000"
+      - "${PORT:-8000}:${PORT:-8000}"
     volumes:
       # Persist downloaded exports/reports
       - downloads:/app/data

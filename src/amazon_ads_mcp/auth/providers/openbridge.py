@@ -5,6 +5,7 @@ which manages multiple Amazon Ads identities through OpenBridge's
 remote identity service.
 """
 
+import hashlib
 import logging
 import os
 from datetime import datetime, timedelta, timezone
@@ -18,6 +19,7 @@ from ...models import AuthCredentials, Identity, Token
 from ...utils.http import get_http_client
 from ..base import BaseAmazonAdsProvider, BaseIdentityProvider, ProviderConfig
 from ..registry import register_provider
+from ..session_state import get_refresh_token_override
 
 logger = logging.getLogger(__name__)
 
@@ -115,8 +117,12 @@ class OpenBridgeProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
             "OPENBRIDGE_SERVICE_BASE_URL", "https://service.api.openbridge.io"
         )
 
-        self._jwt_token: Optional[Token] = None
+        # JWT cache keyed by token fingerprint (prevents cross-client leakage)
+        self._jwt_tokens: Dict[str, Token] = {}
+        # Identity cache keyed by (identity_type, page_size, token_fingerprint)
         self._identities_cache: Dict[tuple, List[Identity]] = {}
+        # Max cache entries to prevent unbounded growth
+        self._max_cache_entries = 32
 
     @property
     def provider_type(self) -> str:
@@ -138,28 +144,51 @@ class OpenBridgeProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
         return await get_http_client()
 
     def set_refresh_token(self, refresh_token: str) -> None:
-        """Set the refresh token dynamically.
+        """Set the per-request refresh token via ContextVar.
 
-        This allows the refresh token to be provided at runtime via request
-        headers rather than requiring it in the configuration. The middleware
-        checks headers in this order:
-
-        1. ``X-Openbridge-Token`` header (preferred — gateway deployments)
-        2. ``Authorization: Bearer`` header (backward compat — direct mode)
+        .. deprecated::
+            Middleware now sets the ContextVar directly via
+            ``set_refresh_token_override()``. This method exists only for
+            backward compatibility with callers outside the middleware chain.
+            It does **not** mutate ``self.refresh_token`` (the singleton
+            default) to prevent cross-client leakage.
 
         :param refresh_token: The OpenBridge refresh token
         :type refresh_token: str
         """
-        self.refresh_token = refresh_token
-        # Clear cached JWT when refresh token changes
-        self._jwt_token = None
+        from ..session_state import set_refresh_token_override
+
+        set_refresh_token_override(refresh_token)
+
+    def _get_effective_refresh_token(self) -> Optional[str]:
+        """Return the refresh token for the current request context.
+
+        Priority: per-request ContextVar override → env-configured default.
+        """
+        return get_refresh_token_override() or self.refresh_token
+
+    def _token_fingerprint(self, token: Optional[str] = None) -> str:
+        """SHA-256 fingerprint of the effective refresh token.
+
+        Used as cache key discriminator to prevent cross-client cache hits.
+
+        :param token: Token to fingerprint. Uses effective token if None.
+        :type token: Optional[str]
+        :return: Hex digest of SHA-256 hash
+        :rtype: str
+        """
+        effective = token or self._get_effective_refresh_token() or ""
+        return hashlib.sha256(effective.encode()).hexdigest()
 
     async def get_token(self) -> Token:
         """Get current JWT token from OpenBridge."""
-        if self._jwt_token and await self.validate_token(self._jwt_token):
-            return self._jwt_token
+        fingerprint = self._token_fingerprint()
+        cached = self._jwt_tokens.get(fingerprint)
+        if cached and await self.validate_token(cached):
+            return cached
 
-        if not self.refresh_token:
+        effective_token = self._get_effective_refresh_token()
+        if not effective_token:
             raise ValueError(
                 "No OpenBridge token available. Set OPENBRIDGE_REFRESH_TOKEN env var, "
                 "or pass via X-Openbridge-Token header (preferred) or Authorization: Bearer header."
@@ -169,7 +198,8 @@ class OpenBridgeProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
 
     async def _refresh_jwt_token(self) -> Token:
         """Convert refresh token to JWT via OpenBridge."""
-        if not self.refresh_token:
+        effective_token = self._get_effective_refresh_token()
+        if not effective_token:
             raise ValueError("Cannot refresh JWT: No refresh token available")
 
         logger.debug("Converting OpenBridge refresh token to JWT")
@@ -182,7 +212,7 @@ class OpenBridgeProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
                 json={
                     "data": {
                         "type": "APIAuth",
-                        "attributes": {"refresh_token": self.refresh_token},
+                        "attributes": {"refresh_token": effective_token},
                     }
                 },
                 headers={"Content-Type": "application/json"},
@@ -202,7 +232,7 @@ class OpenBridgeProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
             expires_at_timestamp = payload.get("expires_at", 0)
             expires_at = datetime.fromtimestamp(expires_at_timestamp, tz=timezone.utc)
 
-            self._jwt_token = Token(
+            jwt_token = Token(
                 value=token_value,
                 expires_at=expires_at,
                 token_type="Bearer",
@@ -212,8 +242,15 @@ class OpenBridgeProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
                 },
             )
 
+            # Store in fingerprinted cache with bounded eviction
+            fingerprint = self._token_fingerprint(effective_token)
+            if len(self._jwt_tokens) >= self._max_cache_entries:
+                oldest_key = next(iter(self._jwt_tokens))
+                del self._jwt_tokens[oldest_key]
+            self._jwt_tokens[fingerprint] = jwt_token
+
             logger.debug(f"OpenBridge JWT obtained, expires at {expires_at}")
-            return self._jwt_token
+            return jwt_token
 
         except httpx.HTTPError as e:
             logger.error(f"Failed to get OpenBridge JWT: {e}")
@@ -241,15 +278,17 @@ class OpenBridgeProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
         identity_type = kwargs.get("identity_type", "14")  # Default to Amazon Ads
         page_size = kwargs.get("page_size", 100)
 
-        cache_key = (identity_type, page_size)
+        # Include token fingerprint in cache key for per-client isolation
+        fingerprint = self._token_fingerprint()
+        cache_key = (identity_type, page_size, fingerprint)
         if cache_key in self._identities_cache:
-            logger.debug(f"Using cached identities for {cache_key}")
+            logger.debug(f"Using cached identities for type={identity_type}")
             return self._identities_cache[cache_key]
 
         identities = await self._fetch_identities(identity_type, page_size)
 
-        # Simple cache management
-        if len(self._identities_cache) >= 32:
+        # Simple cache management with bounded eviction
+        if len(self._identities_cache) >= self._max_cache_entries:
             oldest_key = next(iter(self._identities_cache))
             del self._identities_cache[oldest_key]
 
@@ -283,7 +322,7 @@ class OpenBridgeProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
                     params=params,
                     headers={
                         "Authorization": f"Bearer {jwt_token.value}",
-                        "x-api-key": self.refresh_token,
+                        "x-api-key": self._get_effective_refresh_token(),
                     },
                     timeout=httpx.Timeout(30.0, connect=10.0),
                 )
@@ -351,7 +390,7 @@ class OpenBridgeProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
                 f"{self.service_base_url}/service/amzadv/token/{identity_id}",
                 headers={
                     "Authorization": f"Bearer {jwt_token.value}",
-                    "x-api-key": self.refresh_token,
+                    "x-api-key": self._get_effective_refresh_token(),
                 },
             )
             response.raise_for_status()
@@ -514,4 +553,4 @@ class OpenBridgeProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
     async def close(self) -> None:
         """Clean up provider resources."""
         self._identities_cache.clear()
-        self._jwt_token = None
+        self._jwt_tokens.clear()
