@@ -11,8 +11,16 @@ The pattern mirrors existing ContextVar usage in the codebase:
 
 All defaults are ``None`` to avoid shared mutable state. The profiles
 accessor returns an empty dict when the underlying var is ``None``.
+
+Token change detection:
+- ``_last_seen_token_fingerprint_var`` tracks the SHA-256 fingerprint
+  of the last refresh token seen in this session. Unlike other ContextVars,
+  it is NOT cleared per-request — it persists across tool calls so the
+  middleware can detect when a different tenant token arrives and invalidate
+  stale identity/credential/profile state.
 """
 
+import hashlib
 from contextvars import ContextVar
 from typing import Dict, Optional
 
@@ -36,6 +44,12 @@ _active_profiles_var: ContextVar[Optional[Dict[str, str]]] = ContextVar(
 
 _refresh_token_override_var: ContextVar[Optional[str]] = ContextVar(
     "refresh_token_override", default=None
+)
+
+# Session-scoped (NOT cleared per-request) — tracks which tenant token
+# was last active so we can detect cross-tenant token swaps.
+_last_seen_token_fingerprint_var: ContextVar[Optional[str]] = ContextVar(
+    "last_seen_token_fingerprint", default=None
 )
 
 # ---------------------------------------------------------------------------
@@ -114,17 +128,56 @@ def set_refresh_token_override(token: Optional[str]) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Accessors — token fingerprint (session-scoped, NOT cleared per-request)
+# ---------------------------------------------------------------------------
+
+
+def token_fingerprint(token: str) -> str:
+    """Compute SHA-256 fingerprint for a refresh token.
+
+    Consistent with ``OpenBridgeAuthProvider._token_fingerprint()`` so the
+    same token produces the same digest everywhere.
+    """
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+def get_last_seen_token_fingerprint() -> Optional[str]:
+    """Return the fingerprint of the last refresh token seen in this session."""
+    return _last_seen_token_fingerprint_var.get()
+
+
+def set_last_seen_token_fingerprint(fingerprint: Optional[str]) -> None:
+    """Set the fingerprint of the last refresh token seen in this session."""
+    _last_seen_token_fingerprint_var.set(fingerprint)
+
+
+# ---------------------------------------------------------------------------
 # Bulk reset — used in middleware cleanup and test fixtures
 # ---------------------------------------------------------------------------
 
 
 def reset_session_state() -> None:
-    """Reset all per-request ContextVars to ``None``.
+    """Reset per-request ContextVars to ``None``.
 
-    Call this in middleware ``finally`` blocks and test fixture
-    teardown to prevent state leaking between requests or tests.
+    Call this in middleware ``finally`` blocks to prevent state
+    leaking between requests.
+
+    Note: ``_last_seen_token_fingerprint_var`` is intentionally
+    NOT cleared here — it must survive across requests within the
+    same session so the middleware can detect token swaps.
+    Use ``reset_all_session_state()`` for full teardown (tests).
     """
     _active_identity_var.set(None)
     _active_credentials_var.set(None)
     _active_profiles_var.set(None)
     _refresh_token_override_var.set(None)
+
+
+def reset_all_session_state() -> None:
+    """Reset ALL ContextVars including session-scoped fingerprint.
+
+    Use in test fixtures for complete isolation between tests.
+    Production code should use ``reset_session_state()`` instead.
+    """
+    reset_session_state()
+    _last_seen_token_fingerprint_var.set(None)

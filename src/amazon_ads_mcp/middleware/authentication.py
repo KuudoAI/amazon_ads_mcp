@@ -60,6 +60,9 @@ jwt_claims_var: ContextVar[Optional[dict]] = ContextVar("jwt_claims", default=No
 
 logger = logging.getLogger(__name__)
 
+# FastMCP per-session state key for auth context persistence across tool calls.
+AUTH_SESSION_STATE_KEY = "amazon_ads_auth_session"
+
 
 class AuthConfig:
     """Configuration for authentication middleware.
@@ -571,14 +574,42 @@ class RefreshTokenMiddleware(Middleware):
                                     )
 
             if token:
+                # --- Token change detection (multi-tenant safety) ---
+                # In a long-lived MCP session (SSE/streamable HTTP), ContextVars
+                # for active_identity/credentials/profiles persist across tool
+                # calls. When the bearer refresh token changes mid-session, those
+                # vars hold stale tenant state. Detect the swap via fingerprint
+                # and clear tenant-scoped state before proceeding.
+                from ..auth.session_state import (
+                    get_last_seen_token_fingerprint,
+                    set_active_credentials,
+                    set_active_identity,
+                    set_active_profiles,
+                    set_last_seen_token_fingerprint,
+                    set_refresh_token_override,
+                    token_fingerprint,
+                )
+
+                new_fp = token_fingerprint(token)
+                previous_fp = get_last_seen_token_fingerprint()
+
+                if previous_fp and previous_fp != new_fp:
+                    self.logger.info(
+                        "Refresh token changed mid-session — "
+                        "clearing tenant identity/credentials/profiles"
+                    )
+                    set_active_identity(None)
+                    set_active_credentials(None)
+                    set_active_profiles(None)
+
+                set_last_seen_token_fingerprint(new_fp)
+
                 # Set per-request ContextVar for session isolation.
                 # We intentionally do NOT call provider.set_refresh_token()
                 # here — that would mutate the singleton's default, causing
                 # requests without a header to fall back to the last client's
                 # token (cross-client bleed). The ContextVar is the sole
                 # per-request channel; _get_effective_refresh_token() reads it.
-                from ..auth.session_state import set_refresh_token_override
-
                 set_refresh_token_override(token)
                 self.logger.debug(f"Set per-request refresh token from {token_source}")
 
@@ -616,6 +647,104 @@ class RefreshTokenMiddleware(Middleware):
             from ..auth.session_state import set_refresh_token_override
 
             set_refresh_token_override(None)
+
+
+class AuthSessionStateMiddleware(Middleware):
+    """Bridge ContextVar auth state with FastMCP session state.
+
+    FastMCP tool calls may execute in different async contexts. Auth state that
+    lives only in ContextVars can disappear between tool calls even within the
+    same MCP session. This middleware hydrates ContextVars from FastMCP session
+    state at request start and persists updated values after the tool call.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.logger = logging.getLogger(f"{__name__}.AuthSessionStateMiddleware")
+
+    async def _hydrate(self, fastmcp_context: Any) -> None:
+        if not fastmcp_context or not hasattr(fastmcp_context, "get_state"):
+            return
+
+        try:
+            state = await fastmcp_context.get_state(AUTH_SESSION_STATE_KEY)
+            if not state or not isinstance(state, dict):
+                return
+
+            from ..auth.session_state import (
+                set_active_credentials,
+                set_active_identity,
+                set_active_profiles,
+                set_last_seen_token_fingerprint,
+            )
+            from ..models import AuthCredentials, Identity
+
+            identity_payload = state.get("active_identity")
+            credentials_payload = state.get("active_credentials")
+            profiles_payload = state.get("active_profiles")
+            last_fp = state.get("last_seen_token_fingerprint")
+
+            identity = (
+                Identity.model_validate(identity_payload)
+                if isinstance(identity_payload, dict)
+                else None
+            )
+            credentials = (
+                AuthCredentials.model_validate(credentials_payload)
+                if isinstance(credentials_payload, dict)
+                else None
+            )
+
+            profiles: Optional[Dict[str, str]] = None
+            if isinstance(profiles_payload, dict):
+                profiles = {
+                    str(key): str(value)
+                    for key, value in profiles_payload.items()
+                }
+
+            set_active_identity(identity)
+            set_active_credentials(credentials)
+            set_active_profiles(profiles)
+            set_last_seen_token_fingerprint(last_fp if isinstance(last_fp, str) else None)
+        except Exception as exc:
+            self.logger.warning("Failed to hydrate auth session state: %s", exc)
+
+    async def _persist(self, fastmcp_context: Any) -> None:
+        if not fastmcp_context or not hasattr(fastmcp_context, "set_state"):
+            return
+
+        try:
+            from ..auth.session_state import (
+                get_active_credentials,
+                get_active_identity,
+                get_active_profiles,
+                get_last_seen_token_fingerprint,
+            )
+
+            identity = get_active_identity()
+            credentials = get_active_credentials()
+            profiles = get_active_profiles()
+            last_fp = get_last_seen_token_fingerprint()
+
+            state = {
+                "active_identity": identity.model_dump(mode="json") if identity else None,
+                "active_credentials": (
+                    credentials.model_dump(mode="json") if credentials else None
+                ),
+                "active_profiles": profiles,
+                "last_seen_token_fingerprint": last_fp,
+            }
+            await fastmcp_context.set_state(AUTH_SESSION_STATE_KEY, state)
+        except Exception as exc:
+            self.logger.warning("Failed to persist auth session state: %s", exc)
+
+    async def on_request(self, context: MiddlewareContext, call_next):
+        fastmcp_context = getattr(context, "fastmcp_context", None)
+        await self._hydrate(fastmcp_context)
+        try:
+            return await call_next(context)
+        finally:
+            await self._persist(fastmcp_context)
 
     async def _get_cached_or_convert_jwt(self, refresh_token: str) -> Optional[str]:
         """Get JWT from cache or convert refresh token to JWT.
@@ -1295,6 +1424,12 @@ def create_auth_middleware(
         return []
 
     middleware = []
+
+    # Persist/restore auth ContextVar state across FastMCP tool calls.
+    # This must run before other auth middleware so downstream components
+    # see hydrated identity/credentials/profile context.
+    middleware.append(AuthSessionStateMiddleware())
+    logger.info("Added AuthSessionStateMiddleware")
 
     # Add refresh token middleware first (converts refresh tokens to JWTs)
     if refresh_token_middleware and config.refresh_token_enabled:

@@ -19,15 +19,13 @@ Examples
 """
 
 import logging
-from typing import Literal
-
 from ..auth.manager import get_auth_manager
 from ..config.settings import Settings
 
 logger = logging.getLogger(__name__)
 
 
-async def set_active_region(region: Literal["na", "eu", "fe"]) -> dict:
+async def set_active_region(region: str) -> dict:
     """Set the active Amazon Ads API region.
 
     Update API and OAuth endpoints for subsequent calls. When the provider
@@ -39,6 +37,9 @@ async def set_active_region(region: Literal["na", "eu", "fe"]) -> dict:
     :raises Exception: If updating the region fails.
     """
     try:
+        # Normalize to lowercase so callers can pass "NA", "EU", etc.
+        region = region.strip().lower()
+
         # Validate region
         if region not in ["na", "eu", "fe"]:
             raise ValueError(f"Invalid region: {region}. Must be 'na', 'eu', or 'fe'")
@@ -305,7 +306,7 @@ async def list_available_regions() -> dict:
 
 
 # Alias functions for backward compatibility with builtin_tools
-async def set_region(region: Literal["na", "eu", "fe"]) -> dict:
+async def set_region(region: str) -> dict:
     """Alias for set_active_region for backward compatibility."""
     return await set_active_region(region)
 

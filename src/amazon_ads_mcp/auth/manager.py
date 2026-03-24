@@ -17,16 +17,19 @@ import os
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from ..config.settings import Settings
+from ..config.settings import settings
 from ..models import AuthCredentials, Identity
 from .session_state import (
     get_active_credentials as _ctx_get_credentials,
     get_active_identity as _ctx_get_identity,
     get_active_profiles as _ctx_get_profiles,
+    get_last_seen_token_fingerprint,
+    get_refresh_token_override,
     reset_session_state,
     set_active_credentials as _ctx_set_credentials,
     set_active_identity as _ctx_set_identity,
     set_active_profiles as _ctx_set_profiles,
+    token_fingerprint,
 )
 
 # Import providers to trigger registration
@@ -88,25 +91,20 @@ class AuthManager:
             return
 
         self._initialized = True
-        self.settings = Settings()
+        self.settings = settings
         self.provider: Optional[BaseAmazonAdsProvider] = None
 
         # Initialize unified token store - persistence disabled by default for security
         # Users can enable with AMAZON_ADS_TOKEN_PERSIST=true if needed
-        persist_tokens = (
-            os.getenv("AMAZON_ADS_TOKEN_PERSIST", "false").lower() == "true"
+        self._token_store: TokenStore = create_token_store(
+            persist=settings.token_persist
         )
-        self._token_store: TokenStore = create_token_store(persist=persist_tokens)
 
         # NOTE: Per-request mutable state (_active_identity, _active_credentials,
         # _active_profiles) has been moved to ContextVars in session_state.py
         # to prevent cross-client auth leakage in multi-tenant scenarios.
-        # Standardize on AMAZON_AD_API_PROFILE_ID but support legacy names
-        self._default_profile_id: Optional[str] = (
-            os.getenv("AMAZON_AD_API_PROFILE_ID")  # Primary
-            or os.getenv("AD_API_PROFILE_ID")  # Legacy
-            or os.getenv("AMAZON_ADS_PROFILE_ID")  # Legacy
-        )
+        # Profile ID resolved via Settings (supports legacy env var aliases)
+        self._default_profile_id: Optional[str] = settings.effective_profile_id
 
         # Initialize provider based on settings
         self._setup_provider()
@@ -387,6 +385,66 @@ class AuthManager:
         # For providers that support multiple identities
         if isinstance(self.provider, BaseIdentityProvider):
             active_identity = _ctx_get_identity()
+
+            # --- Hard stop: reject stale identity from a different tenant ---
+            # Even if the middleware cleared state on token change, this guard
+            # catches races, middleware ordering issues, and future regressions.
+            #
+            # Two cases trigger invalidation:
+            #   1. Token present but fingerprint differs from last_seen
+            #      → mid-session tenant swap.
+            #   2. No token on this request but last_seen fingerprint exists
+            #      → identity was established under a specific token we can
+            #        no longer verify; clear to prevent silent reuse.
+            if active_identity:
+                current_token = get_refresh_token_override()
+                last_fp = get_last_seen_token_fingerprint()
+
+                should_clear = False
+                if current_token:
+                    current_fp = token_fingerprint(current_token)
+                    if last_fp and current_fp != last_fp:
+                        should_clear = True
+                        logger.warning(
+                            "Token fingerprint mismatch in get_active_credentials — "
+                            "clearing stale tenant state (identity=%s)",
+                            active_identity.id,
+                        )
+                elif last_fp:
+                    # Previous request had a token but this one doesn't.
+                    # If provider has a stable fallback token (e.g. env-configured),
+                    # compare it to last_seen fingerprint before clearing.
+                    effective_token = None
+                    if hasattr(self.provider, "_get_effective_refresh_token"):
+                        try:
+                            effective_token = self.provider._get_effective_refresh_token()
+                        except Exception:
+                            effective_token = None
+
+                    if effective_token:
+                        effective_fp = token_fingerprint(effective_token)
+                        if effective_fp != last_fp:
+                            should_clear = True
+                            logger.warning(
+                                "No per-request token and provider fallback token "
+                                "fingerprint mismatches session state — clearing stale "
+                                "tenant state (identity=%s)",
+                                active_identity.id,
+                            )
+                    else:
+                        should_clear = True
+                        logger.warning(
+                            "No token on request but session has token-scoped identity — "
+                            "clearing stale tenant state (identity=%s)",
+                            active_identity.id,
+                        )
+
+                if should_clear:
+                    _ctx_set_identity(None)
+                    _ctx_set_credentials(None)
+                    _ctx_set_profiles(None)
+                    active_identity = None
+
             if not active_identity:
                 # Try to use configured default
                 await self.ensure_default_identity()
