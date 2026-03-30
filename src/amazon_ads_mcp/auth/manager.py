@@ -106,6 +106,12 @@ class AuthManager:
         # Profile ID resolved via Settings (supports legacy env var aliases)
         self._default_profile_id: Optional[str] = settings.effective_profile_id
 
+        # In-memory cache of full AuthCredentials for identity-specific
+        # providers (e.g. Openbridge) keyed by identity_id.  Avoids
+        # re-fetching from the remote service on every tool call when
+        # the token is still valid.
+        self._credentials_cache: Dict[str, "AuthCredentials"] = {}
+
         # Initialize provider based on settings
         self._setup_provider()
 
@@ -158,7 +164,10 @@ class AuthManager:
         :rtype: str
         :raises ValueError: If no authentication method is configured
         """
-        # Check if explicitly set via env or settings override
+        # Explicit env var is an override: trust the method, defer credential
+        # checks to the provider.  This cannot move to Settings because
+        # Settings.auth_method defaults to "openbridge" — we need to
+        # distinguish "user explicitly set" from "default value".
         explicit_env_method = os.getenv("AUTH_METHOD") or os.getenv(
             "AMAZON_ADS_AUTH_METHOD"
         )
@@ -228,9 +237,9 @@ class AuthManager:
             config_data = {
                 "refresh_token": self.settings.openbridge_refresh_token,
                 "region": self.settings.amazon_ads_region,
-                "auth_base_url": os.getenv("OPENBRIDGE_AUTH_BASE_URL"),
-                "identity_base_url": os.getenv("OPENBRIDGE_IDENTITY_BASE_URL"),
-                "service_base_url": os.getenv("OPENBRIDGE_SERVICE_BASE_URL"),
+                "auth_base_url": self.settings.openbridge_auth_base_url,
+                "identity_base_url": self.settings.openbridge_identity_base_url,
+                "service_base_url": self.settings.openbridge_service_base_url,
             }
 
         # Add more provider configs here as needed
@@ -475,8 +484,24 @@ class AuthManager:
                     hasattr(self.provider, "headers_are_identity_specific")
                     and self.provider.headers_are_identity_specific()
                 ):
+                    # For identity-specific providers (e.g. Openbridge), the
+                    # full AuthCredentials are cached alongside the token so
+                    # we don't need to re-fetch from the remote service on
+                    # every tool call.
+                    cached_creds = self._credentials_cache.get(identity_id)
+                    if (
+                        cached_creds
+                        and cached_creds.access_token == cached_access.value
+                        and datetime.now(timezone.utc) < cached_creds.expires_at
+                    ):
+                        logger.info(
+                            f"Using cached full credentials for {identity_id}"
+                        )
+                        _ctx_set_credentials(cached_creds)
+                        return cached_creds
                     logger.info(
-                        f"{self.provider.provider_type}: Need full credentials, not just cached token"
+                        f"{self.provider.provider_type}: Cached token valid but "
+                        f"full credentials not cached, fetching fresh"
                     )
                     # Fall through to fetch fresh credentials
                 else:
@@ -523,6 +548,9 @@ class AuthManager:
                 metadata={"base_url": credentials.base_url},
                 region=active_identity.attributes.get("region"),
             )
+
+            # Cache full credentials for identity-specific providers
+            self._credentials_cache[identity_id] = credentials
 
             _ctx_set_credentials(credentials)
 

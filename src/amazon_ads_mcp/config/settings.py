@@ -121,6 +121,15 @@ class Settings(BaseSettings):
     openbridge_remote_identity_id: Optional[str] = Field(
         None, description="Openbridge Remote Identity ID for Amazon Ads"
     )
+    openbridge_auth_base_url: Optional[str] = Field(
+        None, description="Openbridge authentication base URL override"
+    )
+    openbridge_identity_base_url: Optional[str] = Field(
+        None, description="Openbridge identity service base URL override"
+    )
+    openbridge_service_base_url: Optional[str] = Field(
+        None, description="Openbridge service base URL override"
+    )
     amazon_ads_region: Literal["na", "eu", "fe"] = Field(
         "na", description="Amazon Ads API Region"
     )
