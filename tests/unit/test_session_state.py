@@ -13,12 +13,16 @@ from amazon_ads_mcp.auth.session_state import (
     get_active_credentials,
     get_active_identity,
     get_active_profiles,
+    get_last_seen_token_fingerprint,
     get_refresh_token_override,
+    reset_all_session_state,
     reset_session_state,
     set_active_credentials,
     set_active_identity,
     set_active_profiles,
+    set_last_seen_token_fingerprint,
     set_refresh_token_override,
+    token_fingerprint,
 )
 from amazon_ads_mcp.models import AuthCredentials, Identity
 
@@ -234,3 +238,46 @@ class TestTaskIsolation:
         await task
 
         assert child_result["identity"].id == "parent"
+
+
+# ---------------------------------------------------------------------------
+# Token fingerprint tracking
+# ---------------------------------------------------------------------------
+
+
+class TestTokenFingerprint:
+    """Token fingerprint ContextVar and helper function."""
+
+    def test_fingerprint_is_deterministic(self):
+        assert token_fingerprint("abc") == token_fingerprint("abc")
+
+    def test_fingerprint_differs_for_different_tokens(self):
+        assert token_fingerprint("token-a") != token_fingerprint("token-b")
+
+    def test_fingerprint_default_is_none(self):
+        set_last_seen_token_fingerprint(None)
+        assert get_last_seen_token_fingerprint() is None
+
+    def test_set_and_get_fingerprint(self):
+        fp = token_fingerprint("test-token")
+        set_last_seen_token_fingerprint(fp)
+        assert get_last_seen_token_fingerprint() == fp
+
+    def test_reset_session_state_preserves_fingerprint(self):
+        """reset_session_state() intentionally does NOT clear fingerprint."""
+        fp = token_fingerprint("test-token")
+        set_last_seen_token_fingerprint(fp)
+
+        reset_session_state()
+
+        assert get_last_seen_token_fingerprint() == fp
+
+    def test_reset_all_session_state_clears_fingerprint(self):
+        """reset_all_session_state() clears everything including fingerprint."""
+        set_last_seen_token_fingerprint(token_fingerprint("test"))
+        set_active_identity(_make_identity("x"))
+
+        reset_all_session_state()
+
+        assert get_last_seen_token_fingerprint() is None
+        assert get_active_identity() is None

@@ -17,16 +17,19 @@ import os
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from ..config.settings import Settings
+from ..config.settings import settings
 from ..models import AuthCredentials, Identity
 from .session_state import (
     get_active_credentials as _ctx_get_credentials,
     get_active_identity as _ctx_get_identity,
     get_active_profiles as _ctx_get_profiles,
+    get_last_seen_token_fingerprint,
+    get_refresh_token_override,
     reset_session_state,
     set_active_credentials as _ctx_set_credentials,
     set_active_identity as _ctx_set_identity,
     set_active_profiles as _ctx_set_profiles,
+    token_fingerprint,
 )
 
 # Import providers to trigger registration
@@ -88,25 +91,26 @@ class AuthManager:
             return
 
         self._initialized = True
-        self.settings = Settings()
+        self.settings = settings
         self.provider: Optional[BaseAmazonAdsProvider] = None
 
         # Initialize unified token store - persistence disabled by default for security
         # Users can enable with AMAZON_ADS_TOKEN_PERSIST=true if needed
-        persist_tokens = (
-            os.getenv("AMAZON_ADS_TOKEN_PERSIST", "false").lower() == "true"
+        self._token_store: TokenStore = create_token_store(
+            persist=settings.token_persist
         )
-        self._token_store: TokenStore = create_token_store(persist=persist_tokens)
 
         # NOTE: Per-request mutable state (_active_identity, _active_credentials,
         # _active_profiles) has been moved to ContextVars in session_state.py
         # to prevent cross-client auth leakage in multi-tenant scenarios.
-        # Standardize on AMAZON_AD_API_PROFILE_ID but support legacy names
-        self._default_profile_id: Optional[str] = (
-            os.getenv("AMAZON_AD_API_PROFILE_ID")  # Primary
-            or os.getenv("AD_API_PROFILE_ID")  # Legacy
-            or os.getenv("AMAZON_ADS_PROFILE_ID")  # Legacy
-        )
+        # Profile ID resolved via Settings (supports legacy env var aliases)
+        self._default_profile_id: Optional[str] = settings.effective_profile_id
+
+        # In-memory cache of full AuthCredentials for identity-specific
+        # providers (e.g. Openbridge) keyed by identity_id.  Avoids
+        # re-fetching from the remote service on every tool call when
+        # the token is still valid.
+        self._credentials_cache: Dict[str, "AuthCredentials"] = {}
 
         # Initialize provider based on settings
         self._setup_provider()
@@ -160,7 +164,10 @@ class AuthManager:
         :rtype: str
         :raises ValueError: If no authentication method is configured
         """
-        # Check if explicitly set via env or settings override
+        # Explicit env var is an override: trust the method, defer credential
+        # checks to the provider.  This cannot move to Settings because
+        # Settings.auth_method defaults to "openbridge" — we need to
+        # distinguish "user explicitly set" from "default value".
         explicit_env_method = os.getenv("AUTH_METHOD") or os.getenv(
             "AMAZON_ADS_AUTH_METHOD"
         )
@@ -230,9 +237,9 @@ class AuthManager:
             config_data = {
                 "refresh_token": self.settings.openbridge_refresh_token,
                 "region": self.settings.amazon_ads_region,
-                "auth_base_url": os.getenv("OPENBRIDGE_AUTH_BASE_URL"),
-                "identity_base_url": os.getenv("OPENBRIDGE_IDENTITY_BASE_URL"),
-                "service_base_url": os.getenv("OPENBRIDGE_SERVICE_BASE_URL"),
+                "auth_base_url": self.settings.openbridge_auth_base_url,
+                "identity_base_url": self.settings.openbridge_identity_base_url,
+                "service_base_url": self.settings.openbridge_service_base_url,
             }
 
         # Add more provider configs here as needed
@@ -387,6 +394,66 @@ class AuthManager:
         # For providers that support multiple identities
         if isinstance(self.provider, BaseIdentityProvider):
             active_identity = _ctx_get_identity()
+
+            # --- Hard stop: reject stale identity from a different tenant ---
+            # Even if the middleware cleared state on token change, this guard
+            # catches races, middleware ordering issues, and future regressions.
+            #
+            # Two cases trigger invalidation:
+            #   1. Token present but fingerprint differs from last_seen
+            #      → mid-session tenant swap.
+            #   2. No token on this request but last_seen fingerprint exists
+            #      → identity was established under a specific token we can
+            #        no longer verify; clear to prevent silent reuse.
+            if active_identity:
+                current_token = get_refresh_token_override()
+                last_fp = get_last_seen_token_fingerprint()
+
+                should_clear = False
+                if current_token:
+                    current_fp = token_fingerprint(current_token)
+                    if last_fp and current_fp != last_fp:
+                        should_clear = True
+                        logger.warning(
+                            "Token fingerprint mismatch in get_active_credentials — "
+                            "clearing stale tenant state (identity=%s)",
+                            active_identity.id,
+                        )
+                elif last_fp:
+                    # Previous request had a token but this one doesn't.
+                    # If provider has a stable fallback token (e.g. env-configured),
+                    # compare it to last_seen fingerprint before clearing.
+                    effective_token = None
+                    if hasattr(self.provider, "_get_effective_refresh_token"):
+                        try:
+                            effective_token = self.provider._get_effective_refresh_token()
+                        except Exception:
+                            effective_token = None
+
+                    if effective_token:
+                        effective_fp = token_fingerprint(effective_token)
+                        if effective_fp != last_fp:
+                            should_clear = True
+                            logger.warning(
+                                "No per-request token and provider fallback token "
+                                "fingerprint mismatches session state — clearing stale "
+                                "tenant state (identity=%s)",
+                                active_identity.id,
+                            )
+                    else:
+                        should_clear = True
+                        logger.warning(
+                            "No token on request but session has token-scoped identity — "
+                            "clearing stale tenant state (identity=%s)",
+                            active_identity.id,
+                        )
+
+                if should_clear:
+                    _ctx_set_identity(None)
+                    _ctx_set_credentials(None)
+                    _ctx_set_profiles(None)
+                    active_identity = None
+
             if not active_identity:
                 # Try to use configured default
                 await self.ensure_default_identity()
@@ -417,8 +484,24 @@ class AuthManager:
                     hasattr(self.provider, "headers_are_identity_specific")
                     and self.provider.headers_are_identity_specific()
                 ):
+                    # For identity-specific providers (e.g. Openbridge), the
+                    # full AuthCredentials are cached alongside the token so
+                    # we don't need to re-fetch from the remote service on
+                    # every tool call.
+                    cached_creds = self._credentials_cache.get(identity_id)
+                    if (
+                        cached_creds
+                        and cached_creds.access_token == cached_access.value
+                        and datetime.now(timezone.utc) < cached_creds.expires_at
+                    ):
+                        logger.info(
+                            f"Using cached full credentials for {identity_id}"
+                        )
+                        _ctx_set_credentials(cached_creds)
+                        return cached_creds
                     logger.info(
-                        f"{self.provider.provider_type}: Need full credentials, not just cached token"
+                        f"{self.provider.provider_type}: Cached token valid but "
+                        f"full credentials not cached, fetching fresh"
                     )
                     # Fall through to fetch fresh credentials
                 else:
@@ -465,6 +548,9 @@ class AuthManager:
                 metadata={"base_url": credentials.base_url},
                 region=active_identity.attributes.get("region"),
             )
+
+            # Cache full credentials for identity-specific providers
+            self._credentials_cache[identity_id] = credentials
 
             _ctx_set_credentials(credentials)
 

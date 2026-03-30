@@ -230,3 +230,157 @@ def test_reset_creates_new_instance(monkeypatch):
     second = AuthManager()
 
     assert first is not second
+
+
+# ---------------------------------------------------------------------------
+# get_active_credentials() hard stop — token fingerprint mismatch
+# ---------------------------------------------------------------------------
+
+
+class TestCredentialsFingerprintGuard:
+    """The manager-level hard stop clears stale tenant state."""
+
+    @pytest.fixture(autouse=True)
+    def _clean_session_state(self):
+        from amazon_ads_mcp.auth.session_state import reset_all_session_state
+
+        reset_all_session_state()
+        yield
+        reset_all_session_state()
+
+    @pytest.fixture
+    def auth_manager(self, monkeypatch):
+        AuthManager.reset()
+        monkeypatch.setattr(AuthManager, "_setup_provider", lambda self: None)
+        mgr = AuthManager()
+        identities = [
+            Identity(id="id-a", type="openbridge", attributes={"name": "A"}),
+            Identity(id="id-b", type="openbridge", attributes={"name": "B"}),
+        ]
+        mgr.provider = MultiIdentityProvider(identities)
+        mgr._token_store = InMemoryTokenStore()
+        return mgr
+
+    @pytest.mark.asyncio
+    async def test_fingerprint_mismatch_clears_stale_identity(self, auth_manager):
+        """Cached identity from token A is rejected when token B is active."""
+        from amazon_ads_mcp.auth.session_state import (
+            set_active_credentials,
+            set_active_identity,
+            set_active_profiles,
+            set_last_seen_token_fingerprint,
+            set_refresh_token_override,
+            token_fingerprint,
+        )
+
+        # Seed: identity established under token A
+        token_a = "tenant-a:secret"
+        set_last_seen_token_fingerprint(token_fingerprint(token_a))
+        set_active_identity(
+            Identity(id="id-a", type="openbridge", attributes={"name": "A"})
+        )
+        set_active_credentials(
+            AuthCredentials(
+                identity_id="id-a",
+                access_token="stale",
+                expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+                base_url="https://example.com",
+                headers={},
+            )
+        )
+        set_active_profiles({"id-a": "profile-100"})
+
+        # Request arrives with token B
+        token_b = "tenant-b:different"
+        set_refresh_token_override(token_b)
+
+        # Guard should detect mismatch, clear state, and fall through
+        # to ensure_default_identity / RuntimeError.
+        # Since no default identity is configured, it raises.
+        with pytest.raises(RuntimeError, match="No active identity set"):
+            await auth_manager.get_active_credentials()
+
+    @pytest.mark.asyncio
+    async def test_no_token_with_prior_fingerprint_clears_identity(self, auth_manager):
+        """If a prior request had a token but this one doesn't, stale identity is cleared."""
+        from amazon_ads_mcp.auth.session_state import (
+            set_active_identity,
+            set_last_seen_token_fingerprint,
+            set_refresh_token_override,
+            token_fingerprint,
+        )
+
+        # Seed: identity established under a token
+        set_last_seen_token_fingerprint(token_fingerprint("tenant-a:secret"))
+        set_active_identity(
+            Identity(id="id-a", type="openbridge", attributes={"name": "A"})
+        )
+
+        # This request has NO token override
+        set_refresh_token_override(None)
+
+        with pytest.raises(RuntimeError, match="No active identity set"):
+            await auth_manager.get_active_credentials()
+
+    @pytest.mark.asyncio
+    async def test_same_fingerprint_preserves_identity(self, auth_manager):
+        """Same token fingerprint does not trigger state clearing."""
+        from amazon_ads_mcp.auth.session_state import (
+            get_active_identity,
+            set_active_credentials,
+            set_active_identity,
+            set_last_seen_token_fingerprint,
+            set_refresh_token_override,
+            token_fingerprint,
+        )
+
+        token_a = "tenant-a:secret"
+        fp = token_fingerprint(token_a)
+        set_last_seen_token_fingerprint(fp)
+
+        identity = Identity(id="id-a", type="openbridge", attributes={"name": "A"})
+        set_active_identity(identity)
+        set_active_credentials(
+            AuthCredentials(
+                identity_id="id-a",
+                access_token="valid",
+                expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+                base_url="https://example.com",
+                headers={"Amazon-Advertising-API-ClientId": "client-id"},
+            )
+        )
+
+        # Same token on this request
+        set_refresh_token_override(token_a)
+
+        creds = await auth_manager.get_active_credentials()
+
+        # Identity preserved, credentials returned
+        assert get_active_identity() is identity
+        assert creds.identity_id == "id-a"
+
+    @pytest.mark.asyncio
+    async def test_no_request_token_uses_provider_fallback_fingerprint(self, auth_manager):
+        """No per-request token preserves identity when provider fallback token matches."""
+        from amazon_ads_mcp.auth.session_state import (
+            get_active_identity,
+            set_active_identity,
+            set_last_seen_token_fingerprint,
+            set_refresh_token_override,
+            token_fingerprint,
+        )
+
+        token_a = "tenant-a:secret"
+        set_last_seen_token_fingerprint(token_fingerprint(token_a))
+        identity = Identity(id="id-a", type="openbridge", attributes={"name": "A"})
+        set_active_identity(identity)
+
+        # No per-request token on this call.
+        set_refresh_token_override(None)
+        # Provider fallback token is stable and matches prior session fingerprint.
+        auth_manager.provider._get_effective_refresh_token = lambda: token_a
+
+        creds = await auth_manager.get_active_credentials()
+
+        assert get_active_identity() is identity
+        assert creds.identity_id == "id-a"

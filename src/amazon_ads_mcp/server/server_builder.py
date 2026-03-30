@@ -12,6 +12,7 @@ from typing import Dict, List, Optional
 from fastmcp import FastMCP
 from fastmcp.server.middleware.error_handling import ErrorHandlingMiddleware
 
+from .. import __version__
 from ..auth.manager import get_auth_manager
 from ..config.settings import settings
 from ..middleware.authentication import (
@@ -135,8 +136,8 @@ class ServerBuilder:
         # Include lifespan if provided for clean startup/shutdown handling
         server = FastMCP(
             "Amazon Ads MCP Server",
-            version="1.0.0",
-            lifespan=self.lifespan,  # FastMCP 2.14+ lifespan pattern
+            version=__version__,
+            lifespan=self.lifespan,
         )
 
         # Setup server-side sampling handler if enabled
@@ -172,7 +173,7 @@ class ServerBuilder:
         middleware_list = []
 
         # Error callback for logging
-        def error_callback(error: Exception) -> None:
+        def error_callback(error: Exception, context=None) -> None:
             logger.error(f"Tool execution error: {type(error).__name__}: {error}")
 
         # Add ErrorHandlingMiddleware FIRST to catch all errors from other middleware/tools
@@ -309,6 +310,9 @@ class ServerBuilder:
         namespace_mapping = await self._load_namespace_mapping(resources_dir)
         package_allowlist = await self._load_package_allowlist(resources_dir)
 
+        # Defer media registry cache invalidation until all specs are mounted
+        self.media_registry.begin_bulk_load()
+
         # Process each resource file
         skip_files = {"packages.json", "manifest.json"}
         for spec_path in sorted(resources_dir.glob("*.json")):
@@ -333,6 +337,9 @@ class ServerBuilder:
                     continue
 
             await self._mount_single_resource(spec_path, namespace_mapping)
+
+        # All specs mounted — flush the deferred cache invalidation
+        self.media_registry.end_bulk_load()
 
     async def _load_namespace_mapping(self, resources_dir: Path) -> Dict[str, str]:
         """Load namespace to prefix mapping from packages.json.

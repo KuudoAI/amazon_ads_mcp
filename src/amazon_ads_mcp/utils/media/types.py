@@ -39,13 +39,32 @@ class MediaTypeRegistry:
         self._cache: Dict[
             Tuple[str, str], Tuple[Optional[str], Optional[List[str]]]
         ] = {}
+        self._bulk_loading: bool = False
+
+    def begin_bulk_load(self) -> None:
+        """Begin a bulk-loading phase.
+
+        During bulk loading, cache invalidation is deferred until
+        :meth:`end_bulk_load` is called. Use this when mounting
+        multiple specs at startup to avoid redundant cache clears.
+        """
+        self._bulk_loading = True
+
+    def end_bulk_load(self) -> None:
+        """End the bulk-loading phase and invalidate the cache once.
+
+        Call this after all specs have been registered during startup.
+        """
+        self._bulk_loading = False
+        self._cache.clear()
 
     def add_from_spec(self, spec: dict) -> None:
         """Add media type mappings from an OpenAPI specification.
 
         Extracts request and response media types from the provided
         OpenAPI specification and adds them to the registry. Clears
-        the internal cache to ensure fresh lookups.
+        the internal cache to ensure fresh lookups (deferred during
+        bulk loading).
 
         :param spec: OpenAPI specification dictionary
         :type spec: dict
@@ -53,7 +72,8 @@ class MediaTypeRegistry:
         req_map, resp_map = build_media_maps_from_spec(spec)
         self._req_entries.append(req_map)
         self._resp_entries.append(resp_map)
-        self._cache.clear()
+        if not self._bulk_loading:
+            self._cache.clear()
 
     def add_from_sidecar(self, sidecar: dict) -> None:
         """Add media type mappings from a sidecar configuration file.
@@ -78,7 +98,8 @@ class MediaTypeRegistry:
         if req_map or resp_map:
             self._req_entries.append(req_map)
             self._resp_entries.append(resp_map)
-            self._cache.clear()
+            if not self._bulk_loading:
+                self._cache.clear()
 
     def resolve(
         self, method: str, url: str

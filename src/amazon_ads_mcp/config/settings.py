@@ -80,8 +80,22 @@ class Settings(BaseSettings):
     )
     ad_api_profile_id: Optional[str] = Field(
         None,
-        alias="AMAZON_AD_API_PROFILE_ID",
+        validation_alias=AliasChoices(
+            "AMAZON_AD_API_PROFILE_ID",
+            "AD_API_PROFILE_ID",
+            "AMAZON_ADS_PROFILE_ID",
+        ),
         description="Amazon Ads Profile ID (for direct auth)",
+    )
+
+    # Token persistence (disabled by default for security)
+    token_persist: bool = Field(
+        False,
+        validation_alias=AliasChoices(
+            "AMAZON_ADS_TOKEN_PERSIST",
+            "AMAZON_AD_API_TOKEN_PERSIST",
+        ),
+        description="Enable refresh token persistence to disk (insecure, see docs)",
     )
 
     # Legacy field names for backward compatibility
@@ -106,6 +120,15 @@ class Settings(BaseSettings):
     )
     openbridge_remote_identity_id: Optional[str] = Field(
         None, description="Openbridge Remote Identity ID for Amazon Ads"
+    )
+    openbridge_auth_base_url: Optional[str] = Field(
+        None, description="Openbridge authentication base URL override"
+    )
+    openbridge_identity_base_url: Optional[str] = Field(
+        None, description="Openbridge identity service base URL override"
+    )
+    openbridge_service_base_url: Optional[str] = Field(
+        None, description="Openbridge service base URL override"
     )
     amazon_ads_region: Literal["na", "eu", "fe"] = Field(
         "na", description="Amazon Ads API Region"
