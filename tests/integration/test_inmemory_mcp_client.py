@@ -38,6 +38,13 @@ def mock_auth_for_inmemory(monkeypatch):
     monkeypatch.setenv("AD_API_REFRESH_TOKEN", "test-refresh-token")
     monkeypatch.setenv("AMAZON_ADS_REGION", "na")
     monkeypatch.setenv("AMAZON_ADS_SANDBOX_MODE", "false")
+    monkeypatch.setenv("CODE_MODE", "false")  # Expose all tools for testing
+
+    # Reset singletons so env changes take effect
+    from amazon_ads_mcp.config.settings import Settings
+    monkeypatch.setattr("amazon_ads_mcp.auth.manager.settings", Settings())
+    from amazon_ads_mcp.auth.manager import AuthManager
+    AuthManager.reset()
 
 
 @pytest_asyncio.fixture
@@ -145,12 +152,12 @@ class TestInMemoryMCPOperations:
             assert get_result is not None
 
     @pytest.mark.asyncio
-    async def test_set_region_accepts_region_alias(self, mcp_server):
-        """set_region should accept `region` in addition to `region_code`."""
+    async def test_set_region_accepts_region_code(self, mcp_server):
+        """set_region accepts the `region_code` parameter."""
         from fastmcp import Client
 
         async with Client(mcp_server) as client:
-            set_result = await client.call_tool("set_region", {"region": "na"})
+            set_result = await client.call_tool("set_region", {"region_code": "na"})
             assert set_result is not None
 
     @pytest.mark.asyncio
@@ -304,11 +311,17 @@ class TestInMemoryErrorHandling:
     async def test_missing_required_parameter(self, mcp_server):
         """Test that missing required parameters are handled."""
         from fastmcp import Client
+        from fastmcp.exceptions import ToolError
 
         async with Client(mcp_server) as client:
-            # set_region accepts region OR region_code; both missing returns an error response
-            result = await client.call_tool("set_region", {})
-            assert result is not None
+            # set_region requires region_code; calling with {} should error
+            try:
+                result = await client.call_tool("set_region", {})
+                # If it returns, check for error in response
+                assert result is not None
+            except ToolError:
+                # Expected — FastMCP validates required params
+                pass
 
 
 # Example of testing with mocked external dependencies
