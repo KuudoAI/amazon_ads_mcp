@@ -81,9 +81,13 @@ async def test_apply_sidecars_attaches_transforms(tmp_path):
 
     calls = []
 
+    class FakeTool:
+        def __init__(self, name):
+            self.name = name
+
     class FakeServer:
-        def get_tools(self):
-            return {"list_items": object()}
+        async def list_tools(self):
+            return [FakeTool("list_items")]
 
         def transform_tool(self, name, **kwargs):
             calls.append({"name": name, "kwargs": kwargs})

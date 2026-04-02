@@ -54,6 +54,7 @@ class ServerBuilder:
         self.media_registry = MediaTypeRegistry()
         self.header_resolver = HeaderNameResolver()
         self.mounted_servers: Dict[str, List[FastMCP]] = {}
+        self.group_tool_counts: Dict[str, int] = {}  # Pre-disable tool counts per group
 
     async def build(self) -> FastMCP:
         """Build and configure the MCP server.
@@ -72,6 +73,10 @@ class ServerBuilder:
 
         # Setup HTTP client
         self.client = await self._setup_http_client()
+
+        # Register the client singleton for reuse by tools
+        from ..utils.http_client import set_authenticated_client
+        set_authenticated_client(self.client)
 
         # Mount resource servers
         await self._mount_resource_servers()
@@ -106,12 +111,23 @@ class ServerBuilder:
         :return: Main server instance
         :rtype: FastMCP
         """
+        transforms = []
+        if self._code_mode_enabled():
+            try:
+                from fastmcp.experimental.transforms.code_mode import CodeMode
+
+                transforms.append(CodeMode())
+                logger.info("FastMCP code mode enabled")
+            except Exception as e:
+                logger.warning("Failed to enable FastMCP code mode: %s", e)
+
         # Create server with appropriate configuration
         # Include lifespan if provided for clean startup/shutdown handling
         server = FastMCP(
             "Amazon Ads MCP Server",
             version="1.0.0",
             lifespan=self.lifespan,  # FastMCP 2.14+ lifespan pattern
+            transforms=transforms or None,
         )
 
         # Setup server-side sampling handler if enabled
@@ -141,6 +157,14 @@ class ServerBuilder:
             logger.info("Sampling is disabled in settings")
 
         return server
+
+    def _code_mode_enabled(self) -> bool:
+        """Check whether FastMCP code mode should be enabled.
+
+        Defaults to enabled unless explicitly set to a falsey value.
+        """
+        value = os.getenv("CODE_MODE", "true").strip().lower()
+        return value in ("1", "true", "yes", "on")
 
     async def _setup_middleware(self):
         """Setup server middleware."""
@@ -513,16 +537,15 @@ class ServerBuilder:
             prefix = namespace_mapping.get(namespace, namespace)
 
             # Create sub-server from OpenAPI spec
-            # Default timeout of 60s to prevent hanging on slow API responses
+            # Timeout is configured on the AuthenticatedClient httpx instance (read=60s)
             sub_server = FastMCP.from_openapi(
                 openapi_spec=spec,
                 client=self.client,
                 name=prefix,
-                timeout=60.0,  # 60 second timeout for all OpenAPI-generated tools
             )
 
-            # Mount the sub-server with prefix
-            self.server.mount(server=sub_server, prefix=prefix)
+            # Mount the sub-server with namespace (FastMCP 3.x API)
+            self.server.mount(server=sub_server, namespace=prefix)
             self.mounted_servers.setdefault(prefix, []).append(sub_server)
 
             # Apply sidecars (transforms) to the mounted sub-server
@@ -560,10 +583,12 @@ class ServerBuilder:
         for prefix, sub_servers in self.mounted_servers.items():
             group_count = 0
             for sub_server in sub_servers:
-                tools = await sub_server.get_tools()
-                for tool in tools.values():
-                    tool.disable()
+                tools = await sub_server.list_tools()
                 group_count += len(tools)
+                # FastMCP 3.x: disable all tools at server level
+                sub_server.disable(components={"tool"})
+            # Store pre-disable counts for list_tool_groups
+            self.group_tool_counts[prefix] = group_count
             total_disabled += group_count
             logger.debug(
                 "Disabled %d tools in group '%s'", group_count, prefix
@@ -582,6 +607,7 @@ class ServerBuilder:
         await register_all_builtin_tools(
             self.server,
             mounted_servers=self.mounted_servers,
+            group_tool_counts=self.group_tool_counts,
         )
 
     async def _setup_builtin_prompts(self):

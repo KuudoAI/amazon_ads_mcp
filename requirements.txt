@@ -1,10 +1,11 @@
-# Core dependencies
-fastmcp>=2.14.1
+# Core dependencies (must match pyproject.toml)
+fastmcp[tasks,code-mode]>=3.2.0,<4.0
 httpx[http2]>=0.28.1
 pydantic>=2.12.5
 pydantic-settings>=2.12.0
 python-dotenv>=1.2.1
 PyJWT>=2.10.1
+cryptography>=41.0.0
 PyYAML>=6.0.2
 jsonschema>=4.25.1
 openai>=1.109.1

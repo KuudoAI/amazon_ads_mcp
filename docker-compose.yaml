@@ -13,8 +13,9 @@ services:
       - HOST=0.0.0.0
       - PORT=9080
       - LOG_LEVEL=INFO
+      - CODE_MODE=true
       # Note: This is overridden by .env if AMAZON_AD_API_PACKAGES is set there
-      - AMAZON_AD_API_PACKAGES=profiles,accounts-ads-accounts,exports-snapshots
+      # AMAZON_AD_API_PACKAGES=profiles,accounts-ads-accounts,exports-snapshots
       # Token persistence (disabled by default for security)
       # Set to 'true' to cache refresh tokens across restarts (see docs for security implications)
       - AMAZON_ADS_TOKEN_PERSIST=false

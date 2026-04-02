@@ -14,7 +14,7 @@ The module supports:
 
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from ..config.settings import Settings
@@ -51,6 +51,7 @@ class AuthManager:
     """
 
     _instance: Optional["AuthManager"] = None
+    _CREDENTIAL_REFRESH_SKEW_SECONDS = 300
 
     def __new__(cls):
         """Create or return singleton instance.
@@ -394,6 +395,27 @@ class AuthManager:
 
             identity_id = self._active_identity.id
             logger.info(f"Getting credentials for active identity: {identity_id}")
+
+            # Prefer in-memory credentials for active identity until just before expiry.
+            if (
+                self._active_credentials
+                and self._active_credentials.identity_id == identity_id
+            ):
+                now = datetime.now(timezone.utc)
+                refresh_at = self._active_credentials.expires_at - timedelta(
+                    seconds=self._CREDENTIAL_REFRESH_SKEW_SECONDS
+                )
+                if now < refresh_at:
+                    logger.debug(
+                        "Using in-memory credentials for identity %s (refresh at %s)",
+                        identity_id,
+                        refresh_at,
+                    )
+                    return self._active_credentials
+                logger.info(
+                    "In-memory credentials for %s are near expiry, refreshing now",
+                    identity_id,
+                )
 
             # Try to get cached credentials from token store
             cached_access = await self.get_token(

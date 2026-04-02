@@ -14,13 +14,18 @@ from amazon_ads_mcp.utils.tool_naming import (
 )
 
 
+class DummyTool:
+    def __init__(self, name):
+        self.name = name
+
+
 class DummyServer:
     def __init__(self):
         self._tools = {"a" * 80: object(), "keep": object()}
         self._renamed = {}
 
-    def get_tools(self):
-        return dict(self._tools)
+    async def list_tools(self):
+        return [DummyTool(name) for name in self._tools]
 
     def rename_tool(self, old, new):
         self._renamed[old] = new

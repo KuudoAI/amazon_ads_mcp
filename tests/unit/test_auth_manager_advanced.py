@@ -186,6 +186,22 @@ async def test_get_active_credentials_fetches_when_headers_specific(auth_manager
 
 
 @pytest.mark.asyncio
+async def test_get_active_credentials_reuses_in_memory_when_headers_specific(auth_manager):
+    identity = Identity(id="id-1", type="multi", attributes={"region": "na"})
+    provider = MultiIdentityProvider([identity], headers_identity_specific=True)
+    auth_manager.provider = provider
+
+    await auth_manager.set_active_identity("id-1")
+
+    first = await auth_manager.get_active_credentials()
+    second = await auth_manager.get_active_credentials()
+
+    assert first.access_token == "token-id-1"
+    assert second.access_token == "token-id-1"
+    assert provider.identity_credentials_calls == 1
+
+
+@pytest.mark.asyncio
 async def test_single_identity_credentials_cached(auth_manager):
     auth_manager.provider = SingleIdentityProvider(token_value="single-token")
 
