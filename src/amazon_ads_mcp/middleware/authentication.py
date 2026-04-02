@@ -529,6 +529,17 @@ class RefreshTokenMiddleware(Middleware):
                 if request and hasattr(request, "headers"):
                     auth_header = request.headers.get("authorization", "")
 
+            # Fallback: use get_http_request() for HTTP transports where
+            # request_context is not yet established (e.g. streamable-http)
+            if not auth_header:
+                try:
+                    from fastmcp.server.dependencies import get_http_request
+                    http_request = get_http_request()
+                    if http_request and hasattr(http_request, "headers"):
+                        auth_header = http_request.headers.get("authorization", "")
+                except (ImportError, RuntimeError):
+                    pass  # Not an HTTP transport or no request available
+
             if auth_header:
                 # Extract token more robustly - handle case variations and extra whitespace
                 parts = auth_header.split(" ", 1)
@@ -1376,12 +1387,17 @@ def create_openbridge_config() -> AuthConfig:
         verify_signature=False,  # OpenBridge JWTs are trusted from the API, no public key available
     )
 
-    # OpenBridge-specific settings
-    config.jwt_verify_iss = False  # Don't validate issuer for OpenBridge
-    config.jwt_verify_aud = False  # Don't validate audience for OpenBridge
-
-    # Respect AUTH_ENABLED environment variable
+    # Load any additional env overrides first (e.g. custom JWKS_URI)
     config.load_from_env()
+
+    # OpenBridge implies all of these — do not let load_from_env() defaults
+    # override them. AMAZON_ADS_AUTH_METHOD=openbridge is the single switch.
+    config.enabled = True
+    config.refresh_token_enabled = True
+    config.jwt_validation_enabled = False  # OpenBridge handles auth, no local JWT validation
+    config.jwt_verify_iss = False
+    config.jwt_verify_aud = False
+    config.jwt_verify_signature = False
 
     return config
 

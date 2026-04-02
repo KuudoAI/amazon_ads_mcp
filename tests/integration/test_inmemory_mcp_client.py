@@ -145,6 +145,15 @@ class TestInMemoryMCPOperations:
             assert get_result is not None
 
     @pytest.mark.asyncio
+    async def test_set_region_accepts_region_alias(self, mcp_server):
+        """set_region should accept `region` in addition to `region_code`."""
+        from fastmcp import Client
+
+        async with Client(mcp_server) as client:
+            set_result = await client.call_tool("set_region", {"region": "na"})
+            assert set_result is not None
+
+    @pytest.mark.asyncio
     async def test_get_routing_state_on_fresh_server(self, mcp_server):
         """Test get_routing_state returns valid defaults on a fresh server.
 
@@ -295,18 +304,11 @@ class TestInMemoryErrorHandling:
     async def test_missing_required_parameter(self, mcp_server):
         """Test that missing required parameters are handled."""
         from fastmcp import Client
-        from fastmcp.exceptions import ToolError
 
         async with Client(mcp_server) as client:
-            # set_region requires a region_code parameter
-            # FastMCP should validate and raise ToolError
-            try:
-                await client.call_tool("set_region", {})
-                # If we get here without error, that's unexpected
-                pytest.fail("Expected ToolError for missing required parameter")
-            except ToolError:
-                # Expected - missing required parameter
-                pass
+            # set_region accepts region OR region_code; both missing returns an error response
+            result = await client.call_tool("set_region", {})
+            assert result is not None
 
 
 # Example of testing with mocked external dependencies

@@ -36,9 +36,12 @@ jobs:
           uv venv
           uv pip install -r requirements-dev.txt
 
+      - name: Syntax compile check
+        run: |
+          python -W error::SyntaxWarning -m compileall -q src tests
+
       - name: Run tests
         env:
           MCP_TEST_COMPAT: "true"
         run: |
           uv run pytest -q
-

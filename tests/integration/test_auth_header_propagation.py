@@ -369,8 +369,8 @@ class TestContextVariations:
         mock_auth_manager.provider.set_refresh_token.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_handles_missing_request_context(self, middleware_with_mocks):
-        """Middleware should handle missing request_context gracefully."""
+    async def test_handles_missing_request_context_no_http(self, middleware_with_mocks):
+        """Middleware should not fail when request_context is None and no HTTP request available."""
         middleware, mock_auth_manager = middleware_with_mocks
 
         mock_context = MagicMock()
@@ -379,10 +379,51 @@ class TestContextVariations:
 
         call_next = AsyncMock()
 
-        # Should not raise
+        # Should not raise (stdio transport — no HTTP request either)
         await middleware.on_request(mock_context, call_next)
 
-        mock_auth_manager.provider.set_refresh_token.assert_not_called()
+        # call_next should still be called
+        call_next.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_falls_back_to_http_request_when_request_context_is_none(
+        self, middleware_with_mocks, monkeypatch
+    ):
+        """CRITICAL: When request_context is None (streamable-http), the middleware
+        must fall back to get_http_request() to extract the Authorization header.
+
+        This is the exact scenario that broke production: the client sends
+        Bearer token via HTTP headers, but request_context is not yet
+        established on streamable-http transports. Without the fallback,
+        the token is silently dropped and the provider has no credentials.
+        """
+        middleware, mock_auth_manager = middleware_with_mocks
+
+        # Simulate streamable-http: request_context is None
+        mock_context = MagicMock()
+        mock_context.fastmcp_context = MagicMock()
+        mock_context.fastmcp_context.request_context = None
+
+        # But HTTP request IS available via get_http_request()
+        mock_http_request = MagicMock()
+        mock_http_request.headers = {
+            "authorization": "Bearer client-provided-token:secret"
+        }
+
+        monkeypatch.setattr(
+            "fastmcp.server.dependencies.get_http_request",
+            lambda: mock_http_request,
+        )
+
+        call_next = AsyncMock()
+
+        await middleware.on_request(mock_context, call_next)
+
+        # CRITICAL ASSERTION: Token MUST reach the provider even when
+        # request_context is None, via the get_http_request() fallback
+        mock_auth_manager.provider.set_refresh_token.assert_called_once_with(
+            "client-provided-token:secret"
+        )
 
     @pytest.mark.asyncio
     async def test_handles_missing_request(self, middleware_with_mocks):

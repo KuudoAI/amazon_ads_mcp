@@ -90,6 +90,9 @@ class ServerBuilder:
         # Setup built-in prompts
         await self._setup_builtin_prompts()
 
+        # Setup health check route
+        await self._setup_health_route()
+
         # Setup OAuth callback route for HTTP transport
         await self._setup_oauth_callback()
 
@@ -171,7 +174,7 @@ class ServerBuilder:
         middleware_list = []
 
         # Error callback for logging
-        def error_callback(error: Exception) -> None:
+        def error_callback(error: Exception, context=None) -> None:
             logger.error(f"Tool execution error: {type(error).__name__}: {error}")
 
         # Add ErrorHandlingMiddleware FIRST to catch all errors from other middleware/tools
@@ -615,6 +618,18 @@ class ServerBuilder:
         from ..server.builtin_prompts import register_all_builtin_prompts
 
         await register_all_builtin_prompts(self.server)
+
+    async def _setup_health_route(self):
+        """Register a /health endpoint for load-balancer and orchestrator probes."""
+        if hasattr(self.server, "custom_route"):
+            from starlette.requests import Request
+            from starlette.responses import JSONResponse
+
+            @self.server.custom_route("/health", methods=["GET"])
+            async def health_check(request: Request):
+                return JSONResponse({"status": "ok"})
+
+            logger.info("Registered health check route at /health")
 
     async def _setup_oauth_callback(self):
         """Setup OAuth callback route for HTTP transport."""

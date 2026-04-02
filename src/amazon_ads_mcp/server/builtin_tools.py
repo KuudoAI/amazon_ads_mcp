@@ -336,11 +336,25 @@ async def register_region_tools(server: FastMCP):
 
     @server.tool(
         name="set_region",
-        description="Set the region for Amazon Ads API calls",
+        description="Set the region for Amazon Ads API calls (accepts region or region_code)",
     )
-    async def set_region_tool(ctx: Context, region_code: str) -> SetRegionResponse:
+    async def set_region_tool(
+        ctx: Context,
+        region: Optional[str] = None,
+        region_code: Optional[str] = None,
+    ) -> SetRegionResponse:
         """Set the region for API calls."""
-        result = await region.set_region(region_code)
+        from ..tools import region as region_tools
+
+        _ = ctx  # Reserved for future context-aware behavior
+        selected_region = region if region is not None else region_code
+        if not selected_region:
+            return SetRegionResponse(
+                success=False,
+                error="MISSING_REGION",
+                message="Missing required parameter: provide 'region' or 'region_code' (na/eu/fe).",
+            )
+        result = await region_tools.set_region(selected_region)
         return SetRegionResponse(**result)
 
     @server.tool(name="get_region", description="Get the current region setting")
