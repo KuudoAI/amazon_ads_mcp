@@ -406,10 +406,12 @@ class TestAuthManagerIntegration:
         monkeypatch.setenv("AMAZON_AD_API_CLIENT_ID", "test_client")
         monkeypatch.setenv("AMAZON_AD_API_CLIENT_SECRET", "test_secret")
         monkeypatch.setenv("AMAZON_AD_API_REFRESH_TOKEN", "test_refresh")
-        
+
         from amazon_ads_mcp.auth.manager import AuthManager
+        from amazon_ads_mcp.config.settings import Settings
+        monkeypatch.setattr("amazon_ads_mcp.auth.manager.settings", Settings())
         AuthManager.reset()  # Reset singleton
-        
+
         manager = AuthManager()
         assert isinstance(manager.provider, DirectAmazonAdsProvider)
     
@@ -430,10 +432,12 @@ class TestAuthManagerIntegration:
         
         # Explicitly set AUTH_METHOD to openbridge to override auto-detection
         monkeypatch.setenv("AUTH_METHOD", "openbridge")
-        
+
         from amazon_ads_mcp.auth.manager import AuthManager
+        from amazon_ads_mcp.config.settings import Settings
+        monkeypatch.setattr("amazon_ads_mcp.auth.manager.settings", Settings())
         AuthManager.reset()  # Reset singleton
-        
+
         manager = AuthManager()
         assert isinstance(manager.provider, OpenBridgeProvider)
     
@@ -444,10 +448,12 @@ class TestAuthManagerIntegration:
         monkeypatch.setenv("AMAZON_AD_API_CLIENT_ID", "test_client")
         monkeypatch.setenv("AMAZON_AD_API_CLIENT_SECRET", "test_secret")
         monkeypatch.setenv("AMAZON_AD_API_REFRESH_TOKEN", "test_refresh")
-        
+
         from amazon_ads_mcp.auth.manager import AuthManager
+        from amazon_ads_mcp.config.settings import Settings
+        monkeypatch.setattr("amazon_ads_mcp.auth.manager.settings", Settings())
         AuthManager.reset()  # Reset singleton
-        
+
         manager = AuthManager()
         assert isinstance(manager.provider, DirectAmazonAdsProvider)
     
@@ -467,8 +473,10 @@ class TestAuthManagerIntegration:
             monkeypatch.delenv(key, raising=False)
         
         from amazon_ads_mcp.auth.manager import AuthManager
+        from amazon_ads_mcp.config.settings import Settings
+        monkeypatch.setattr("amazon_ads_mcp.auth.manager.settings", Settings())
         AuthManager.reset()  # Reset singleton
-        
+
         with pytest.raises(ValueError, match="No authentication method configured"):
             AuthManager()
 

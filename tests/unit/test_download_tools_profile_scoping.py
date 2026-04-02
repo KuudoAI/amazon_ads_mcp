@@ -148,11 +148,16 @@ class TestBuiltinDownloadToolsWithProfile:
     """Tests for builtin download tools getting profile from auth."""
 
     @pytest.mark.asyncio
-    async def test_download_export_tool_uses_active_profile(self):
+    async def test_download_export_tool_uses_active_profile(self, monkeypatch):
         """download_export_tool should get profile from auth manager."""
-        # This test verifies the tool gets profile_id from auth context
-        # The actual implementation will be tested via integration
-        from amazon_ads_mcp.auth.manager import get_auth_manager
+        monkeypatch.setenv("AUTH_METHOD", "direct")
+        monkeypatch.setenv("AMAZON_AD_API_CLIENT_ID", "fake")
+        monkeypatch.setenv("AMAZON_AD_API_CLIENT_SECRET", "fake")
+
+        from amazon_ads_mcp.auth.manager import AuthManager, get_auth_manager
+        from amazon_ads_mcp.config.settings import Settings
+        monkeypatch.setattr("amazon_ads_mcp.auth.manager.settings", Settings())
+        AuthManager.reset()
 
         # Verify get_auth_manager exists and has get_active_profile_id
         auth_mgr = get_auth_manager()

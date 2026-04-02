@@ -61,6 +61,26 @@ class TestAMCFallbackShaping(unittest.IsolatedAsyncioTestCase):
         # v2 endpoints should not be shaped; shaping only applies to AMC endpoints
         self.assertIsNone(shaped)
 
+    async def test_amc_instances_s3_bucket_region_null_normalized(self):
+        data = {
+            "instance": {
+                "instanceId": "amcvo9oexox",
+                "s3BucketRegion": None,
+            }
+        }
+        req, resp = self._make("GET", "/amc/instances/amcvo9oexox", data)
+        shaped = self.client._maybe_shape_amc_response(req, resp)
+        self.assertEqual(shaped["instance"]["s3BucketRegion"], "")
+
+    async def test_amc_instances_next_token_null_normalized(self):
+        data = {
+            "instances": [{"instanceId": "abc"}],
+            "nextToken": None,
+        }
+        req, resp = self._make("GET", "/amc/instances", data)
+        shaped = self.client._maybe_shape_amc_response(req, resp)
+        self.assertEqual(shaped["nextToken"], "")
+
 
 if __name__ == "__main__":
     unittest.main()

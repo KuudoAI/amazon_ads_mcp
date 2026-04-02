@@ -69,3 +69,8 @@ async def test_load_package_allowlist_defaults(tmp_path, builder, monkeypatch):
     allowlist = await builder._load_package_allowlist(resources_dir)
 
     assert allowlist == {"Profiles"}
+
+
+
+# Code mode tests removed — code_mode_enabled is now a settings property,
+# not a ServerBuilder method. See config/settings.py.

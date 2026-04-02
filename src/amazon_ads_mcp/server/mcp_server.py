@@ -87,30 +87,29 @@ async def server_lifespan(server: Any) -> AsyncIterator[None]:
 
         if _cleanup_done:
             logger.debug("Server lifespan: Cleanup already done by fallback handler")
-            return
+        else:
+            logger.info("Server lifespan: Shutting down...")
 
-        logger.info("Server lifespan: Shutting down...")
+            # Close HTTP clients
+            try:
+                await http_client_manager.close_all()
+                logger.info("HTTP clients closed")
+            except Exception as e:
+                logger.error(f"Error closing HTTP clients: {e}")
 
-        # Close HTTP clients
-        try:
-            await http_client_manager.close_all()
-            logger.info("HTTP clients closed")
-        except Exception as e:
-            logger.error(f"Error closing HTTP clients: {e}")
+            # Close auth manager
+            try:
+                from ..auth.manager import get_auth_manager
 
-        # Close auth manager
-        try:
-            from ..auth.manager import get_auth_manager
+                am = get_auth_manager()
+                if am:
+                    await am.close()
+                    logger.info("Auth manager closed")
+            except Exception as e:
+                logger.error(f"Error closing auth manager: {e}")
 
-            am = get_auth_manager()
-            if am:
-                await am.close()
-                logger.info("Auth manager closed")
-        except Exception as e:
-            logger.error(f"Error closing auth manager: {e}")
-
-        # Mark cleanup done to prevent fallback handlers from running again
-        _cleanup_done = True
+            # Mark cleanup done to prevent fallback handlers from running again
+            _cleanup_done = True
         logger.info("Server lifespan: Shutdown complete")
 
 

@@ -535,9 +535,22 @@ class RefreshTokenMiddleware(Middleware):
             token = None
             token_source = None
 
+            # Extract HTTP request headers.
+            # Try request_context first (available when MCP session is established),
+            # then fall back to get_http_request() for streamable-http transports
+            # where request_context may be None during early requests.
+            request = None
             if context.fastmcp_context and context.fastmcp_context.request_context:
                 request = context.fastmcp_context.request_context.request
-                if request and hasattr(request, "headers"):
+
+            if not request or not hasattr(request, "headers"):
+                try:
+                    from fastmcp.server.dependencies import get_http_request
+                    request = get_http_request()
+                except (ImportError, RuntimeError):
+                    pass  # Not an HTTP transport or no request available
+
+            if request and hasattr(request, "headers"):
                     # Priority 1: X-Openbridge-Token (gateway deployments)
                     # This header carries the platform credential explicitly, no ambiguity.
                     openbridge_token = request.headers.get(

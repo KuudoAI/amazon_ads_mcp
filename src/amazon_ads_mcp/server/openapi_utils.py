@@ -408,12 +408,71 @@ def _validate_request_schemas(spec: Dict[str, Any]) -> bool:
 # Public API
 # ---------------------------------------------------------------------------
 
+def _normalize_nullable_for_openapi30(spec: Dict[str, Any]) -> None:
+    """Convert OpenAPI 3.1-style nullable to OpenAPI 3.0-style.
+
+    OpenAPI 3.0 does not support ``type: "null"`` in ``anyOf``.  Instead it
+    uses ``nullable: true``.  FastMCP's pydantic-based parser validates
+    against 3.0 rules and rejects ``type: "null"``.
+
+    This function walks the entire spec and converts patterns like::
+
+        anyOf: [{type: string}, {type: null}]
+
+    into::
+
+        type: string
+        nullable: true
+
+    It also removes stray ``properties: {}`` that the LLM optimizer may
+    inject into simple type schemas.
+    """
+    version = str(spec.get("openapi", "3.0"))
+    if version.startswith("3.1"):
+        return  # 3.1 supports type: null natively
+
+    def _walk(obj: Any) -> None:
+        if isinstance(obj, dict):
+            # Remove empty properties added by optimizer to simple schemas
+            if obj.get("properties") == {} and obj.get("type") in (
+                "string", "number", "integer", "boolean", "null",
+            ):
+                del obj["properties"]
+
+            # Convert anyOf: [{type: X}, {type: null}] → {type: X, nullable: true}
+            any_of = obj.get("anyOf")
+            if isinstance(any_of, list) and len(any_of) == 2:
+                non_null = [v for v in any_of if isinstance(v, dict) and v.get("type") != "null"]
+                has_null = any(isinstance(v, dict) and v.get("type") == "null" for v in any_of)
+                if has_null and len(non_null) == 1:
+                    # Merge the non-null variant into the parent, add nullable
+                    merged = non_null[0]
+                    # Remove stray empty properties from merged
+                    if merged.get("properties") == {}:
+                        del merged["properties"]
+                    del obj["anyOf"]
+                    obj.update(merged)
+                    obj["nullable"] = True
+
+            # Recurse into all values
+            for value in list(obj.values()):
+                _walk(value)
+        elif isinstance(obj, list):
+            for item in obj:
+                _walk(item)
+
+    _walk(spec.get("components", {}))
+    # Also walk inline schemas in paths
+    _walk(spec.get("paths", {}))
+
+
 def slim_openapi_for_tools(spec: Dict[str, Any], max_desc: int = 200) -> None:
     """Reduce large descriptions in OpenAPI operations and parameters.
 
     This helps keep tool metadata small when clients ingest tool definitions.
     Modifies the spec in place.
 
+    **Phase 0** (always): Normalize nullable fields for OpenAPI 3.0 compat.
     **Phase 1** (always): Auth header removal + description truncation.
     **Phase 2** (on by default, ``SLIM_OPENAPI_STRIP_RESPONSES=false`` to disable): Strip response bodies.
     **Phase 3-7** (on by default, ``SLIM_OPENAPI_AGGRESSIVE=false`` to disable): Dead schema elimination,
@@ -425,6 +484,11 @@ def slim_openapi_for_tools(spec: Dict[str, Any], max_desc: int = 200) -> None:
     :type max_desc: int
     """
     try:
+        # ----------------------------------------------------------------
+        # Phase 0 - Normalize nullable for OpenAPI 3.0 (always)
+        # ----------------------------------------------------------------
+        _normalize_nullable_for_openapi30(spec)
+
         # ----------------------------------------------------------------
         # Phase 1 - Auth header removal + description truncation (always)
         # ----------------------------------------------------------------

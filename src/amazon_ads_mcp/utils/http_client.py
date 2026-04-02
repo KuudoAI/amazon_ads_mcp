@@ -38,6 +38,30 @@ from ..utils.region_config import RegionConfig
 
 logger = logging.getLogger(__name__)
 
+# Module-level client singleton (set by ServerBuilder after creation)
+_authenticated_client: Optional["AuthenticatedClient"] = None
+
+
+def set_authenticated_client(client: "AuthenticatedClient") -> None:
+    """Store the authenticated client singleton for reuse by tools and apps."""
+    global _authenticated_client
+    _authenticated_client = client
+
+
+async def get_authenticated_client() -> "AuthenticatedClient":
+    """Get the authenticated HTTP client singleton.
+
+    :return: The shared AuthenticatedClient instance
+    :raises RuntimeError: If the client hasn't been initialized yet
+    """
+    if _authenticated_client is None:
+        raise RuntimeError(
+            "AuthenticatedClient not initialized. "
+            "Ensure the server has been built via ServerBuilder.build()."
+        )
+    return _authenticated_client
+
+
 # Context-local routing overrides/state to avoid cross-request leakage
 _REGION_OVERRIDE_VAR: ContextVar[Optional[str]] = ContextVar(
     "amazon_ads_region_override", default=None
@@ -234,6 +258,10 @@ class AuthenticatedClient(httpx.AsyncClient):
             if not isinstance(data, (dict, list)):
                 return None
 
+            # AMC Admin APIs can return null for fields that are modeled as strings.
+            # Normalize these to empty strings to avoid downstream schema validation errors.
+            data, normalized = self._normalize_amc_nullable_string_fields(path, data)
+
             # Determine cap based on endpoint family
             cap = None
             p = path.lower()
@@ -265,11 +293,76 @@ class AuthenticatedClient(httpx.AsyncClient):
             # that don't have good pagination support
 
             if cap is None:
-                return None
+                return data if normalized else None
 
             return self._truncate_lists(data, cap)
         except Exception:
             return None
+
+    # Fields that the AMC API may return as null or omit entirely, but that
+    # OpenAPI specs model as strings.  Keyed by the API path fragment that
+    # triggers the normalisation, mapping to field names and their defaults.
+    _AMC_NULLABLE_FIELD_DEFAULTS: Dict[str, Dict[str, str]] = {
+        "/amc/instances": {
+            "s3BucketRegion": "",
+            "nextToken": "",
+        },
+        "/amc/advertisers": {
+            "nextToken": "",
+        },
+        "/amc/collaboration": {
+            "nextToken": "",
+        },
+    }
+
+    def _normalize_amc_nullable_string_fields(
+        self, path: str, data: Any
+    ) -> tuple[Any, bool]:
+        """Normalize known nullable AMC string fields to empty strings.
+
+        Some AMC Admin responses return ``null`` for fields — or omit them
+        entirely — that are modeled as strings in the OpenAPI output schema.
+        This best-effort normalization converts ``null`` → ``""`` and injects
+        missing fields with their default value so downstream JSON Schema
+        validation (MCP SDK) does not reject the response.
+        """
+        p = (path or "").lower()
+
+        # Collect applicable field defaults based on path
+        target_defaults: Dict[str, str] = {}
+        for path_fragment, fields in self._AMC_NULLABLE_FIELD_DEFAULTS.items():
+            if path_fragment in p:
+                target_defaults.update(fields)
+        if not target_defaults:
+            return data, False
+
+        changed = False
+
+        def walk(obj: Any) -> Any:
+            nonlocal changed
+            if isinstance(obj, dict):
+                out: dict[str, Any] = {}
+                for key, value in obj.items():
+                    if key in target_defaults and value is None:
+                        out[key] = target_defaults[key]
+                        changed = True
+                    else:
+                        out[key] = walk(value)
+                # Inject missing nullable fields that the API omitted entirely.
+                # Only inject into dicts that look like Instance objects (have
+                # at least one sibling key we recognise) to avoid false positives.
+                instance_markers = {"instanceId", "instanceName", "s3BucketName"}
+                if instance_markers & out.keys():
+                    for field, default in target_defaults.items():
+                        if field not in out:
+                            out[field] = default
+                            changed = True
+                return out
+            if isinstance(obj, list):
+                return [walk(item) for item in obj]
+            return obj
+
+        return walk(data), changed
 
     def _truncate_lists(self, data: Any, n: int) -> Any:
         try:

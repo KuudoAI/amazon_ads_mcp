@@ -6,7 +6,6 @@ constraints of the MCP protocol, including name shortening and
 prefix management.
 """
 
-import inspect
 import logging
 import re
 from typing import Dict
@@ -45,15 +44,16 @@ async def get_tools(server) -> Dict[str, object]:
     """
     Get tools from a FastMCP server.
 
-    Handles both sync and async get_tools methods.
+    Returns a dict keyed by tool name for backward compatibility.
+    FastMCP 3.x list_tools() returns a list; we convert to a dict.
 
     :param server: FastMCP server instance
     :type server: object
-    :return: Dictionary of tools
+    :return: Dictionary of tools keyed by name
     :rtype: Dict[str, object]
     """
-    res = server.get_tools()
-    return await res if inspect.isawaitable(res) else res
+    tools_list = await server.list_tools()
+    return {t.name: t for t in tools_list}
 
 
 async def enforce_tool_name_limit(

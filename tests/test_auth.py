@@ -1,7 +1,7 @@
 """Authentication tests aligned to current auth manager and client behavior."""
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import httpx
 import pytest
@@ -35,7 +35,7 @@ class FakeProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
         self._identity = Identity(id="id-1", type="fake", attributes={"name": "Test"})
         self._token = Token(
             value="fake_token",
-            expires_at=datetime.now() + timedelta(hours=1),
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
             token_type="Bearer"
         )
 
@@ -49,7 +49,7 @@ class FakeProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
 
     async def validate_token(self, token: Token) -> bool:
         """Validate token."""
-        return datetime.now() < token.expires_at
+        return datetime.now(timezone.utc) < token.expires_at
 
     async def get_headers(self) -> dict:
         """Get headers for API requests."""
@@ -72,7 +72,7 @@ class FakeProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
         return AuthCredentials(
             identity_id=identity_id,
             access_token="tok",
-            expires_at=datetime.now() + timedelta(hours=1),
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
             base_url="https://example.com",
             headers={
                 "Authorization": "Bearer tok",
@@ -83,6 +83,12 @@ class FakeProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
 
 @pytest.mark.asyncio
 async def test_auth_manager_headers_and_scope(monkeypatch):
+    monkeypatch.setenv("AUTH_METHOD", "direct")
+    monkeypatch.setenv("AMAZON_AD_API_CLIENT_ID", "fake")
+    monkeypatch.setenv("AMAZON_AD_API_CLIENT_SECRET", "fake")
+    from amazon_ads_mcp.config.settings import Settings
+    monkeypatch.setattr("amazon_ads_mcp.auth.manager.settings", Settings())
+    AuthManager.reset()
     am = AuthManager()
     am.provider = FakeProvider()
     # Set active identity and a profile scope
@@ -96,6 +102,12 @@ async def test_auth_manager_headers_and_scope(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_authenticated_client_injects_headers(monkeypatch):
+    monkeypatch.setenv("AUTH_METHOD", "direct")
+    monkeypatch.setenv("AMAZON_AD_API_CLIENT_ID", "fake")
+    monkeypatch.setenv("AMAZON_AD_API_CLIENT_SECRET", "fake")
+    from amazon_ads_mcp.config.settings import Settings
+    monkeypatch.setattr("amazon_ads_mcp.auth.manager.settings", Settings())
+    AuthManager.reset()
     am = AuthManager()
     am.provider = FakeProvider()
     await am.set_active_identity("id-1")
