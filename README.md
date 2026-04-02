@@ -613,6 +613,135 @@ The more tools you activate, the more of that limited space gets consumed up fro
 
 If you're encountering unexpected length issues, review which tools are active. Trimming unused ones can help minimize context use.
 
+## Code Mode
+
+Code Mode is an optional feature that dramatically reduces tool token consumption. Instead of loading every tool schema into the LLM's context upfront, Code Mode replaces the full catalog with four lightweight meta-tools. The LLM discovers tools on demand and executes them via sandboxed Python.
+
+### Token Impact
+
+| Mode | Tools in Context | Tokens Used | Context Window |
+|------|-----------------|-------------|----------------|
+| Standard | 55 | ~32,000 | 16.1% |
+| Code Mode | 4 | ~470 | 0.2% |
+| **Reduction** | | | **98.6%** |
+
+### How It Works
+
+Code Mode uses a 4-stage discovery pattern:
+
+```
+Stage 1: tags          → Browse categories: "campaign-management (20), accounts (14), ..."
+Stage 2: search        → Find tools: search("campaigns") → cm_listCampaigns, cm_createCampaign, ...
+Stage 3: get_schema    → Get parameters: get_schema("cm_listCampaigns") → full input schema
+Stage 4: execute       → Run code: sandboxed Python with await call_tool("cm_listCampaigns", {...})
+```
+
+All 200+ tools remain fully accessible. The LLM simply discovers and calls them on demand rather than loading every schema upfront.
+
+### Activating Code Mode
+
+Add one environment variable to your configuration:
+
+```bash
+CODE_MODE=true
+```
+
+**Docker Compose** — add to your `environment` section:
+```yaml
+environment:
+  - CODE_MODE=true
+```
+
+**Docker Run**:
+```bash
+docker run -d --env-file .env -e CODE_MODE=true -p 8000:8000 amazon-ads-mcp:latest
+```
+
+**Local Development**:
+```bash
+CODE_MODE=true uv run python -m amazon_ads_mcp.server --transport http --port 9080
+```
+
+### Configuration Options
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CODE_MODE` | `false` | Enable code mode |
+| `CODE_MODE_INCLUDE_TAGS` | `true` | Include tag browsing in discovery (set `false` for small catalogs) |
+| `CODE_MODE_MAX_DURATION_SECS` | `30` | Maximum execution time per sandbox run |
+| `CODE_MODE_MAX_MEMORY` | `50000000` | Memory limit per sandbox run (50 MB) |
+
+### Using Code Mode
+
+Once enabled, your MCP client (Claude Desktop, Claude Code, etc.) will see only four tools instead of the full catalog.
+
+**Browse available categories:**
+> *"What tool categories are available?"*
+
+The LLM calls `tags` and sees categories like `campaign-management`, `sponsored-products`, `programmatic-dsp`, `accounts`, `reporting`, etc.
+
+**Find specific tools:**
+> *"Find tools for managing campaigns"*
+
+The LLM calls `search("campaigns")` and gets matching tool names with brief descriptions.
+
+**Get tool details:**
+> *"Show me the parameters for creating a campaign"*
+
+The LLM calls `get_schema("cm_CreateCampaign")` and gets the full input schema.
+
+**Execute operations:**
+> *"List my enabled campaigns"*
+
+The LLM calls `execute` with Python code:
+```python
+result = await call_tool("cm_QueryCampaign", {
+    "body": {"stateFilter": {"include": ["ENABLED"]}}
+})
+```
+
+### Tool Categories
+
+When the LLM calls `tags`, it sees human-readable categories mapped from the API prefixes:
+
+| Category | Prefix | Description |
+|----------|--------|-------------|
+| `campaign-management` | `cm` | Create, update, query, delete campaigns, ad groups, ads, targets |
+| `sponsored-products` | `sp` | Sponsored Products targeting, keywords, bids |
+| `sponsored-brands` | `sb` | Sponsored Brands campaigns (v3 + v4) |
+| `sponsored-display` | `sd` | Sponsored Display campaign and targeting tools |
+| `programmatic-dsp` | `dsp` | DSP advertisers, audiences, conversions, measurement |
+| `amazon-marketing-cloud` | `amc` | AMC workflows, audiences, administration |
+| `accounts` | `ac` | Profiles, billing, budgets, portfolios, manager accounts |
+| `reporting` | `rp` | V3 reporting tools |
+| `brand-insights` | `br` | Brand benchmarks and metrics |
+| `stores` | `st` | Stores analytics |
+| `server-management` | — | Profile, region, OAuth, download tools |
+
+### When to Use Code Mode
+
+**Use Code Mode when:**
+- You have many tool packages activated and are hitting context limits
+- You want maximum context space for conversation and data analysis
+- Your MCP client supports tool discovery patterns (Claude Desktop, Claude Code)
+
+**Use Standard Mode when:**
+- You have a small number of packages activated (1-3)
+- You need the fastest possible tool invocation (no discovery step)
+- Your workflow uses the same few tools repeatedly
+
+### Verifying Code Mode
+
+After starting the server with `CODE_MODE=true`, verify it is active:
+
+```bash
+# Check server logs for confirmation
+docker logs <container> 2>&1 | grep "Code mode"
+# Expected: "Code mode active: 4 meta-tools exposed (tags, search, get_schema, execute)"
+```
+
+In your MCP client, you should see only four tools: `tags`, `search`, `get_schema`, and `execute`. If you see the full tool catalog, code mode is not active — check your environment variable.
+
 ## Troubleshooting
 
 **Server not connecting?**

@@ -60,6 +60,9 @@ jwt_claims_var: ContextVar[Optional[dict]] = ContextVar("jwt_claims", default=No
 
 logger = logging.getLogger(__name__)
 
+# FastMCP per-session state key for auth context persistence across tool calls.
+AUTH_SESSION_STATE_KEY = "amazon_ads_auth_session"
+
 
 class AuthConfig:
     """Configuration for authentication middleware.
@@ -505,10 +508,17 @@ class RefreshTokenMiddleware(Middleware):
     async def on_request(self, context: MiddlewareContext, call_next):
         """Convert refresh tokens to JWT tokens if needed.
 
-        This method intercepts incoming requests and checks for refresh
-        tokens in the Authorization header. If a refresh token is detected,
-        it converts it to a JWT token and stores it in context-safe storage
-        for use by other middleware components.
+        This method intercepts incoming requests and extracts OpenBridge
+        refresh tokens from headers using the following priority:
+
+        1. ``X-Openbridge-Token`` header (preferred — gateway deployments)
+        2. ``Authorization: Bearer`` header (backward compat — direct mode,
+           only if the token matches the OpenBridge refresh token pattern)
+        3. ``OPENBRIDGE_REFRESH_TOKEN`` env var (handled at provider init)
+
+        In gateway mode, ``Authorization`` carries the gateway's OAuth access
+        token (a JWT), not an OpenBridge refresh token. The pattern guard
+        (colon heuristic) prevents gateway JWTs from corrupting provider state.
 
         Args:
             context: The FastMCP middleware context.
@@ -522,60 +532,119 @@ class RefreshTokenMiddleware(Middleware):
             >>> # when requests are processed through the middleware chain
         """
         try:
-            # Get headers from the context if available
-            auth_header = ""
+            token = None
+            token_source = None
+
+            # Extract HTTP request headers.
+            # Try request_context first (available when MCP session is established),
+            # then fall back to get_http_request() for streamable-http transports
+            # where request_context may be None during early requests.
+            request = None
             if context.fastmcp_context and context.fastmcp_context.request_context:
                 request = context.fastmcp_context.request_context.request
-                if request and hasattr(request, "headers"):
-                    auth_header = request.headers.get("authorization", "")
 
-            # Fallback: use get_http_request() for HTTP transports where
-            # request_context is not yet established (e.g. streamable-http)
-            if not auth_header:
+            if not request or not hasattr(request, "headers"):
                 try:
                     from fastmcp.server.dependencies import get_http_request
-                    http_request = get_http_request()
-                    if http_request and hasattr(http_request, "headers"):
-                        auth_header = http_request.headers.get("authorization", "")
+                    request = get_http_request()
                 except (ImportError, RuntimeError):
                     pass  # Not an HTTP transport or no request available
 
-            if auth_header:
-                # Extract token more robustly - handle case variations and extra whitespace
-                parts = auth_header.split(" ", 1)
-                if len(parts) == 2 and parts[0].lower() == "bearer":
-                    token = parts[1].strip()  # Remove any leading/trailing whitespace
+            if request and hasattr(request, "headers"):
+                    # Priority 1: X-Openbridge-Token (gateway deployments)
+                    # This header carries the platform credential explicitly, no ambiguity.
+                    openbridge_token = request.headers.get(
+                        "x-openbridge-token", ""
+                    ).strip()
+                    if openbridge_token:
+                        token = openbridge_token
+                        token_source = "X-Openbridge-Token header"
 
-                    # CRITICAL: Always set refresh token in provider if available (for OpenBridge)
-                    # This MUST happen even if config.enabled is False, so tools can use the token
-                    # The provider needs the refresh token to authenticate API calls
-                    if self.auth_manager and hasattr(self.auth_manager, "provider"):
-                        provider = self.auth_manager.provider
-                        if hasattr(provider, "set_refresh_token"):
-                            self.logger.debug(
-                                "Setting refresh token in OpenBridge provider from Authorization header"
-                            )
-                            provider.set_refresh_token(token)
+                    # Priority 2: Authorization: Bearer (direct mode, backward compat)
+                    # SAFETY: In gateway mode, Authorization carries the gateway's OAuth
+                    # access token (a JWT), NOT an OpenBridge refresh token. We must verify
+                    # the token looks like an OpenBridge refresh token before using it.
+                    if not token:
+                        auth_header = request.headers.get("authorization", "")
+                        if auth_header:
+                            parts = auth_header.split(" ", 1)
+                            if len(parts) == 2 and parts[0].lower() == "bearer":
+                                candidate = parts[1].strip()
+                                # Guard: only accept if it matches OpenBridge pattern
+                                # (colon-separated, len > 20) or no pattern is configured
+                                if (
+                                    not self.config.refresh_token_pattern
+                                    or self.config.refresh_token_pattern(candidate)
+                                ):
+                                    token = candidate
+                                    token_source = "Authorization header"
+                                else:
+                                    # Debug level only; never log token contents
+                                    self.logger.debug(
+                                        "Authorization Bearer token does not match "
+                                        "OpenBridge refresh token pattern — skipping "
+                                        "(likely gateway OAuth token)"
+                                    )
 
-                    # JWT conversion processing (only if enabled)
-                    if self.config.enabled and self.config.refresh_token_enabled:
-                        # Check if this matches the refresh token pattern for JWT conversion
-                        if self.config.refresh_token_pattern and self.config.refresh_token_pattern(
-                            token
-                        ):
-                            self.logger.debug("Detected refresh token format, checking cache...")
+            if token:
+                # --- Token change detection (multi-tenant safety) ---
+                # In a long-lived MCP session (SSE/streamable HTTP), ContextVars
+                # for active_identity/credentials/profiles persist across tool
+                # calls. When the bearer refresh token changes mid-session, those
+                # vars hold stale tenant state. Detect the swap via fingerprint
+                # and clear tenant-scoped state before proceeding.
+                from ..auth.session_state import (
+                    get_last_seen_token_fingerprint,
+                    set_active_credentials,
+                    set_active_identity,
+                    set_active_profiles,
+                    set_last_seen_token_fingerprint,
+                    set_refresh_token_override,
+                    token_fingerprint,
+                )
 
-                            jwt_token = await self._get_cached_or_convert_jwt(token)
-                            if jwt_token:
-                                self.logger.debug("JWT token ready (cached or converted)")
-                                # Store the JWT in context-safe storage for the JWT middleware to use
-                                jwt_token_var.set(jwt_token)
-                            else:
-                                self.logger.error("Failed to convert refresh token to JWT")
+                new_fp = token_fingerprint(token)
+                previous_fp = get_last_seen_token_fingerprint()
+
+                if previous_fp and previous_fp != new_fp:
+                    self.logger.info(
+                        "Refresh token changed mid-session — "
+                        "clearing tenant identity/credentials/profiles"
+                    )
+                    set_active_identity(None)
+                    set_active_credentials(None)
+                    set_active_profiles(None)
+
+                set_last_seen_token_fingerprint(new_fp)
+
+                # Set per-request ContextVar for session isolation.
+                # We intentionally do NOT call provider.set_refresh_token()
+                # here — that would mutate the singleton's default, causing
+                # requests without a header to fall back to the last client's
+                # token (cross-client bleed). The ContextVar is the sole
+                # per-request channel; _get_effective_refresh_token() reads it.
+                set_refresh_token_override(token)
+                self.logger.debug(f"Set per-request refresh token from {token_source}")
+
+                # JWT conversion processing (only if enabled)
+                if self.config.enabled and self.config.refresh_token_enabled:
+                    # Check if this matches the refresh token pattern for JWT conversion
+                    if self.config.refresh_token_pattern and self.config.refresh_token_pattern(
+                        token
+                    ):
+                        self.logger.debug("Detected refresh token format, checking cache...")
+
+                        jwt_token = await self._get_cached_or_convert_jwt(token)
+                        if jwt_token:
+                            self.logger.debug("JWT token ready (cached or converted)")
+                            # Store the JWT in context-safe storage for the JWT middleware to use
+                            jwt_token_var.set(jwt_token)
                         else:
-                            self.logger.debug(
-                                "Token does not match refresh token pattern - skipping JWT conversion"
-                            )
+                            self.logger.error("Failed to convert refresh token to JWT")
+                    else:
+                        self.logger.debug(
+                            "Token does not match refresh token pattern - skipping JWT conversion"
+                        )
 
         except ToolError:
             # Let ToolError propagate - it's handled by FastMCP
@@ -583,7 +652,14 @@ class RefreshTokenMiddleware(Middleware):
         except Exception as e:
             self.logger.error(f"RefreshTokenMiddleware error: {e}")
 
-        return await call_next(context)
+        # Wrap call_next in try/finally to ensure ContextVar cleanup
+        # even if the downstream handler raises an exception
+        try:
+            return await call_next(context)
+        finally:
+            from ..auth.session_state import set_refresh_token_override
+
+            set_refresh_token_override(None)
 
     async def _get_cached_or_convert_jwt(self, refresh_token: str) -> Optional[str]:
         """Get JWT from cache or convert refresh token to JWT.
@@ -676,6 +752,129 @@ class RefreshTokenMiddleware(Middleware):
         except Exception as e:
             self.logger.error(f"Error converting refresh token: {e}")
             return None
+
+
+class AuthSessionStateMiddleware(Middleware):
+    """Bridge ContextVar auth state with FastMCP session state.
+
+    FastMCP tool calls may execute in different async contexts. Auth state that
+    lives only in ContextVars can disappear between tool calls even within the
+    same MCP session. This middleware hydrates ContextVars from FastMCP session
+    state at request start and persists updated values after the tool call.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.logger = logging.getLogger(f"{__name__}.AuthSessionStateMiddleware")
+
+    def _has_session(self, fastmcp_context: Any) -> bool:
+        """Check whether an active MCP session exists on the context.
+
+        During startup introspection (e.g. list_tools()) there is no
+        session, so get_state/set_state will fail. Returning False lets
+        callers skip gracefully instead of logging noisy warnings.
+
+        FastMCP's ``Context.session`` is a property that **raises**
+        ``RuntimeError`` when no session is established — it does not
+        return ``None``.  The documented guard is to check
+        ``request_context`` first.  Test doubles that provide
+        ``get_state``/``set_state`` without ``request_context`` are
+        treated as having an active session.
+        """
+        if not fastmcp_context:
+            return False
+        if not hasattr(fastmcp_context, "get_state"):
+            return False
+        # Real FastMCP Context: request_context is None during startup
+        # introspection.  .session raises RuntimeError in that case.
+        if hasattr(fastmcp_context, "request_context"):
+            if getattr(fastmcp_context, "request_context", None) is None:
+                return False
+        return True
+
+    async def _hydrate(self, fastmcp_context: Any) -> None:
+        if not self._has_session(fastmcp_context):
+            return
+
+        try:
+            state = await fastmcp_context.get_state(AUTH_SESSION_STATE_KEY)
+            if not state or not isinstance(state, dict):
+                return
+
+            from ..auth.session_state import (
+                set_active_credentials,
+                set_active_identity,
+                set_active_profiles,
+                set_last_seen_token_fingerprint,
+            )
+            from ..models import AuthCredentials, Identity
+
+            identity_payload = state.get("active_identity")
+            credentials_payload = state.get("active_credentials")
+            profiles_payload = state.get("active_profiles")
+            last_fp = state.get("last_seen_token_fingerprint")
+
+            identity = (
+                Identity.model_validate(identity_payload)
+                if isinstance(identity_payload, dict)
+                else None
+            )
+            credentials = (
+                AuthCredentials.model_validate(credentials_payload)
+                if isinstance(credentials_payload, dict)
+                else None
+            )
+
+            profiles: Optional[Dict[str, str]] = None
+            if isinstance(profiles_payload, dict):
+                profiles = {
+                    str(key): str(value)
+                    for key, value in profiles_payload.items()
+                }
+
+            set_active_identity(identity)
+            set_active_credentials(credentials)
+            set_active_profiles(profiles)
+            set_last_seen_token_fingerprint(last_fp if isinstance(last_fp, str) else None)
+        except Exception as exc:
+            self.logger.warning("Failed to hydrate auth session state: %s", exc)
+
+    async def _persist(self, fastmcp_context: Any) -> None:
+        if not self._has_session(fastmcp_context):
+            return
+
+        try:
+            from ..auth.session_state import (
+                get_active_credentials,
+                get_active_identity,
+                get_active_profiles,
+                get_last_seen_token_fingerprint,
+            )
+
+            identity = get_active_identity()
+            credentials = get_active_credentials()
+            profiles = get_active_profiles()
+            last_fp = get_last_seen_token_fingerprint()
+
+            state = {
+                "active_identity": identity.model_dump(mode="json") if identity else None,
+                "active_credentials": (
+                    credentials.model_dump(mode="json") if credentials else None
+                ),
+                "active_profiles": profiles,
+                "last_seen_token_fingerprint": last_fp,
+            }
+            await fastmcp_context.set_state(AUTH_SESSION_STATE_KEY, state)
+        except Exception as exc:
+            self.logger.warning("Failed to persist auth session state: %s", exc)
+
+    async def on_request(self, context: MiddlewareContext, call_next):
+        fastmcp_context = getattr(context, "fastmcp_context", None)
+        await self._hydrate(fastmcp_context)
+        try:
+            return await call_next(context)
+        finally:
+            await self._persist(fastmcp_context)
 
 
 class JWTAuthenticationMiddleware(Middleware):
@@ -1264,6 +1463,12 @@ def create_auth_middleware(
 
     middleware = []
 
+    # Persist/restore auth ContextVar state across FastMCP tool calls.
+    # This must run before other auth middleware so downstream components
+    # see hydrated identity/credentials/profile context.
+    middleware.append(AuthSessionStateMiddleware())
+    logger.info("Added AuthSessionStateMiddleware")
+
     # Add refresh token middleware first (converts refresh tokens to JWTs)
     if refresh_token_middleware and config.refresh_token_enabled:
         middleware.append(RefreshTokenMiddleware(config, auth_manager))
@@ -1387,17 +1592,24 @@ def create_openbridge_config() -> AuthConfig:
         verify_signature=False,  # OpenBridge JWTs are trusted from the API, no public key available
     )
 
-    # Load any additional env overrides first (e.g. custom JWKS_URI)
+    # OpenBridge-specific settings
+    config.jwt_verify_iss = False  # Don't validate issuer for OpenBridge
+    config.jwt_verify_aud = False  # Don't validate audience for OpenBridge
+
+    # Load any additional settings from environment (JWT keys, cache TTL, etc.)
     config.load_from_env()
 
-    # OpenBridge implies all of these — do not let load_from_env() defaults
-    # override them. AMAZON_ADS_AUTH_METHOD=openbridge is the single switch.
+    # CRITICAL: OpenBridge ALWAYS needs these enabled - load_from_env() defaults
+    # them to False when env vars aren't set, which silently breaks auth on
+    # deployments (e.g., Cloud Run) that don't explicitly set every env var.
     config.enabled = True
     config.refresh_token_enabled = True
-    config.jwt_validation_enabled = False  # OpenBridge handles auth, no local JWT validation
-    config.jwt_verify_iss = False
-    config.jwt_verify_aud = False
-    config.jwt_verify_signature = False
+
+    # JWT validation is optional for OpenBridge - the provider handles its own
+    # JWT conversion internally. Only enable if explicitly requested via env var.
+    # Default OFF to match docker-compose behavior (JWT_VALIDATION_ENABLED=false).
+    if not os.getenv("JWT_VALIDATION_ENABLED"):
+        config.jwt_validation_enabled = False
 
     return config
 

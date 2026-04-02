@@ -334,12 +334,14 @@ class TestOpenBridgeProvider:
     @pytest.mark.asyncio
     async def test_openbridge_list_identities(self, openbridge_provider):
         """Test listing identities from OpenBridge."""
-        # Mock JWT token
-        openbridge_provider._jwt_token = Token(
+        # Mock JWT token via fingerprinted cache
+        jwt_token = Token(
             value="test_jwt",
             expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
             token_type="Bearer"
         )
+        fingerprint = openbridge_provider._token_fingerprint()
+        openbridge_provider._jwt_tokens[fingerprint] = jwt_token
         
         mock_response = MagicMock()
         mock_response.status_code = 200

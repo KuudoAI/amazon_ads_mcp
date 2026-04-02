@@ -19,10 +19,10 @@ class DummyContext:
     def __init__(self):
         self.state = {}
 
-    def set_state(self, key, value):
+    async def set_state(self, key, value):
         self.state[key] = value
 
-    def get_state(self, key):
+    async def get_state(self, key):
         return self.state.get(key)
 
 
@@ -92,7 +92,7 @@ async def test_start_oauth_flow_stores_state(monkeypatch):
 @pytest.mark.asyncio
 async def test_check_oauth_status_active_tokens(monkeypatch):
     ctx = DummyContext()
-    ctx.set_state(
+    await ctx.set_state(
         "oauth_tokens",
         {
             "access_token": "access",
@@ -114,7 +114,7 @@ async def test_check_oauth_status_active_tokens(monkeypatch):
 @pytest.mark.asyncio
 async def test_check_oauth_status_pending(monkeypatch):
     ctx = DummyContext()
-    ctx.set_state(
+    await ctx.set_state(
         "oauth_state",
         {
             "auth_url": "http://example.com/auth",
@@ -135,7 +135,7 @@ async def test_check_oauth_status_pending(monkeypatch):
 @pytest.mark.asyncio
 async def test_check_oauth_status_expired(monkeypatch):
     ctx = DummyContext()
-    ctx.set_state(
+    await ctx.set_state(
         "oauth_state",
         {
             "auth_url": "http://example.com/auth",
@@ -173,7 +173,7 @@ async def test_check_oauth_status_callback_tokens(monkeypatch):
 @pytest.mark.asyncio
 async def test_refresh_access_token_success(monkeypatch):
     ctx = DummyContext()
-    ctx.set_state(
+    await ctx.set_state(
         "oauth_tokens",
         {
             "access_token": "old-access",
@@ -246,7 +246,7 @@ async def test_handle_oauth_callback_success(monkeypatch):
     monkeypatch.setattr(manager, "get_auth_manager", lambda: auth_manager)
 
     ctx = DummyContext()
-    ctx.set_state(
+    await ctx.set_state(
         "oauth_state",
         {
             "auth_url": "http://example.com/auth",

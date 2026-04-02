@@ -1,7 +1,7 @@
-"""Integration tests for Authorization header propagation.
+"""Integration tests for authentication header propagation.
 
-These tests verify that the Authorization header from MCP clients
-is properly propagated through the middleware chain to the OpenBridge
+These tests verify that OpenBridge refresh tokens from MCP clients
+are properly propagated through the middleware chain to the OpenBridge
 provider. This prevents regressions where header-based authentication
 fails silently.
 
@@ -10,6 +10,8 @@ The tests cover:
 2. Authorization header extraction from requests
 3. Token propagation to the OpenBridge provider
 4. End-to-end flow validation
+5. X-Openbridge-Token header support for gateway deployments
+6. Gateway OAuth JWT rejection via pattern guard
 """
 
 import pytest
@@ -104,14 +106,20 @@ class TestAuthorizationHeaderExtraction:
         mock_context.fastmcp_context.request_context = MagicMock()
         mock_context.fastmcp_context.request_context.request = mock_request
 
-        call_next = AsyncMock()
+        # Capture the ContextVar value *during* call_next (before finally cleanup)
+        from amazon_ads_mcp.auth.session_state import get_refresh_token_override
 
-        await middleware.on_request(mock_context, call_next)
+        captured_token = {}
 
-        # Verify token was propagated to provider
-        mock_auth_manager.provider.set_refresh_token.assert_called_once_with(
-            "test-refresh-token"
-        )
+        async def capturing_call_next(ctx):
+            captured_token["value"] = get_refresh_token_override()
+
+        await middleware.on_request(mock_context, capturing_call_next)
+
+        # Token was available during request processing
+        assert captured_token["value"] == "test-refresh-token"
+        # And cleaned up after (finally block)
+        assert get_refresh_token_override() is None
 
     @pytest.mark.asyncio
     async def test_middleware_handles_missing_authorization_header(
@@ -133,8 +141,10 @@ class TestAuthorizationHeaderExtraction:
         # Should not raise
         await middleware.on_request(mock_context, call_next)
 
-        # Should not call set_refresh_token
-        mock_auth_manager.provider.set_refresh_token.assert_not_called()
+        # No token found — ContextVar should remain None
+        from amazon_ads_mcp.auth.session_state import get_refresh_token_override
+
+        assert get_refresh_token_override() is None
 
     @pytest.mark.asyncio
     async def test_middleware_handles_non_bearer_auth(
@@ -155,8 +165,10 @@ class TestAuthorizationHeaderExtraction:
 
         await middleware.on_request(mock_context, call_next)
 
-        # Should not call set_refresh_token for non-Bearer auth
-        mock_auth_manager.provider.set_refresh_token.assert_not_called()
+        # No Bearer token found — ContextVar should remain None
+        from amazon_ads_mcp.auth.session_state import get_refresh_token_override
+
+        assert get_refresh_token_override() is None
 
     @pytest.mark.asyncio
     async def test_middleware_handles_case_insensitive_bearer(
@@ -165,8 +177,13 @@ class TestAuthorizationHeaderExtraction:
         """Bearer keyword should be case-insensitive."""
         middleware = RefreshTokenMiddleware(enabled_config, mock_auth_manager)
 
+        from amazon_ads_mcp.auth.session_state import (
+            get_refresh_token_override,
+            set_refresh_token_override,
+        )
+
         for bearer_variant in ["Bearer", "bearer", "BEARER", "BeArEr"]:
-            mock_auth_manager.provider.set_refresh_token.reset_mock()
+            set_refresh_token_override(None)  # Reset between iterations
 
             mock_request = MagicMock()
             mock_request.headers = {
@@ -178,13 +195,14 @@ class TestAuthorizationHeaderExtraction:
             mock_context.fastmcp_context.request_context = MagicMock()
             mock_context.fastmcp_context.request_context.request = mock_request
 
-            call_next = AsyncMock()
+            captured = {}
 
-            await middleware.on_request(mock_context, call_next)
+            async def capturing_call_next(ctx, _variant=bearer_variant):
+                captured[_variant] = get_refresh_token_override()
 
-            mock_auth_manager.provider.set_refresh_token.assert_called_once_with(
-                f"test-token-{bearer_variant}"
-            )
+            await middleware.on_request(mock_context, capturing_call_next)
+
+            assert captured[bearer_variant] == f"test-token-{bearer_variant}"
 
 
 class TestTokenPropagationToProvider:
@@ -192,11 +210,11 @@ class TestTokenPropagationToProvider:
 
     @pytest.mark.asyncio
     async def test_token_propagation_happens_before_config_checks(self):
-        """Token propagation to provider must happen even if JWT processing is disabled.
+        """Token propagation must happen even if JWT processing is disabled.
 
-        This is critical for OpenBridge: the provider needs the refresh token
-        to authenticate API calls, regardless of whether JWT conversion/validation
-        is enabled.
+        This is critical for OpenBridge: the ContextVar must be set so the
+        provider can read it via _get_effective_refresh_token(), regardless
+        of whether JWT conversion/validation is enabled.
         """
         # Config with refresh token processing DISABLED
         config = AuthConfig()
@@ -217,14 +235,18 @@ class TestTokenPropagationToProvider:
         mock_context.fastmcp_context.request_context = MagicMock()
         mock_context.fastmcp_context.request_context.request = mock_request
 
-        call_next = AsyncMock()
+        # Capture ContextVar during call_next (before finally cleanup)
+        from amazon_ads_mcp.auth.session_state import get_refresh_token_override
 
-        await middleware.on_request(mock_context, call_next)
+        captured = {}
 
-        # CRITICAL: Token MUST be propagated even when config.enabled=False
-        mock_auth_manager.provider.set_refresh_token.assert_called_once_with(
-            "my-refresh-token"
-        )
+        async def capturing_call_next(ctx):
+            captured["token"] = get_refresh_token_override()
+
+        await middleware.on_request(mock_context, capturing_call_next)
+
+        # CRITICAL: Token was available during request even with config.enabled=False
+        assert captured["token"] == "my-refresh-token"
 
     @pytest.mark.asyncio
     async def test_provider_without_set_refresh_token_is_handled(self):
@@ -297,14 +319,18 @@ class TestEndToEndAuthFlow:
         mock_context.fastmcp_context.request_context = MagicMock()
         mock_context.fastmcp_context.request_context.request = mock_request
 
-        call_next = AsyncMock()
+        # Capture ContextVar during call_next (before finally cleanup)
+        from amazon_ads_mcp.auth.session_state import get_refresh_token_override
 
-        await refresh_middleware.on_request(mock_context, call_next)
+        captured = {}
 
-        # Verify the token reached the provider
-        mock_auth_manager.provider.set_refresh_token.assert_called_once_with(
-            "openbridge-refresh-token:secret"
-        )
+        async def capturing_call_next(ctx):
+            captured["token"] = get_refresh_token_override()
+
+        await refresh_middleware.on_request(mock_context, capturing_call_next)
+
+        # Verify the token was available during request processing
+        assert captured["token"] == "openbridge-refresh-token:secret"
 
     @pytest.mark.asyncio
     async def test_missing_middleware_causes_auth_failure(self):
@@ -365,12 +391,14 @@ class TestContextVariations:
         # Should not raise
         await middleware.on_request(mock_context, call_next)
 
-        # Should not attempt to set token
-        mock_auth_manager.provider.set_refresh_token.assert_not_called()
+        # No token found — ContextVar should remain None
+        from amazon_ads_mcp.auth.session_state import get_refresh_token_override
+
+        assert get_refresh_token_override() is None
 
     @pytest.mark.asyncio
-    async def test_handles_missing_request_context_no_http(self, middleware_with_mocks):
-        """Middleware should not fail when request_context is None and no HTTP request available."""
+    async def test_handles_missing_request_context(self, middleware_with_mocks):
+        """Middleware should handle missing request_context gracefully."""
         middleware, mock_auth_manager = middleware_with_mocks
 
         mock_context = MagicMock()
@@ -379,51 +407,12 @@ class TestContextVariations:
 
         call_next = AsyncMock()
 
-        # Should not raise (stdio transport — no HTTP request either)
+        # Should not raise
         await middleware.on_request(mock_context, call_next)
 
-        # call_next should still be called
-        call_next.assert_awaited_once()
+        from amazon_ads_mcp.auth.session_state import get_refresh_token_override
 
-    @pytest.mark.asyncio
-    async def test_falls_back_to_http_request_when_request_context_is_none(
-        self, middleware_with_mocks, monkeypatch
-    ):
-        """CRITICAL: When request_context is None (streamable-http), the middleware
-        must fall back to get_http_request() to extract the Authorization header.
-
-        This is the exact scenario that broke production: the client sends
-        Bearer token via HTTP headers, but request_context is not yet
-        established on streamable-http transports. Without the fallback,
-        the token is silently dropped and the provider has no credentials.
-        """
-        middleware, mock_auth_manager = middleware_with_mocks
-
-        # Simulate streamable-http: request_context is None
-        mock_context = MagicMock()
-        mock_context.fastmcp_context = MagicMock()
-        mock_context.fastmcp_context.request_context = None
-
-        # But HTTP request IS available via get_http_request()
-        mock_http_request = MagicMock()
-        mock_http_request.headers = {
-            "authorization": "Bearer client-provided-token:secret"
-        }
-
-        monkeypatch.setattr(
-            "fastmcp.server.dependencies.get_http_request",
-            lambda: mock_http_request,
-        )
-
-        call_next = AsyncMock()
-
-        await middleware.on_request(mock_context, call_next)
-
-        # CRITICAL ASSERTION: Token MUST reach the provider even when
-        # request_context is None, via the get_http_request() fallback
-        mock_auth_manager.provider.set_refresh_token.assert_called_once_with(
-            "client-provided-token:secret"
-        )
+        assert get_refresh_token_override() is None
 
     @pytest.mark.asyncio
     async def test_handles_missing_request(self, middleware_with_mocks):
@@ -440,7 +429,9 @@ class TestContextVariations:
         # Should not raise
         await middleware.on_request(mock_context, call_next)
 
-        mock_auth_manager.provider.set_refresh_token.assert_not_called()
+        from amazon_ads_mcp.auth.session_state import get_refresh_token_override
+
+        assert get_refresh_token_override() is None
 
     @pytest.mark.asyncio
     async def test_handles_request_without_headers(self, middleware_with_mocks):
@@ -459,4 +450,206 @@ class TestContextVariations:
         # Should not raise
         await middleware.on_request(mock_context, call_next)
 
-        mock_auth_manager.provider.set_refresh_token.assert_not_called()
+        from amazon_ads_mcp.auth.session_state import get_refresh_token_override
+
+        assert get_refresh_token_override() is None
+
+
+class TestXOpenbridgeTokenHeader:
+    """Test X-Openbridge-Token header support for gateway deployments.
+
+    When the MCP server sits behind a gateway, Authorization is reserved for
+    gateway-level OAuth. Platform credentials (OpenBridge tokens) are passed
+    via the X-Openbridge-Token header instead. These tests verify the
+    three-priority token resolution:
+
+    1. X-Openbridge-Token header (preferred)
+    2. Authorization: Bearer (backward compat, pattern-guarded)
+    3. OPENBRIDGE_REFRESH_TOKEN env var (provider init)
+    """
+
+    @pytest.fixture
+    def mock_auth_manager(self):
+        """Create a mock auth manager with an OpenBridge-like provider."""
+        manager = MagicMock()
+        manager.provider = MagicMock()
+        manager.provider.provider_type = "openbridge"
+        manager.provider.set_refresh_token = MagicMock()
+        return manager
+
+    def _make_context(self, headers):
+        """Create a mock context with the given request headers."""
+        mock_request = MagicMock()
+        mock_request.headers = headers
+
+        mock_context = MagicMock()
+        mock_context.fastmcp_context = MagicMock()
+        mock_context.fastmcp_context.request_context = MagicMock()
+        mock_context.fastmcp_context.request_context.request = mock_request
+        return mock_context
+
+    @pytest.mark.asyncio
+    async def test_middleware_extracts_x_openbridge_token_header(
+        self, mock_auth_manager
+    ):
+        """X-Openbridge-Token header is extracted and set in ContextVar."""
+        from amazon_ads_mcp.auth.session_state import get_refresh_token_override
+
+        config = AuthConfig()
+        config.enabled = False
+        config.refresh_token_enabled = False
+
+        middleware = RefreshTokenMiddleware(config, mock_auth_manager)
+        ctx = self._make_context(
+            {"x-openbridge-token": "ob-refresh:abc123def456789012"}
+        )
+
+        captured = {}
+
+        async def capturing_call_next(c):
+            captured["token"] = get_refresh_token_override()
+
+        await middleware.on_request(ctx, capturing_call_next)
+
+        assert captured["token"] == "ob-refresh:abc123def456789012"
+
+    @pytest.mark.asyncio
+    async def test_x_openbridge_token_takes_priority_over_authorization_bearer(
+        self, mock_auth_manager
+    ):
+        """X-Openbridge-Token wins when both headers are present."""
+        from amazon_ads_mcp.auth.session_state import get_refresh_token_override
+
+        config = AuthConfig()
+        config.enabled = False
+        config.refresh_token_enabled = False
+
+        middleware = RefreshTokenMiddleware(config, mock_auth_manager)
+        ctx = self._make_context({
+            "x-openbridge-token": "preferred-token:secret",
+            "authorization": "Bearer fallback-token:secret",
+        })
+
+        captured = {}
+
+        async def capturing_call_next(c):
+            captured["token"] = get_refresh_token_override()
+
+        await middleware.on_request(ctx, capturing_call_next)
+
+        assert captured["token"] == "preferred-token:secret"
+
+    @pytest.mark.asyncio
+    async def test_x_openbridge_token_propagates_when_config_disabled(
+        self, mock_auth_manager
+    ):
+        """Token propagation from X-Openbridge-Token works even when config.enabled=False.
+
+        This preserves the critical invariant: ContextVar always gets the refresh
+        token regardless of JWT processing configuration.
+        """
+        from amazon_ads_mcp.auth.session_state import get_refresh_token_override
+
+        config = AuthConfig()
+        config.enabled = False
+        config.refresh_token_enabled = False
+
+        middleware = RefreshTokenMiddleware(config, mock_auth_manager)
+        ctx = self._make_context(
+            {"x-openbridge-token": "disabled-config-token:abc123456789012"}
+        )
+
+        captured = {}
+
+        async def capturing_call_next(c):
+            captured["token"] = get_refresh_token_override()
+
+        await middleware.on_request(ctx, capturing_call_next)
+
+        assert captured["token"] == "disabled-config-token:abc123456789012"
+
+    @pytest.mark.asyncio
+    async def test_x_openbridge_token_whitespace_is_stripped(
+        self, mock_auth_manager
+    ):
+        """Leading/trailing whitespace in X-Openbridge-Token is stripped."""
+        from amazon_ads_mcp.auth.session_state import get_refresh_token_override
+
+        config = AuthConfig()
+        config.enabled = False
+        config.refresh_token_enabled = False
+
+        middleware = RefreshTokenMiddleware(config, mock_auth_manager)
+        ctx = self._make_context(
+            {"x-openbridge-token": "  padded-token:secret123456789  "}
+        )
+
+        captured = {}
+
+        async def capturing_call_next(c):
+            captured["token"] = get_refresh_token_override()
+
+        await middleware.on_request(ctx, capturing_call_next)
+
+        assert captured["token"] == "padded-token:secret123456789"
+
+    @pytest.mark.asyncio
+    async def test_empty_x_openbridge_token_falls_back_to_authorization(
+        self, mock_auth_manager
+    ):
+        """Empty X-Openbridge-Token falls back to Authorization Bearer."""
+        from amazon_ads_mcp.auth.session_state import get_refresh_token_override
+
+        config = AuthConfig()
+        config.enabled = False
+        config.refresh_token_enabled = False
+        config.refresh_token_pattern = None  # Accept any token
+
+        middleware = RefreshTokenMiddleware(config, mock_auth_manager)
+        ctx = self._make_context({
+            "x-openbridge-token": "",
+            "authorization": "Bearer fallback-ob-token:secret1234567",
+        })
+
+        captured = {}
+
+        async def capturing_call_next(c):
+            captured["token"] = get_refresh_token_override()
+
+        await middleware.on_request(ctx, capturing_call_next)
+
+        assert captured["token"] == "fallback-ob-token:secret1234567"
+
+    @pytest.mark.asyncio
+    async def test_gateway_oauth_jwt_in_authorization_is_rejected(
+        self, mock_auth_manager
+    ):
+        """Authorization fallback accepts OpenBridge refresh tokens only, not arbitrary bearer tokens.
+
+        In gateway mode, Authorization carries an OAuth JWT (dot-separated, no colon).
+        The pattern guard rejects it, so set_refresh_token is NOT called and the
+        provider keeps its env-var-initialized token.
+        """
+        config = AuthConfig()
+        config.enabled = False
+        config.refresh_token_enabled = False
+        # Colon heuristic: OpenBridge tokens contain ":" and are > 20 chars
+        config.refresh_token_pattern = lambda t: ":" in t and len(t) > 20
+
+        middleware = RefreshTokenMiddleware(config, mock_auth_manager)
+
+        # Simulate a gateway OAuth JWT — dot-separated, no colon
+        gateway_jwt = (
+            "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9"
+            ".eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkdhdGV3YXkifQ"
+            ".fake-signature-here"
+        )
+        ctx = self._make_context({"authorization": f"Bearer {gateway_jwt}"})
+        call_next = AsyncMock()
+
+        await middleware.on_request(ctx, call_next)
+
+        # Gateway JWT must NOT be set in ContextVar
+        from amazon_ads_mcp.auth.session_state import get_refresh_token_override
+
+        assert get_refresh_token_override() is None

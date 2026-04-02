@@ -12,6 +12,7 @@ from typing import Dict, List, Optional
 from fastmcp import FastMCP
 from fastmcp.server.middleware.error_handling import ErrorHandlingMiddleware
 
+from .. import __version__
 from ..auth.manager import get_auth_manager
 from ..config.settings import settings
 from ..middleware.authentication import (
@@ -31,6 +32,7 @@ from .openapi_utils import slim_openapi_for_tools
 from .sidecar_loader import _json_load as json_load
 
 logger = logging.getLogger(__name__)
+
 
 
 class ServerBuilder:
@@ -54,7 +56,7 @@ class ServerBuilder:
         self.media_registry = MediaTypeRegistry()
         self.header_resolver = HeaderNameResolver()
         self.mounted_servers: Dict[str, List[FastMCP]] = {}
-        self.group_tool_counts: Dict[str, int] = {}  # Pre-disable tool counts per group
+        self.group_tool_counts: Dict[str, int] = {}
 
     async def build(self) -> FastMCP:
         """Build and configure the MCP server.
@@ -62,6 +64,15 @@ class ServerBuilder:
         :return: Configured FastMCP server instance
         :rtype: FastMCP
         """
+        code_mode = settings.code_mode_enabled
+
+        # Warn if both code mode and progressive disclosure are set
+        if code_mode and self._progressive_disclosure_enabled():
+            logger.warning(
+                "Both CODE_MODE and PROGRESSIVE_TOOL_DISCLOSURE are set. "
+                "Code mode supersedes progressive disclosure; tool groups will be skipped."
+            )
+
         # Ensure default identity is loaded if configured
         await self._setup_default_identity()
 
@@ -74,30 +85,37 @@ class ServerBuilder:
         # Setup HTTP client
         self.client = await self._setup_http_client()
 
-        # Register the client singleton for reuse by tools
-        from ..utils.http_client import set_authenticated_client
-        set_authenticated_client(self.client)
-
         # Mount resource servers
         await self._mount_resource_servers()
 
         # Progressive disclosure: disable mounted tools by default
-        await self._disable_mounted_tools()
+        # Skipped when code mode is active (tools must stay visible for CodeMode catalog)
+        if not code_mode:
+            await self._disable_mounted_tools()
 
-        # Setup built-in tools
-        await self._setup_builtin_tools()
+        # Setup built-in tools (skip tool group tools when code mode active)
+        await self._setup_builtin_tools(skip_tool_groups=code_mode)
+
+        # Strip outputSchema from all tools (saves ~3K tokens)
+        # Only affects output_schema; input schemas used by GetSchemas are preserved
+        await self._strip_output_schemas()
+
+        # Code mode: tag tools by category then apply CodeMode transform
+        if code_mode:
+            await self._tag_tools_for_code_mode()
+            await self._apply_code_mode()
 
         # Setup built-in prompts
         await self._setup_builtin_prompts()
-
-        # Setup health check route
-        await self._setup_health_route()
 
         # Setup OAuth callback route for HTTP transport
         await self._setup_oauth_callback()
 
         # Setup file download routes for HTTP transport
         await self._setup_file_routes()
+
+        # Setup health check endpoint for container orchestration
+        await self._setup_health_check()
 
         return self.server
 
@@ -114,23 +132,12 @@ class ServerBuilder:
         :return: Main server instance
         :rtype: FastMCP
         """
-        transforms = []
-        if self._code_mode_enabled():
-            try:
-                from fastmcp.experimental.transforms.code_mode import CodeMode
-
-                transforms.append(CodeMode())
-                logger.info("FastMCP code mode enabled")
-            except Exception as e:
-                logger.warning("Failed to enable FastMCP code mode: %s", e)
-
         # Create server with appropriate configuration
         # Include lifespan if provided for clean startup/shutdown handling
         server = FastMCP(
             "Amazon Ads MCP Server",
-            version="1.0.0",
-            lifespan=self.lifespan,  # FastMCP 2.14+ lifespan pattern
-            transforms=transforms or None,
+            version=__version__,
+            lifespan=self.lifespan,
         )
 
         # Setup server-side sampling handler if enabled
@@ -160,14 +167,6 @@ class ServerBuilder:
             logger.info("Sampling is disabled in settings")
 
         return server
-
-    def _code_mode_enabled(self) -> bool:
-        """Check whether FastMCP code mode should be enabled.
-
-        Defaults to enabled unless explicitly set to a falsey value.
-        """
-        value = os.getenv("CODE_MODE", "true").strip().lower()
-        return value in ("1", "true", "yes", "on")
 
     async def _setup_middleware(self):
         """Setup server middleware."""
@@ -311,6 +310,9 @@ class ServerBuilder:
         namespace_mapping = await self._load_namespace_mapping(resources_dir)
         package_allowlist = await self._load_package_allowlist(resources_dir)
 
+        # Defer media registry cache invalidation until all specs are mounted
+        self.media_registry.begin_bulk_load()
+
         # Process each resource file
         skip_files = {"packages.json", "manifest.json"}
         for spec_path in sorted(resources_dir.glob("*.json")):
@@ -335,6 +337,9 @@ class ServerBuilder:
                     continue
 
             await self._mount_single_resource(spec_path, namespace_mapping)
+
+        # All specs mounted — flush the deferred cache invalidation
+        self.media_registry.end_bulk_load()
 
     async def _load_namespace_mapping(self, resources_dir: Path) -> Dict[str, str]:
         """Load namespace to prefix mapping from packages.json.
@@ -540,16 +545,22 @@ class ServerBuilder:
             prefix = namespace_mapping.get(namespace, namespace)
 
             # Create sub-server from OpenAPI spec
-            # Timeout is configured on the AuthenticatedClient httpx instance (read=60s)
+            # HTTP client already has 60s read timeout configured
             sub_server = FastMCP.from_openapi(
                 openapi_spec=spec,
                 client=self.client,
                 name=prefix,
             )
 
-            # Mount the sub-server with namespace (FastMCP 3.x API)
+            # Mount the sub-server with namespace (v3: prefix → namespace)
             self.server.mount(server=sub_server, namespace=prefix)
             self.mounted_servers.setdefault(prefix, []).append(sub_server)
+
+            # Track tool count for progressive disclosure totals
+            tools = await sub_server.list_tools()
+            self.group_tool_counts[prefix] = (
+                self.group_tool_counts.get(prefix, 0) + len(tools)
+            )
 
             # Apply sidecars (transforms) to the mounted sub-server
             from .sidecar_loader import apply_sidecars
@@ -584,14 +595,9 @@ class ServerBuilder:
 
         total_disabled = 0
         for prefix, sub_servers in self.mounted_servers.items():
-            group_count = 0
+            group_count = self.group_tool_counts.get(prefix, 0)
             for sub_server in sub_servers:
-                tools = await sub_server.list_tools()
-                group_count += len(tools)
-                # FastMCP 3.x: disable all tools at server level
                 sub_server.disable(components={"tool"})
-            # Store pre-disable counts for list_tool_groups
-            self.group_tool_counts[prefix] = group_count
             total_disabled += group_count
             logger.debug(
                 "Disabled %d tools in group '%s'", group_count, prefix
@@ -603,33 +609,106 @@ class ServerBuilder:
             len(self.mounted_servers),
         )
 
-    async def _setup_builtin_tools(self):
-        """Setup built-in tools for the server."""
+    async def _setup_builtin_tools(self, skip_tool_groups: bool = False):
+        """Setup built-in tools for the server.
+
+        :param skip_tool_groups: If True, skip registering tool group tools
+            (list_tool_groups / enable_tool_group). Used when code mode is active
+            since GetTags replaces progressive disclosure browsing.
+        """
         from ..server.builtin_tools import register_all_builtin_tools
 
         await register_all_builtin_tools(
             self.server,
             mounted_servers=self.mounted_servers,
             group_tool_counts=self.group_tool_counts,
+            skip_tool_groups=skip_tool_groups,
         )
+
+    async def _tag_tools_for_code_mode(self):
+        """Tag all tools with human-readable categories for code mode discovery.
+
+        OpenAPI tools are tagged by namespace prefix (e.g. ``cm`` -> ``campaign-management``).
+        Builtin tools are tagged as ``server-management``.
+        Must run before ``_apply_code_mode()`` so CodeMode's GetTags sees the tags.
+        """
+        from .code_mode import tag_builtin_tools, tag_tools_by_prefix
+
+        api_count = await tag_tools_by_prefix(self.server, self.mounted_servers)
+        builtin_count = await tag_builtin_tools(self.server)
+        logger.info(
+            "Code mode tagging complete: %d API tools + %d builtin tools",
+            api_count,
+            builtin_count,
+        )
+
+    async def _apply_code_mode(self):
+        """Apply CodeMode transform to replace tools with meta-tools.
+
+        Code Mode replaces all upstream tools with meta-tools (discovery + execute)
+        that let the LLM discover and invoke tools on-demand via sandboxed Python.
+
+        Token reduction: 98.4% for 55+ tools (34,971 -> 547 tokens).
+
+        :raises ImportError: If ``fastmcp[code-mode]`` extra is not installed
+        """
+        from .code_mode import create_code_mode_transform
+
+        try:
+            transform = create_code_mode_transform()
+            self.server.add_transform(transform)
+
+            tools = await self.server.list_tools()
+            tool_names = [t.name for t in tools]
+            logger.info(
+                "Code mode active: %d meta-tools exposed (%s). "
+                "Original tools accessible via execute.",
+                len(tools),
+                ", ".join(tool_names),
+            )
+        except ImportError:
+            logger.error(
+                "Code mode requires the 'code-mode' extra. "
+                "Install with: pip install 'fastmcp[code-mode]>=3.1.0'"
+            )
+            raise
+
+    async def _strip_output_schemas(self):
+        """Strip outputSchema from all registered tools.
+
+        MCP clients receive tool definitions including ``outputSchema`` on
+        every ``tools/list`` call.  These response-shape schemas are rarely
+        useful to Claude (it sees the actual return value) but can add
+        thousands of tokens to the context window.
+
+        This method nulls out ``output_schema`` on every tool registered
+        on the main server, saving ~3K tokens for typical builtin tool
+        sets.  OpenAPI-derived tools already have response schemas
+        stripped by Phase 2 (``_strip_response_bodies``).
+        """
+        tools = await self.server.list_tools()
+        stripped = 0
+        for tool_info in tools:
+            try:
+                tool = await self.server.get_tool(tool_info.name)
+                if tool and getattr(tool, "output_schema", None) is not None:
+                    tool.output_schema = None
+                    stripped += 1
+            except Exception:
+                # Skip tools that can't be accessed (e.g. mounted)
+                pass
+
+        if stripped:
+            logger.info(
+                "Stripped outputSchema from %d tools to reduce context usage",
+                stripped,
+            )
 
     async def _setup_builtin_prompts(self):
         """Setup built-in prompts for the server."""
         from ..server.builtin_prompts import register_all_builtin_prompts
 
         await register_all_builtin_prompts(self.server)
-
-    async def _setup_health_route(self):
-        """Register a /health endpoint for load-balancer and orchestrator probes."""
-        if hasattr(self.server, "custom_route"):
-            from starlette.requests import Request
-            from starlette.responses import JSONResponse
-
-            @self.server.custom_route("/health", methods=["GET"])
-            async def health_check(request: Request):
-                return JSONResponse({"status": "ok"})
-
-            logger.info("Registered health check route at /health")
 
     async def _setup_oauth_callback(self):
         """Setup OAuth callback route for HTTP transport."""
@@ -836,3 +915,25 @@ class ServerBuilder:
         from .file_routes import register_file_routes
 
         register_file_routes(self.server)
+
+    async def _setup_health_check(self):
+        """Register /health endpoint for container orchestration.
+
+        Returns 200 with basic server info. Used by load balancers,
+        Cloudflare Containers, Kubernetes probes, etc.
+        """
+        if not hasattr(self.server, "custom_route"):
+            return
+
+        from starlette.requests import Request
+        from starlette.responses import JSONResponse
+
+        @self.server.custom_route("/health", methods=["GET"])
+        async def health_check(request: Request) -> JSONResponse:
+            return JSONResponse(
+                {
+                    "status": "healthy",
+                    "service": "amazon-ads-mcp",
+                    "version": "1.0.0",
+                }
+            )

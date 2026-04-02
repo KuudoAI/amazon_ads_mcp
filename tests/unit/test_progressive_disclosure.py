@@ -23,7 +23,7 @@ async def test_disable_mounted_tools_hides_from_client():
 
     parent.mount(child, namespace="ch")
 
-    # Disable child tools (FastMCP 3.x server-level API)
+    # Disable child tools (v3: server-level disable)
     child.disable(components={"tool"})
 
     # Client should only see parent_tool
@@ -52,7 +52,7 @@ async def test_enable_restores_tools():
 
     parent.mount(child, namespace="ch")
 
-    # Disable then re-enable (FastMCP 3.x server-level API)
+    # Disable then re-enable (v3: server-level operations)
     child.disable(components={"tool"})
     child.enable(components={"tool"})
 
@@ -144,18 +144,24 @@ async def test_tool_group_list_and_enable():
 
     mounted = {"ga": [child_a], "gb": [child_b]}
 
-    # Store counts before disabling (like ServerBuilder does)
-    group_tool_counts = {}
+    # Count tools before disabling (for total counts)
+    group_tool_counts: dict[str, int] = {}
     for prefix, sub_servers in mounted.items():
         count = 0
         for sub in sub_servers:
             tools = await sub.list_tools()
             count += len(tools)
-            sub.disable(components={"tool"})
         group_tool_counts[prefix] = count
 
-    # Register tool group tools with pre-stored counts
-    await register_tool_group_tools(parent, mounted, group_tool_counts=group_tool_counts)
+    # Disable all (v3: server-level disable)
+    for sub_servers in mounted.values():
+        for sub in sub_servers:
+            sub.disable(components={"tool"})
+
+    # Register tool group tools
+    await register_tool_group_tools(
+        parent, mounted, group_tool_counts=group_tool_counts
+    )
 
     # Verify only builtin tools visible
     async with Client(parent) as client:

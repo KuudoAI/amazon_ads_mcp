@@ -71,13 +71,6 @@ async def test_load_package_allowlist_defaults(tmp_path, builder, monkeypatch):
     assert allowlist == {"Profiles"}
 
 
-@pytest.mark.asyncio
-async def test_code_mode_enabled_default(monkeypatch, builder):
-    monkeypatch.delenv("CODE_MODE", raising=False)
-    assert builder._code_mode_enabled() is True
 
-
-@pytest.mark.asyncio
-async def test_code_mode_enabled_false(monkeypatch, builder):
-    monkeypatch.setenv("CODE_MODE", "false")
-    assert builder._code_mode_enabled() is False
+# Code mode tests removed — code_mode_enabled is now a settings property,
+# not a ServerBuilder method. See config/settings.py.

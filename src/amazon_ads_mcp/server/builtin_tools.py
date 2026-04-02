@@ -28,6 +28,7 @@ from fastmcp.dependencies import Progress
 from ..auth.manager import get_auth_manager
 from ..config.settings import settings
 from ..models.builtin_responses import (
+    AsyncReportResponse,
     ClearProfileResponse,
     DownloadedFile,
     DownloadExportResponse,
@@ -336,25 +337,11 @@ async def register_region_tools(server: FastMCP):
 
     @server.tool(
         name="set_region",
-        description="Set the region for Amazon Ads API calls (accepts region or region_code)",
+        description="Set the region for Amazon Ads API calls",
     )
-    async def set_region_tool(
-        ctx: Context,
-        region: Optional[str] = None,
-        region_code: Optional[str] = None,
-    ) -> SetRegionResponse:
+    async def set_region_tool(ctx: Context, region_code: str) -> SetRegionResponse:
         """Set the region for API calls."""
-        from ..tools import region as region_tools
-
-        _ = ctx  # Reserved for future context-aware behavior
-        selected_region = region if region is not None else region_code
-        if not selected_region:
-            return SetRegionResponse(
-                success=False,
-                error="MISSING_REGION",
-                message="Missing required parameter: provide 'region' or 'region_code' (na/eu/fe).",
-            )
-        result = await region_tools.set_region(selected_region)
+        result = await region.set_region(region_code)
         return SetRegionResponse(**result)
 
     @server.tool(name="get_region", description="Get the current region setting")
@@ -613,6 +600,192 @@ Note: Requires HTTP transport (not stdio).
         )
 
 
+async def register_reporting_tools(server: FastMCP):
+    """Register reporting workflow tools with background task support.
+
+    These wrapper tools orchestrate the full report workflow (request → poll → download)
+    with progress tracking. OpenAPI-generated tools cannot have task=True, so we
+    create builtin wrappers for long-running operations.
+
+    :param server: FastMCP server instance
+    :type server: FastMCP
+    """
+
+    @server.tool(
+        name="request_async_report",
+        description="Request and download an async report with progress tracking (V3 Reporting API)",
+        task=True,  # Enable background task execution
+    )
+    async def request_async_report_tool(
+        ctx: Context,
+        report_type: str,
+        start_date: str,
+        end_date: str,
+        time_unit: str = "DAILY",
+        group_by: Optional[str] = None,
+        columns: Optional[str] = None,
+        filters: Optional[str] = None,
+        poll_interval_seconds: int = 10,
+        max_poll_attempts: int = 60,
+        progress: Progress = Progress(),
+    ) -> AsyncReportResponse:
+        """Request an async report and wait for completion with progress tracking.
+
+        This tool handles the full V3 Reporting API workflow:
+        1. Creates a report request
+        2. Polls for completion with progress updates
+        3. Downloads the completed report
+        4. Returns the local file path
+
+        Supports background execution - clients can track progress while report
+        generates in the background.
+
+        :param report_type: Report type (e.g., spCampaigns, spTargeting, sbCampaigns)
+        :param start_date: Report start date (YYYY-MM-DD)
+        :param end_date: Report end date (YYYY-MM-DD)
+        :param time_unit: Time granularity (DAILY, SUMMARY)
+        :param group_by: Comma-separated list of dimensions to group by
+        :param columns: Comma-separated list of columns to include
+        :param filters: JSON string of filters to apply
+        :param poll_interval_seconds: Seconds between status checks (default: 10)
+        :param max_poll_attempts: Maximum polling attempts before timeout (default: 60)
+        :return: Report result with file path
+        """
+        import asyncio
+        import json as json_module
+
+        from ..utils.http_client import get_authenticated_client
+
+        # Total steps: create (1) + poll (variable) + download (1)
+        await progress.set_total(max_poll_attempts + 2)
+        await progress.set_message("Creating report request...")
+        await progress.increment()
+
+        # Get HTTP client for API calls
+        client = await get_authenticated_client()
+
+        # Build report request body
+        report_config = {
+            "reportType": report_type,
+            "startDate": start_date,
+            "endDate": end_date,
+            "timeUnit": time_unit,
+            "format": "GZIP_JSON",
+        }
+
+        if group_by:
+            report_config["groupBy"] = [g.strip() for g in group_by.split(",")]
+        if columns:
+            report_config["columns"] = [c.strip() for c in columns.split(",")]
+        if filters:
+            try:
+                report_config["filters"] = json_module.loads(filters)
+            except json_module.JSONDecodeError:
+                return AsyncReportResponse(
+                    success=False, error="Invalid JSON in filters parameter"
+                )
+
+        # Create report request
+        try:
+            response = await client.post("/reporting/reports", json=report_config)
+            response.raise_for_status()
+            create_result = response.json()
+            report_id = create_result.get("reportId")
+
+            if not report_id:
+                return AsyncReportResponse(
+                    success=False, error="No reportId in response"
+                )
+
+        except Exception as e:
+            return AsyncReportResponse(
+                success=False, error=f"Failed to create report: {e}"
+            )
+
+        await progress.set_message(f"Report created: {report_id}")
+
+        # Poll for completion
+        download_url = None
+        for attempt in range(max_poll_attempts):
+            await progress.set_message(f"Checking status... (attempt {attempt + 1})")
+            await progress.increment()
+
+            try:
+                status_response = await client.get(f"/reporting/reports/{report_id}")
+                status_response.raise_for_status()
+                status_data = status_response.json()
+
+                status = status_data.get("status", "UNKNOWN")
+
+                if status == "COMPLETED":
+                    download_url = status_data.get("url")
+                    break
+                elif status == "FAILED":
+                    error_details = status_data.get("failureReason", "Unknown error")
+                    return AsyncReportResponse(
+                        success=False,
+                        report_id=report_id,
+                        status=status,
+                        error=f"Report failed: {error_details}",
+                    )
+                elif status in ("PENDING", "PROCESSING", "IN_PROGRESS"):
+                    await asyncio.sleep(poll_interval_seconds)
+                else:
+                    await asyncio.sleep(poll_interval_seconds)
+
+            except Exception as e:
+                logger.warning(f"Error checking report status: {e}")
+                await asyncio.sleep(poll_interval_seconds)
+
+        if not download_url:
+            return AsyncReportResponse(
+                success=False,
+                report_id=report_id,
+                error=f"Report did not complete within {max_poll_attempts * poll_interval_seconds} seconds",
+            )
+
+        # Download the report
+        await progress.set_message("Downloading report...")
+        await progress.increment()
+
+        try:
+            from ..utils.export_download_handler import get_download_handler
+
+            handler = get_download_handler()
+
+            # Get active profile for scoped storage
+            auth_mgr = get_auth_manager()
+            profile_id = auth_mgr.get_active_profile_id() if auth_mgr else None
+
+            file_path = await handler.download_export(
+                export_url=download_url,
+                export_id=report_id,
+                export_type=f"report_{report_type}",
+                metadata={"report_config": report_config},
+                profile_id=profile_id,
+            )
+
+            await progress.set_message("Report download complete!")
+
+            return AsyncReportResponse(
+                success=True,
+                report_id=report_id,
+                report_type=report_type,
+                file_path=str(file_path),
+                message=f"Report downloaded to {file_path}",
+            )
+
+        except Exception as e:
+            return AsyncReportResponse(
+                success=False,
+                report_id=report_id,
+                error=f"Failed to download report: {e}",
+                download_url=download_url,
+            )
+
+    logger.info("Registered reporting workflow tools with background task support")
+
+
 async def register_sampling_tools(server: FastMCP):
     """Register sampling tools if sampling is enabled.
 
@@ -772,7 +945,9 @@ async def register_tool_group_tools(
 
     :param server: FastMCP server instance.
     :param mounted_servers: Map of prefix -> list of sub-servers for mounted groups.
+    :param group_tool_counts: Pre-counted total tools per group (including disabled).
     """
+    _tool_counts = group_tool_counts or {}
 
     @server.tool(
         name="list_tool_groups",
@@ -788,14 +963,15 @@ async def register_tool_group_tools(
         enabled_count = 0
 
         for prefix, sub_servers in mounted_servers.items():
-            # Use pre-stored counts if available (disabled tools don't appear in list_tools)
-            stored_count = (group_tool_counts or {}).get(prefix)
+            # Total count from pre-stored values (includes disabled tools)
+            count = _tool_counts.get(prefix, 0)
             active = 0
             for sub in sub_servers:
-                tools = await sub.list_tools()
-                active += len(tools)  # Only enabled tools appear
-            # Total count: use stored count if we have it, else use active count
-            count = stored_count if stored_count is not None else active
+                visible = await sub.list_tools()
+                active += len(visible)
+            # Fall back to active count if no pre-stored total
+            if count == 0 and active > 0:
+                count = active
             groups.append(
                 ToolGroupInfo(
                     prefix=prefix,
@@ -846,19 +1022,15 @@ async def register_tool_group_tools(
         tool_names: list[str] = []
         for sub in mounted_servers[prefix]:
             if enable:
-                # Enable first, then list (disabled tools don't appear in list_tools)
+                # Enable first, then list to get visible tools
                 sub.enable(components={"tool"})
                 tools = await sub.list_tools()
-                for tool in tools:
-                    tool_names.append(f"{prefix}_{tool.name}")
-                affected += len(tools)
             else:
-                # List first (while still enabled), then disable
+                # List while visible, then disable
                 tools = await sub.list_tools()
-                for tool in tools:
-                    tool_names.append(f"{prefix}_{tool.name}")
-                affected += len(tools)
                 sub.disable(components={"tool"})
+            tool_names.extend(f"{prefix}_{t.name}" for t in tools)
+            affected += len(tools)
 
         action = "enabled" if enable else "disabled"
         return EnableToolGroupResponse(
@@ -879,11 +1051,15 @@ async def register_all_builtin_tools(
     server: FastMCP,
     mounted_servers: Optional[Dict[str, FastMCP]] = None,
     group_tool_counts: Optional[Dict[str, int]] = None,
+    skip_tool_groups: bool = False,
 ):
     """Register all built-in tools with the server.
 
     :param server: FastMCP server instance.
     :param mounted_servers: Optional map of prefix -> sub-server for tool groups.
+    :param group_tool_counts: Pre-counted total tools per group (including disabled).
+    :param skip_tool_groups: If True, skip registering list_tool_groups/enable_tool_group.
+        Used when code mode is active (GetTags replaces progressive disclosure).
     """
     # Register common tools that work for all auth types
     await register_profile_tools(server)
@@ -891,6 +1067,7 @@ async def register_all_builtin_tools(
     await register_region_tools(server)
     # Routing tools removed - override functionality was redundant
     await register_download_tools(server)
+    await register_reporting_tools(server)
     await register_sampling_tools(server)
     # Cache & diagnostic tools removed - not core operations
 
@@ -909,7 +1086,8 @@ async def register_all_builtin_tools(
                 logger.info("Registered OpenBridge identity tools")
 
     # Register tool group tools for progressive disclosure
-    if mounted_servers:
+    # Skipped when code mode is active (GetTags serves the same browsing purpose)
+    if mounted_servers and not skip_tool_groups:
         await register_tool_group_tools(
             server, mounted_servers, group_tool_counts=group_tool_counts
         )
