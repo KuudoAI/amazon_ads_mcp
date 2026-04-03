@@ -32,12 +32,11 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-          cache-dependency-glob: "requirements*.txt"
+          cache-dependency-glob: "uv.lock"
 
       - name: Install dependencies
         run: |
-          uv venv
-          uv pip install -r requirements-dev.txt
+          uv sync --frozen
 
       - name: Syntax compile check
         run: |

@@ -16,13 +16,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && rm -rf /var/lib/apt/lists/* \
   && curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Prepare virtual environment and install Python dependencies with uv
-COPY requirements.txt ./
-# Create venv at /opt/venv and install deps using uv (resolver) to include transitive deps
+# Copy dependency metadata, source, and README (required by poetry-core build)
+COPY pyproject.toml uv.lock README.md ./
+COPY src/ src/
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv
 RUN uv venv /opt/venv && \
-    uv pip install -r requirements.txt
+    uv sync --no-dev --frozen
 
-# Copy application source
+# Copy remaining application files (configs, openapi specs, etc.)
 COPY . .
 
 # Create cache and data directories for persistent storage

@@ -114,32 +114,39 @@ For more information, see Amazon's [Campaign Management Overview](https://advert
 
 ## Installation
 
-We recommend installing Amazon Ads API MCP with 🐳 [Docker](https://docs.astral.sh/uv/):
+We recommend running Amazon Ads API MCP with 🐳 [Docker](https://docs.docker.com/get-started/). Build the image from this repository (there is no supported `docker pull` for a third-party registry image here—use the `Dockerfile` and `docker-compose.yaml` in the repo).
 
 ```bash
-docker pull openbridge/amazon-ads-mcp
+git clone https://github.com/KuudoAI/amazon-ads-mcp.git
+cd amazon-ads-mcp
 ```
 
- Copy the environment template
- ```bash
+Copy the environment template:
+
+```bash
 cp .env.example .env
 ```
 
-Edit .env with your settings
+Edit `.env` with your settings (including `PORT` if you change the default).
 
-Start the server with Docker Compose
-```bash
-docker-compose up -d
-```
-The server will be available at http://localhost:9080
+Start the server with Docker Compose (builds and tags `amazon-ads-mcp:latest` per `docker-compose.yaml`):
 
-Check logs
 ```bash
-docker-compose logs -f
+docker compose up -d
 ```
-Stop the server
+
+The server listens on the host port mapped from `PORT` in `.env` (`.env.example` uses `9080`).
+
+Check logs:
+
 ```bash
-docker-compose down
+docker compose logs -f
+```
+
+Stop the server:
+
+```bash
+docker compose down
 ```
 
 For full installation instructions, including verification, upgrading, and developer setup, see the [**Installation Guide**](INSTALL.md).
@@ -352,26 +359,27 @@ Users would see tools like:
 
 ## 📥 Downloading Reports & Exports
 
-When you request a report or export, the data is downloaded server-side and stored in profile-scoped directories. You can then retrieve files via HTTP.
+When tools fetch a report or export from Amazon, they **download the file onto the machine running the MCP server** (local disk on the server host—Docker volume, VM, or bare metal—not your laptop unless the server runs there). The default base directory is `./data` (override with `AMAZON_ADS_DOWNLOAD_DIR`). Files are organized under `data/profiles/{profile_id}/…`.
 
-### Download Workflow
+MCP tools list those server-side files and build URLs; clients then pull the bytes over **HTTP** (`GET /downloads`, `GET /downloads/{relative-path}`). Nothing streams straight from Amazon into the MCP client without hitting server storage first in these flows.
 
-```
-1. Request Report          2. List Downloads           3. Get Download URL        4. Download File
-────────────────           ───────────────            ─────────────────         ─────────────────
-"Generate a campaign       "List my downloaded        "Get URL for the          Open URL in browser
- performance report"        files"                     campaign report"          or use curl
-         │                        │                          │                         │
-         ▼                        ▼                          ▼                         ▼
-request_and_download      list_downloads()          get_download_url()        GET /downloads/...
-    _report()                     │                          │
-         │                        │                          │
-         ▼                        ▼                          ▼
-   data/profiles/         Returns file list          Returns HTTP URL
-   {profile_id}/          with metadata              like:
-   reports/...                                       http://localhost:9080/
-                                                     downloads/reports/...
-```
+**Use HTTP transport** for downloads: run with `--transport http` (or Docker on port 9080). **stdio** mode does not register `/downloads`, and the `get_download_url` tool returns an error without HTTP.
+
+### Reports vs exports
+
+- **V3 async reports:** `request_async_report` — creates the report, polls until complete, saves the completed file **on the server** into profile storage.
+- **Exports (e.g. ad exports):** create the job with the OpenAPI tools (e.g. `export_createAdExport`), then call `download_export` with the completion URL so the file is **fetched from Amazon and written on the server** (same storage layout as reports).
+
+### Workflow
+
+1. **Set active profile** (`set_active_profile`) so storage and HTTP access are scoped.
+2. **Fetch data:** `request_async_report` and/or `download_export` as above.
+3. **Discover or link:** MCP tools `list_downloads` and `get_download_url`.
+4. **Fetch bytes:** HTTP `GET` on the URL from step 3 (browser, curl, etc.).
+
+Subpaths under the profile folder depend on report/export type (for example `reports/…`, `exports/…`). URLs look like `http://localhost:9080/downloads/{relative-path}` where `{relative-path}` matches `list_downloads` (illustrative example: `reports/async/some-report.json.gz`).
+
+**Direct HTTP (`curl`):** `/downloads` uses the **active profile** in the running server (the one set via MCP in that process). If you see `No active profile`, call `set_active_profile` through MCP against the same server first. When no auth manager is configured, a numeric `?profile_id=` query parameter may be accepted instead—see your deployment settings.
 
 ### Example Prompts
 
@@ -384,27 +392,26 @@ request_and_download      list_downloads()          get_download_url()        GE
 
 ### HTTP Download API
 
-Once you have a download URL, you can retrieve files directly:
-
 ```bash
-# List available downloads
+# List available downloads (paths and URLs are profile-scoped)
 curl http://localhost:9080/downloads
 
-# Download a specific file
-curl -O http://localhost:9080/downloads/reports/async/report_123.json.gz
+# Optional filter
+curl 'http://localhost:9080/downloads?type=reports'
 
-# With authentication (if enabled)
-curl -H "Authorization: Bearer your-token" \
-     -O http://localhost:9080/downloads/exports/campaigns/export.json
+# Download one file (example path — use paths from list_downloads)
+curl -O 'http://localhost:9080/downloads/reports/async/example-report.json.gz'
+
+# If AMAZON_ADS_DOWNLOAD_AUTH_TOKEN is set
+curl -H "Authorization: Bearer your-token" -O 'http://localhost:9080/downloads/exports/campaigns/example-export.json'
 ```
 
 ### Profile Isolation
 
-Files are stored per-profile to ensure data isolation:
-- Each profile's files are in `data/profiles/{profile_id}/`
-- You can only access files for your active profile
-- Set your profile first: *"Set my active profile to 123456789"*
-HTTP download endpoints and download tools serve profile-scoped files only. Move legacy files into a profile directory for access.
+- Files live under `data/profiles/{profile_id}/`.
+- Download tools and `/downloads` only see the **active** profile’s files.
+- Set the profile first: *"Set my active profile to 123456789"*.
+- Legacy files outside `profiles/` are not listed when using profile-scoped mode; move them under `data/profiles/{profile_id}/` for access.
 
 ## Advertiser Profiles & Regions
 
@@ -615,7 +622,7 @@ If you're encountering unexpected length issues, review which tools are active. 
 
 ## Code Mode
 
-Code Mode is an optional feature that dramatically reduces tool token consumption. Instead of loading every tool schema into the LLM's context upfront, Code Mode replaces the full catalog with four lightweight meta-tools. The LLM discovers tools on demand and executes them via sandboxed Python.
+Code Mode is a feature that dramatically reduces tool token consumption. Instead of loading every tool schema into the LLM's context upfront, Code Mode replaces the full catalog with four lightweight meta-tools. The LLM discovers tools on demand and executes them via sandboxed Python.
 
 ### Token Impact
 
@@ -640,26 +647,26 @@ All 200+ tools remain fully accessible. The LLM simply discovers and calls them 
 
 ### Activating Code Mode
 
-Add one environment variable to your configuration:
+Code Mode is the default setting `CODE_MODE=true`. To turn it off environment variable to your configuration:
 
 ```bash
-CODE_MODE=true
+CODE_MODE=false
 ```
 
 **Docker Compose** — add to your `environment` section:
 ```yaml
 environment:
-  - CODE_MODE=true
+  - CODE_MODE=false
 ```
 
 **Docker Run**:
 ```bash
-docker run -d --env-file .env -e CODE_MODE=true -p 8000:8000 amazon-ads-mcp:latest
+docker run -d --env-file .env -e CODE_MODE=false -p 8000:8000 amazon-ads-mcp:latest
 ```
 
 **Local Development**:
 ```bash
-CODE_MODE=true uv run python -m amazon_ads_mcp.server --transport http --port 9080
+CODE_MODE=false uv run python -m amazon_ads_mcp.server --transport http --port 9080
 ```
 
 ### Configuration Options

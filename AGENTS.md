@@ -154,7 +154,7 @@ data/
 
 ### Download Workflow
 
-1. **Download a report**: Use `request_and_download_report` or `download_export`
+1. **Download a report**: Use `request_async_report` or `download_export` (exports)
 2. **List available files**: Use `list_downloads` tool
 3. **Get download URL**: Use `get_download_url` tool
 4. **Download via HTTP**: Open URL in browser or use curl
@@ -622,7 +622,7 @@ openapi/resources/*.transform.json  # API transformations
 
 1. **Authentication fails**: Check environment variables and refresh token
 2. **Region routing errors**: Verify profile region settings
-3. **Docker build fails**: Ensure all dependencies in requirements.txt
+3. **Docker build fails**: Ensure all dependencies are in pyproject.toml and run `uv lock`
 4. **Import errors**: Run `uv sync` to install dependencies
 5. **Rate limit errors**: Implement exponential backoff
 6. **MCP timeout**: Increase `MCP_TIMEOUT` environment variable

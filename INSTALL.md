@@ -40,8 +40,8 @@ cd amazon-ads-mcp
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-# Install dependencies
-pip install -r requirements.txt
+# Install from pyproject.toml
+pip install .
 
 # Run the server (stdio mode for Claude Desktop)
 python -m amazon_ads_mcp.server
