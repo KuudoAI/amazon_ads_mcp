@@ -360,34 +360,6 @@ class GetDownloadUrlResponse(BaseModel):
 
 
 # ============================================================================
-# Reporting Tool Responses
-# ============================================================================
-
-
-class AsyncReportResponse(BaseModel):
-    """Response from request_async_report tool.
-
-    :param success: Whether the report was generated successfully
-    :param report_id: Amazon Ads report ID
-    :param report_type: Type of report requested
-    :param file_path: Local path where report was saved (if successful)
-    :param status: Final report status
-    :param error: Error message if operation failed
-    :param download_url: Report download URL (if available but download failed)
-    :param message: Human-readable status message
-    """
-
-    success: bool
-    report_id: Optional[str] = None
-    report_type: Optional[str] = None
-    file_path: Optional[str] = None
-    status: Optional[str] = None
-    error: Optional[str] = None
-    download_url: Optional[str] = None
-    message: Optional[str] = None
-
-
-# ============================================================================
 # OAuth Tool Responses
 # ============================================================================
 

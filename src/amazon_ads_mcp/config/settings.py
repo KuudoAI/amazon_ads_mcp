@@ -220,6 +220,13 @@ class Settings(BaseSettings):
         description="Sandbox memory limit in bytes (default 50MB)",
     )
 
+    # Background Tasks Configuration
+    enable_tasks: bool = Field(
+        True,
+        alias="ENABLE_TASKS",
+        description="Enable background task execution for long-running tools",
+    )
+
     # Response Caching Configuration
     enable_response_caching: bool = Field(
         False,

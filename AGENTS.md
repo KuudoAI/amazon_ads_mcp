@@ -154,7 +154,7 @@ data/
 
 ### Download Workflow
 
-1. **Download a report**: Use `request_async_report` or `download_export` (exports)
+1. **Download a report or export**: Use the OpenAPI tools to create and poll, then `download_export` to save the file
 2. **List available files**: Use `list_downloads` tool
 3. **Get download URL**: Use `get_download_url` tool
 4. **Download via HTTP**: Open URL in browser or use curl
@@ -294,6 +294,15 @@ export CODE_MODE_INCLUDE_TAGS=true        # Include tag browsing (default true)
 export CODE_MODE_MAX_DURATION_SECS=30     # Sandbox timeout
 export CODE_MODE_MAX_MEMORY=50000000      # Sandbox memory (50MB)
 # Requires: pip install "fastmcp[code-mode]>=3.1.0"
+```
+
+### Background Tasks Environment Variables
+
+```bash
+# Background task execution for long-running tools (enabled by default)
+# When enabled, clients can request background execution and poll for progress
+# Uses in-memory backend (tasks lost on restart); Redis backend available for persistence
+export ENABLE_TASKS=true                  # Master switch (default: true)
 ```
 
 ### File Download Environment Variables

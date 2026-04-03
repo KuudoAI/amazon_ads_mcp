@@ -245,7 +245,7 @@ AUTH_METHOD=openbridge
 
 That is it for the server config. To access the server, you need configure the client, like Claude Desktop, to pass the token directly. (see [Example MCP Client: Connect Claude Desktop](#example-mcp-client-connect-claude-desktop))
 
-##### Authorized Amazon Accounts
+#### Authorized Amazon Accounts
 
 Your Amazon authorizations reside in Openbridge. Your first step in your client is to request your current identities: `"List my remote identities"`. Next, you would tell the MCP server to use one of these identities: `"Set my remote identity to <>"`. You can then ask the MCP to `List all of my Amazon Ad profiles` linked to that account. If you do not see an advertiser listed, set a different identity.
 
@@ -367,15 +367,17 @@ MCP tools list those server-side files and build URLs; clients then pull the byt
 
 ### Reports vs exports
 
-- **V3 async reports:** `request_async_report` — creates the report, polls until complete, saves the completed file **on the server** into profile storage.
-- **Exports (e.g. ad exports):** create the job with the OpenAPI tools (e.g. `export_createAdExport`), then call `download_export` with the completion URL so the file is **fetched from Amazon and written on the server** (same storage layout as reports).
+- **V3 async reports:** Use the OpenAPI tools `createAsyncReport` (POST) to create, `getAsyncReport` (GET) to poll status, then `download_export` to save the completed file **on the server** into profile storage.
+- **Exports (e.g. ad exports):** Create the job with the OpenAPI tools (e.g. `export_CampaignExport`), poll with `export_GetExport`, then call `download_export` with the completion URL so the file is **fetched from Amazon and written on the server** (same storage layout as reports).
 
 ### Workflow
 
 1. **Set active profile** (`set_active_profile`) so storage and HTTP access are scoped.
-2. **Fetch data:** `request_async_report` and/or `download_export` as above.
-3. **Discover or link:** MCP tools `list_downloads` and `get_download_url`.
-4. **Fetch bytes:** HTTP `GET` on the URL from step 3 (browser, curl, etc.).
+2. **Create the job:** Use the appropriate OpenAPI tool to create a report or export.
+3. **Poll for completion:** Use the corresponding GET tool to check status until `COMPLETED`.
+4. **Download:** Call `download_export` with the download URL from the completed response.
+5. **Discover or link:** MCP tools `list_downloads` and `get_download_url`.
+6. **Fetch bytes:** HTTP `GET` on the URL from step 5 (browser, curl, etc.).
 
 Subpaths under the profile folder depend on report/export type (for example `reports/…`, `exports/…`). URLs look like `http://localhost:9080/downloads/{relative-path}` where `{relative-path}` matches `list_downloads` (illustrative example: `reports/async/some-report.json.gz`).
 
@@ -748,6 +750,68 @@ docker logs <container> 2>&1 | grep "Code mode"
 ```
 
 In your MCP client, you should see only four tools: `tags`, `search`, `get_schema`, and `execute`. If you see the full tool catalog, code mode is not active — check your environment variable.
+
+## Background Tasks
+
+Many Amazon Ads API operations are long-running — report generation, export creation, AMC workflow execution, audience processing, and DSP measurement studies can take seconds to minutes. Background tasks allow these operations to run without blocking the conversation.
+
+### How It Works
+
+Background tasks are **enabled by default**. When a client requests background execution for any tool:
+
+1. **Start**: The tool returns immediately with a task ID
+2. **Track**: The client polls for progress updates at server-suggested intervals
+3. **Retrieve**: The client fetches the result when the task completes
+
+All async tools in the server support background execution automatically. The client decides per-call whether to run a tool in the foreground (wait for result) or background (get task ID, poll later).
+
+### Built-in Workflow Tools
+
+Two built-in tools orchestrate multi-step workflows that combine several API calls into a single operation:
+
+| Tool | Purpose |
+|------|---------|
+| `download_export` | Downloads a completed export or report file from Amazon S3 to local storage |
+| `list_downloads` | Lists all downloaded files for the active profile |
+| `get_download_url` | Returns an HTTP URL to fetch a downloaded file |
+
+These tools include progress reporting so clients can track each stage of the workflow.
+
+### Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ENABLE_TASKS` | `true` | Enable background task execution for all async tools |
+
+To disable background tasks:
+
+```bash
+ENABLE_TASKS=false
+```
+
+**Docker Compose** — add to your `environment` section:
+```yaml
+environment:
+  - ENABLE_TASKS=false
+```
+
+### Backend
+
+The server uses an in-memory task backend by default. Tasks are tracked for the lifetime of the server process. If the server restarts, in-progress tasks are lost.
+
+For persistent task tracking across restarts, configure a Redis backend:
+
+```bash
+FASTMCP_DOCKET_URL=redis://localhost:6379
+```
+
+### Example Prompts
+
+| Task | Example Prompt |
+|------|----------------|
+| Generate a report | *"Generate a Sponsored Products campaign report for March 2026"* |
+| Export campaigns | *"Export all my enabled campaigns"* |
+| Run AMC workflow | *"Execute my audience overlap workflow for the last 30 days"* |
 
 ## Troubleshooting
 

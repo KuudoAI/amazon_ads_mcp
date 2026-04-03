@@ -24,6 +24,8 @@ services:
       # OpenBridge auth defaults are now built-in:
       # REFRESH_TOKEN_ENABLED=true, AUTH_ENABLED=true, JWT_VALIDATION_ENABLED=false
       # Override only if you need non-default behavior
+      # Background tasks (enabled by default - allows long-running tools to run in background)
+      # ENABLE_TASKS=false
       # Runtime OpenAPI slimming (on by default - set to 'false' to disable)
       # SLIM_OPENAPI_STRIP_RESPONSES=false  # Keep response schemas in tool definitions
       # SLIM_OPENAPI_AGGRESSIVE=false       # Disable enum truncation, schema flattening, etc.
