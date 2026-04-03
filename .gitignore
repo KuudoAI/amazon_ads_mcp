@@ -32,7 +32,7 @@ pyvenv.cfg
 pip-selfcheck.json
 
 # uv
-uv.lock
+# uv.lock is tracked — CI uses `uv sync --frozen`
 
 # PyCharm / JetBrains
 .idea/

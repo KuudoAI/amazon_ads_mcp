@@ -100,6 +100,11 @@ class ServerBuilder:
         # Only affects output_schema; input schemas used by GetSchemas are preserved
         await self._strip_output_schemas()
 
+        # Enrich async tool descriptions with polling hints
+        from .async_hints_transform import AsyncHintsTransform
+
+        self.server.add_transform(AsyncHintsTransform())
+
         # Code mode: tag tools by category then apply CodeMode transform
         if code_mode:
             await self._tag_tools_for_code_mode()
@@ -138,6 +143,7 @@ class ServerBuilder:
             "Amazon Ads MCP Server",
             version=__version__,
             lifespan=self.lifespan,
+            tasks=settings.enable_tasks,
         )
 
         # Setup server-side sampling handler if enabled

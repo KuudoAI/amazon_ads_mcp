@@ -23,6 +23,7 @@ async def register_all_builtin_prompts(server: "FastMCP") -> None:
         description="Complete authentication and profile setup for Amazon Ads API",
         tags={"auth", "profile", "setup"},
         meta={"version": "0.1", "owner": "ads-platform"},
+        task=False,
     )
     def auth_profile_setup_prompt(region: str = "na") -> str:
         """Guide authentication, region selection, and profile setup."""
@@ -54,6 +55,7 @@ async def register_all_builtin_prompts(server: "FastMCP") -> None:
         description="Request entity export, poll status, and download when ready",
         tags={"exports", "download", "reports"},
         meta={"version": "0.1", "owner": "ads-platform"},
+        task=False,
     )
     def export_entity_download_prompt(
         entity: str,
@@ -95,6 +97,7 @@ async def register_all_builtin_prompts(server: "FastMCP") -> None:
         description="Create a new advertising campaign with proper validation",
         tags={"campaign", "creation", "sponsored"},
         meta={"version": "0.1", "owner": "ads-platform"},
+        task=False,
     )
     def create_campaign_prompt(
         campaign_type: str = "sponsoredProducts",
@@ -138,6 +141,7 @@ async def register_all_builtin_prompts(server: "FastMCP") -> None:
         description="Diagnose and recover from common API errors",
         tags={"error", "troubleshooting", "recovery"},
         meta={"version": "0.1", "owner": "ads-platform"},
+        task=False,
     )
     def troubleshoot_api_error_prompt(
         error_code: int,
@@ -206,6 +210,7 @@ async def register_all_builtin_prompts(server: "FastMCP") -> None:
         description="Create and retrieve an async report with polling",
         tags={"reports", "async", "analytics"},
         meta={"version": "0.1", "owner": "ads-platform"},
+        task=False,
     )
     def generate_async_report_prompt(
         report_type: str = "campaigns",
@@ -247,6 +252,7 @@ async def register_all_builtin_prompts(server: "FastMCP") -> None:
         description="Configure region for API routing",
         tags={"region", "routing"},
         meta={"version": "0.2", "owner": "ads-platform"},
+        task=False,
     )
     def setup_region_prompt(
         target_region: str,

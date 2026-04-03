@@ -28,7 +28,6 @@ from fastmcp.dependencies import Progress
 from ..auth.manager import get_auth_manager
 from ..config.settings import settings
 from ..models.builtin_responses import (
-    AsyncReportResponse,
     ClearProfileResponse,
     DownloadedFile,
     DownloadExportResponse,
@@ -398,11 +397,10 @@ async def register_download_tools(server: FastMCP):
     """
 
     # Background task with progress reporting for long-running downloads
-    # task=True enables MCP background task protocol (SEP-1686) in FastMCP 2.14+
+    # task=True is inherited from server-wide tasks=True setting
     @server.tool(
         name="download_export",
         description="Download a completed export to local storage (supports background execution)",
-        task=True,  # Enable background task execution
     )
     async def download_export_tool(
         ctx: Context,
@@ -598,192 +596,6 @@ Note: Requires HTTP transport (not stdio).
                 "Authorization: Bearer <token>"
             ),
         )
-
-
-async def register_reporting_tools(server: FastMCP):
-    """Register reporting workflow tools with background task support.
-
-    These wrapper tools orchestrate the full report workflow (request → poll → download)
-    with progress tracking. OpenAPI-generated tools cannot have task=True, so we
-    create builtin wrappers for long-running operations.
-
-    :param server: FastMCP server instance
-    :type server: FastMCP
-    """
-
-    @server.tool(
-        name="request_async_report",
-        description="Request and download an async report with progress tracking (V3 Reporting API)",
-        task=True,  # Enable background task execution
-    )
-    async def request_async_report_tool(
-        ctx: Context,
-        report_type: str,
-        start_date: str,
-        end_date: str,
-        time_unit: str = "DAILY",
-        group_by: Optional[str] = None,
-        columns: Optional[str] = None,
-        filters: Optional[str] = None,
-        poll_interval_seconds: int = 10,
-        max_poll_attempts: int = 60,
-        progress: Progress = Progress(),
-    ) -> AsyncReportResponse:
-        """Request an async report and wait for completion with progress tracking.
-
-        This tool handles the full V3 Reporting API workflow:
-        1. Creates a report request
-        2. Polls for completion with progress updates
-        3. Downloads the completed report
-        4. Returns the local file path
-
-        Supports background execution - clients can track progress while report
-        generates in the background.
-
-        :param report_type: Report type (e.g., spCampaigns, spTargeting, sbCampaigns)
-        :param start_date: Report start date (YYYY-MM-DD)
-        :param end_date: Report end date (YYYY-MM-DD)
-        :param time_unit: Time granularity (DAILY, SUMMARY)
-        :param group_by: Comma-separated list of dimensions to group by
-        :param columns: Comma-separated list of columns to include
-        :param filters: JSON string of filters to apply
-        :param poll_interval_seconds: Seconds between status checks (default: 10)
-        :param max_poll_attempts: Maximum polling attempts before timeout (default: 60)
-        :return: Report result with file path
-        """
-        import asyncio
-        import json as json_module
-
-        from ..utils.http_client import get_authenticated_client
-
-        # Total steps: create (1) + poll (variable) + download (1)
-        await progress.set_total(max_poll_attempts + 2)
-        await progress.set_message("Creating report request...")
-        await progress.increment()
-
-        # Get HTTP client for API calls
-        client = await get_authenticated_client()
-
-        # Build report request body
-        report_config = {
-            "reportType": report_type,
-            "startDate": start_date,
-            "endDate": end_date,
-            "timeUnit": time_unit,
-            "format": "GZIP_JSON",
-        }
-
-        if group_by:
-            report_config["groupBy"] = [g.strip() for g in group_by.split(",")]
-        if columns:
-            report_config["columns"] = [c.strip() for c in columns.split(",")]
-        if filters:
-            try:
-                report_config["filters"] = json_module.loads(filters)
-            except json_module.JSONDecodeError:
-                return AsyncReportResponse(
-                    success=False, error="Invalid JSON in filters parameter"
-                )
-
-        # Create report request
-        try:
-            response = await client.post("/reporting/reports", json=report_config)
-            response.raise_for_status()
-            create_result = response.json()
-            report_id = create_result.get("reportId")
-
-            if not report_id:
-                return AsyncReportResponse(
-                    success=False, error="No reportId in response"
-                )
-
-        except Exception as e:
-            return AsyncReportResponse(
-                success=False, error=f"Failed to create report: {e}"
-            )
-
-        await progress.set_message(f"Report created: {report_id}")
-
-        # Poll for completion
-        download_url = None
-        for attempt in range(max_poll_attempts):
-            await progress.set_message(f"Checking status... (attempt {attempt + 1})")
-            await progress.increment()
-
-            try:
-                status_response = await client.get(f"/reporting/reports/{report_id}")
-                status_response.raise_for_status()
-                status_data = status_response.json()
-
-                status = status_data.get("status", "UNKNOWN")
-
-                if status == "COMPLETED":
-                    download_url = status_data.get("url")
-                    break
-                elif status == "FAILED":
-                    error_details = status_data.get("failureReason", "Unknown error")
-                    return AsyncReportResponse(
-                        success=False,
-                        report_id=report_id,
-                        status=status,
-                        error=f"Report failed: {error_details}",
-                    )
-                elif status in ("PENDING", "PROCESSING", "IN_PROGRESS"):
-                    await asyncio.sleep(poll_interval_seconds)
-                else:
-                    await asyncio.sleep(poll_interval_seconds)
-
-            except Exception as e:
-                logger.warning(f"Error checking report status: {e}")
-                await asyncio.sleep(poll_interval_seconds)
-
-        if not download_url:
-            return AsyncReportResponse(
-                success=False,
-                report_id=report_id,
-                error=f"Report did not complete within {max_poll_attempts * poll_interval_seconds} seconds",
-            )
-
-        # Download the report
-        await progress.set_message("Downloading report...")
-        await progress.increment()
-
-        try:
-            from ..utils.export_download_handler import get_download_handler
-
-            handler = get_download_handler()
-
-            # Get active profile for scoped storage
-            auth_mgr = get_auth_manager()
-            profile_id = auth_mgr.get_active_profile_id() if auth_mgr else None
-
-            file_path = await handler.download_export(
-                export_url=download_url,
-                export_id=report_id,
-                export_type=f"report_{report_type}",
-                metadata={"report_config": report_config},
-                profile_id=profile_id,
-            )
-
-            await progress.set_message("Report download complete!")
-
-            return AsyncReportResponse(
-                success=True,
-                report_id=report_id,
-                report_type=report_type,
-                file_path=str(file_path),
-                message=f"Report downloaded to {file_path}",
-            )
-
-        except Exception as e:
-            return AsyncReportResponse(
-                success=False,
-                report_id=report_id,
-                error=f"Failed to download report: {e}",
-                download_url=download_url,
-            )
-
-    logger.info("Registered reporting workflow tools with background task support")
 
 
 async def register_sampling_tools(server: FastMCP):
@@ -1067,7 +879,6 @@ async def register_all_builtin_tools(
     await register_region_tools(server)
     # Routing tools removed - override functionality was redundant
     await register_download_tools(server)
-    await register_reporting_tools(server)
     await register_sampling_tools(server)
     # Cache & diagnostic tools removed - not core operations
 
