@@ -31,7 +31,10 @@ ASYNC_OPERATION_HINTS: Dict[str, Tuple[str, Optional[str]]] = {
         "Returns the current status of an async report (PENDING, PROCESSING, "
         "COMPLETED, or FAILED). If not yet complete, tell the user and suggest "
         "checking back shortly rather than polling in a loop. When COMPLETED, "
-        "the response includes a download URL — use download_export to save it.",
+        "the response includes a temporary download URL (pre-signed, expires "
+        "in minutes). Present this URL to the user so they can download the "
+        "file directly if they wish. Also use download_export to save a copy "
+        "to the server for later access via /downloads.",
         None,
     ),
     # Exports
@@ -67,7 +70,10 @@ ASYNC_OPERATION_HINTS: Dict[str, Tuple[str, Optional[str]]] = {
         "Returns the current status of an export (PROCESSING, COMPLETED, or "
         "FAILED). If not yet complete, tell the user and suggest checking back "
         "shortly rather than polling in a loop. When COMPLETED, the response "
-        "includes a download URL — use download_export to save it.",
+        "includes a temporary download URL (pre-signed, expires in minutes). "
+        "Present this URL to the user so they can download the file directly "
+        "if they wish. Also use download_export to save a copy to the server "
+        "for later access via /downloads.",
         None,
     ),
     # AMC Workflows
@@ -82,7 +88,17 @@ ASYNC_OPERATION_HINTS: Dict[str, Tuple[str, Optional[str]]] = {
     "getWorkflowExecution": (
         "Returns the current status of an AMC workflow execution (PENDING, "
         "RUNNING, SUCCEEDED, FAILED, or CANCELLED). If not yet complete, tell "
-        "the user and suggest checking back rather than polling in a loop.",
+        "the user and suggest checking back rather than polling in a loop. "
+        "When SUCCEEDED, use getWorkflowExecutionDownloadUrls to get result "
+        "URLs and present them to the user.",
+        None,
+    ),
+    "getWorkflowExecutionDownloadUrls": (
+        "Returns pre-signed S3 download URLs for completed AMC workflow "
+        "results. These URLs are temporary and expire in minutes. Present "
+        "the URLs to the user so they can download the results directly. "
+        "Also use download_export to save copies to the server for later "
+        "access via /downloads.",
         None,
     ),
     # AMC Audiences
@@ -108,7 +124,10 @@ ASYNC_OPERATION_HINTS: Dict[str, Tuple[str, Optional[str]]] = {
     ),
     "getMmmReport": (
         "Returns the current status of an MMM report. If not yet complete, "
-        "tell the user and suggest checking back rather than polling in a loop.",
+        "tell the user and suggest checking back rather than polling in a loop. "
+        "When complete, present the download URL to the user so they can "
+        "download the file directly. Also use download_export to save a copy "
+        "to the server.",
         None,
     ),
     # Brand Metrics
@@ -120,7 +139,10 @@ ASYNC_OPERATION_HINTS: Dict[str, Tuple[str, Optional[str]]] = {
     ),
     "getBrandMetricsReport": (
         "Returns the current status of a Brand Metrics report. If not yet "
-        "complete, tell the user and suggest checking back rather than polling.",
+        "complete, tell the user and suggest checking back rather than polling. "
+        "When complete, present the download URL to the user so they can "
+        "download the file directly. Also use download_export to save a copy "
+        "to the server.",
         None,
     ),
     # Creative Assets Batch

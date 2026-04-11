@@ -10,7 +10,7 @@ timeouts, and exception types, making it suitable for various HTTP
 client scenarios.
 """
 
-import asyncio
+import time
 from functools import wraps
 from typing import Any, Callable, Type
 
@@ -102,7 +102,7 @@ class CircuitBreaker:
         """
         return (
             self.last_failure_time is not None
-            and asyncio.get_event_loop().time() - self.last_failure_time
+            and time.monotonic() - self.last_failure_time
             >= self.recovery_timeout
         )
 
@@ -122,6 +122,6 @@ class CircuitBreaker:
         Opens the circuit if the failure threshold is reached.
         """
         self.failure_count += 1
-        self.last_failure_time = asyncio.get_event_loop().time()
+        self.last_failure_time = time.monotonic()
         if self.failure_count >= self.failure_threshold:
             self.state = CircuitBreakerState.OPEN

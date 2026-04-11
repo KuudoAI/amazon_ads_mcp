@@ -200,7 +200,7 @@ class Settings(BaseSettings):
 
     # Code Mode Configuration
     code_mode_enabled: bool = Field(
-        False,
+        True,
         alias="CODE_MODE",
         description="Enable code mode (replaces tool catalog with meta-tools)",
     )
