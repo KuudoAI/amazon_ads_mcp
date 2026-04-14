@@ -583,7 +583,7 @@ Note: Requires HTTP transport (not stdio).
             quote(part, safe="") for part in Path(file_path).parts
         )
 
-        download_url = f"{base_url}/downloads/{encoded_path}"
+        download_url = f"{base_url}/downloads/p/{profile_id}/{encoded_path}"
         return GetDownloadUrlResponse(
             success=True,
             download_url=download_url,

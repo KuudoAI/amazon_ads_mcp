@@ -18,8 +18,8 @@ import pytest
 class TestCodeModeSettings:
     """Verify code mode settings load correctly from environment."""
 
-    def test_code_mode_disabled_by_default(self):
-        """CODE_MODE defaults to False."""
+    def test_code_mode_enabled_by_default(self):
+        """CODE_MODE defaults to True."""
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("CODE_MODE", None)
             from amazon_ads_mcp.config.settings import Settings
@@ -30,7 +30,7 @@ class TestCodeModeSettings:
                 ad_api_client_secret="y",
                 ad_api_refresh_token="z",
             )
-            assert s.code_mode_enabled is False
+            assert s.code_mode_enabled is True
 
     def test_code_mode_enabled_via_env(self):
         """CODE_MODE=true enables code mode."""

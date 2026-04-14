@@ -8,9 +8,9 @@ Amazon Ads MCP is a Python framework (Python ≥3.10) for integrating Amazon Adv
 
 - Ensure Python ≥3.10 and uv are installed
 - `uv sync` to install dependencies
-- Start the server: `docker-compose up -d`
+- Start the server: `docker compose up -d`
 - Connect Claude to the MCP server (HTTP):
-  - `claude mcp add amazon-ads-mcp -- python -m amazon_ads_mcp.server.mcp_server --transport http --port 9080`
+  - `claude mcp add amazon-ads-mcp -- python -m amazon_ads_mcp.server --transport http --port 9080`
 - Verify: `claude mcp list` and use `/mcp` inside Claude
 
 ## Required Development Workflow
@@ -45,9 +45,9 @@ Follow these steps for reliable outcomes in Claude contexts:
 - Post a short preamble and, for multi-step work, create a minimal `TodoWrite` with exactly one `in_progress` step.
 
 2) Connect & Verify (MCP + Server)
-- Start server: `docker-compose up -d` (Amazon Ads MCP at `http://localhost:9080`).
+- Start server: `docker compose up -d` (Amazon Ads MCP at `http://localhost:9080`).
 - Add MCP to Claude (HTTP):
-  - `claude mcp add amazon-ads-mcp -- python -m amazon_ads_mcp.server.mcp_server --transport http --port 9080`
+  - `claude mcp add amazon-ads-mcp -- python -m amazon_ads_mcp.server --transport http --port 9080`
 - Verify in Claude: `claude mcp list` then `/mcp` → run a tool (e.g., list profiles).
 
 3) Implement Safely
@@ -80,7 +80,7 @@ Escalation Prompts (When Blocked)
 
 Claude Command Cheatsheet
 - List servers: `claude mcp list`
-- Add server (HTTP): `claude mcp add amazon-ads-mcp -- python -m amazon_ads_mcp.server.mcp_server --transport http --port 9080`
+- Add server (HTTP): `claude mcp add amazon-ads-mcp -- python -m amazon_ads_mcp.server --transport http --port 9080`
 - In-session MCP menu: `/mcp`
 - Read files: `/read <path>`; Edit files: `/edit <path>`
 
@@ -99,15 +99,15 @@ Claude Command Cheatsheet
 | `├─resources/`   | Individual API resource definitions                   |
 | `tests/`         | Pytest test suite                                     |
 | `examples/`      | Example usage and demo scripts                        |
-| `docker-compose.yml` | Docker service configuration                      |
+| `docker-compose.yaml` | Docker service configuration                      |
 
 ## Claude / MCP Connectivity
 
 - Amazon Ads MCP Server:
-  - The MCP server runs on `localhost:9080` (HTTP transport).
+  - The HTTP listen port follows `PORT` in `.env` (`.env.example` uses **9080**); examples below use `http://localhost:9080`.
   - It connects to Amazon Ads API with proper authentication.
 - Quick connect from host:
-  - `claude mcp add amazon-ads-mcp -- python -m amazon_ads_mcp.server.mcp_server --transport http --port 9080`
+  - `claude mcp add amazon-ads-mcp -- python -m amazon_ads_mcp.server --transport http --port 9080`
 - Verification:
   - `claude mcp list` to check health
   - In Claude, run `/mcp` and call a tool (e.g., list profiles, get campaigns)
@@ -219,9 +219,9 @@ docker run --rm amazon-ads-mcp python -c "from amazon_ads_mcp import __version__
 
 - Symptom: `Failed to connect http://localhost:9080`
   - Cause: Server not running or port mismatch.
-  - Fix: Check `docker-compose up -d` and verify port mapping.
+  - Fix: Check `docker compose up -d` and verify port mapping.
 - Check Docker: `docker ps` should show `amazon-ads-mcp` on port 9080.
-- Increase logs: Set debug environment variables in docker-compose.yml.
+- Increase logs: Set debug environment variables in `docker-compose.yaml`.
 
 ## Development Rules
 
@@ -236,23 +236,23 @@ docker run --rm amazon-ads-mcp python -c "from amazon_ads_mcp import __version__
 
 ```bash
 # Step 1: Build Docker image
-docker-compose build
+docker compose build
 
 # Step 2: Run container
-docker-compose up -d
+docker compose up -d
 
 # Step 3: View logs
-docker-compose logs -f
+docker compose logs -f
 ```
 
 ### Running the MCP Server
 
 ```bash
 # Direct run with uv
-uv run python -m amazon_ads_mcp.server.mcp_server --transport http --port 9080
+uv run python -m amazon_ads_mcp.server --transport http --port 9080
 
 # With Docker
-docker-compose up -d
+docker compose up -d
 ```
 
 ### Environment Variables
@@ -468,11 +468,11 @@ uv sync
 # Build image
 docker build -t amazon-ads-mcp .
 
-# Run with docker-compose
-docker-compose up -d
+# Run with Docker Compose
+docker compose up -d
 
 # Check logs
-docker-compose logs -f
+docker compose logs -f
 
 # Shell into container
 docker exec -it amazon-ads-mcp /bin/bash
@@ -487,11 +487,11 @@ docker exec -it amazon-ads-mcp /bin/bash
 # Error: "Failed to connect to MCP server" or "Connection refused"
 # Recovery steps:
 docker ps | grep amazon-ads                # Check if container running
-docker-compose restart                     # Restart container
+docker compose restart                     # Restart container
 docker logs amazon-ads-mcp --tail 50      # Check for startup errors
 
 # If still failing:
-docker-compose down && docker-compose up -d
+docker compose down && docker compose up -d
 claude mcp list                           # Verify MCP connection
 ```
 
@@ -499,7 +499,7 @@ claude mcp list                           # Verify MCP connection
 ```bash
 # Error: "401 Unauthorized" or "Invalid refresh token"
 # Check environment variables
-docker-compose exec amazon-ads-mcp env | grep AMAZON_ADS
+docker compose exec amazon-ads-mcp env | grep AMAZON_ADS
 
 # Test authentication directly
 uv run python -c "
@@ -568,11 +568,11 @@ check_rate_limits()
 ### MCP Server Debugging
 ```bash
 # Run MCP in debug mode
-DEBUG=true uv run python -m amazon_ads_mcp.server.mcp_server
+DEBUG=true uv run python -m amazon_ads_mcp.server
 
 # Test MCP server directly
 echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | \
-  uv run python -m amazon_ads_mcp.server.mcp_server | jq
+  uv run python -m amazon_ads_mcp.server | jq
 
 # Check registered tools
 uv run python -c "
@@ -622,7 +622,7 @@ __pycache__/*            # Python bytecode
 ```
 pyproject.toml            # Dependencies & metadata
 Dockerfile               # Build process (test locally first)
-docker-compose.yml       # Service configuration
+docker-compose.yaml       # Service configuration
 .github/workflows/*      # CI/CD (test in fork first)
 openapi/resources/*.transform.json  # API transformations
 ```
@@ -660,9 +660,9 @@ Before committing, verify:
 ## Quick Reference (for Agents)
 
 - Install deps: `uv sync`
-- Start server: `docker-compose up -d`
+- Start server: `docker compose up -d`
 - Add MCP to Claude (HTTP):
-  - `claude mcp add amazon-ads-mcp -- python -m amazon_ads_mcp.server.mcp_server --transport http --port 9080`
+  - `claude mcp add amazon-ads-mcp -- python -m amazon_ads_mcp.server --transport http --port 9080`
 - Verify: `claude mcp list` and `/mcp`
 - Run tests: `uv run pytest`
 - Lint: `uv run ruff check --fix`

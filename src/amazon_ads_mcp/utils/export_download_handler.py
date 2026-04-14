@@ -361,8 +361,16 @@ class ExportDownloadHandler:
         # Determine where to save (profile-scoped or legacy)
         resource_path = self.get_resource_path(export_url, export_type, profile_id)
 
+        # SSRF guard: reject private IPs and non-Amazon hosts
+        from amazon_ads_mcp.utils.security import validate_download_url
+
+        validate_download_url(export_url)
+
         # Use plain httpx client for S3 URLs (they don't need auth headers)
-        async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(60.0),
+            follow_redirects=False,
+        ) as client:
             response = await client.get(export_url)
         response.raise_for_status()
 

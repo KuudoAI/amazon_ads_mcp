@@ -8,11 +8,27 @@
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/KuudoAI/amazon-ads-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/KuudoAI/amazon-ads-mcp/actions/workflows/ci.yml)
 
-mcp-name: io.github.KuudoAI/amazon_ads_mcp
-
+**MCP registry id** (for clients and catalogs that display a stable package name): `io.github.KuudoAI/amazon_ads_mcp`
 
 </div>
+
+## Table of contents
+
+- [What are MCP tools?](#what-are-mcp-tools)
+- [What is Amazon Ads API MCP SDK?](#what-is-amazon-ads-api-mcp-sdk)
+- [Quick start](#quick-start)
+- [Installation](#installation)
+- [Configuration](#configuration) (auth, packages, profiles, regions)
+- [Downloading reports and exports](#downloading-reports-and-exports)
+- [Example MCP client (Claude Desktop)](#example-mcp-client-connect-claude-desktop)
+- [Context limits](#context-limits-and-active-mcp-server-tools)
+- [Code mode](#code-mode)
+- [Tool audit](#tool-audit)
+- [Background tasks](#background-tasks)
+- [Troubleshooting](#troubleshooting)
+- [Documentation map](#documentation-map)
 
 ## What Are MCP Tools?
 Think of MCP (Model Context Protocol) as a translator between an AI model and outside systems (like Amazon Ads). Each MCP tool is like a remote control button that tells the AI how to interact with Amazon Ads. Without MCP tools, the AI would have no idea how to “talk” to Amazon Ads.
@@ -23,6 +39,8 @@ With MCP tools:
 * Everything is structured, so the AI doesn’t break things by making random guesses.
 
 👉 In short: MCP tools = a safe, well-labeled toolkit that lets AI work with the [Amazon Ads API](https://advertising.amazon.com/API/docs/en-us).
+
+<a id="what-is-amazon-ads-api-mcp-sdk"></a>
 
 ## 🚀 What is Amazon Ads API MCP SDK?
 
@@ -62,8 +80,19 @@ The Amazon Ads API MCP SDK is an open-source implementation that provides a robu
 - **Testing Frameworks**: Automated testing for Amazon Ads integrations
 - **Development Tools**: Local development and debugging utilities
 
+## Quick start
+
+**Prerequisites:** [Docker](https://docs.docker.com/get-started/) (recommended), Python 3.10+ if you run from source, and [Amazon Ads API access](https://advertising.amazon.com/API/docs/en-us/guides/get-started/overview) (your own developer app or a partner such as Openbridge).
+
+1. `git clone https://github.com/KuudoAI/amazon-ads-mcp.git && cd amazon-ads-mcp`
+2. `cp .env.example .env` and add credentials (see [Configuration](#configuration)).
+3. `docker compose up -d`
+4. Connect your MCP client to `http://localhost:<PORT>/mcp/` — `.env.example` sets **`PORT=9080`** (override in `.env` if needed).
+
+OAuth steps, client JSON samples, and a full variable reference: [Configuration](#configuration) below, [**INSTALL.md**](INSTALL.md), and [**AGENTS.md**](AGENTS.md).
+
 ## 📚 What Is Included In the Amazon Ads MCP?
-There is broad coverage in the MCP server for the published in the Amazon Ads API. Each aligns with a collection of operations within the Amazon Ads API. This includes services like the new [Campaign Management services in the new Amazon Ads API v1](https://advertising.amazon.com/API/docs/en-us/guides/campaign-management/overview), [Exports](https://advertising.amazon.com/API/docs/en-us/guides/exports/overview), [Amazon Marketing Cloud](https://advertising.amazon.com/API/docs/en-us/guides/amazon-marketing-cloud/overview) and many more.
+The MCP server mirrors broad coverage of the Amazon Ads API surface. Each enabled package maps to a set of API operations. That includes [Campaign Management (Amazon Ads API v1)](https://advertising.amazon.com/API/docs/en-us/guides/campaign-management/overview), [Exports](https://advertising.amazon.com/API/docs/en-us/guides/exports/overview), [Amazon Marketing Cloud](https://advertising.amazon.com/API/docs/en-us/guides/amazon-marketing-cloud/overview), and many more.
 
 Here is a representative list of the various Amazon API services in the MCP:
 
@@ -87,9 +116,9 @@ Here is a representative list of the various Amazon API services in the MCP:
 - Locations
 - Exports
 - Media Planning
-- Amazon Ads API v1 (Beta)
+- Amazon Ads API v1
 
-### 🧪 Amazon Ads API v1 (Beta)
+### 🧪 Amazon Ads API v1
 
 The Amazon Ads API v1 represents a reimagined approach to the Amazon Ads API, built from the ground up to provide a seamless experience across all Amazon advertising products through a common model. One major benefit of this common model is improved compatibility with code generation tools such as client library generators.
 
@@ -97,17 +126,19 @@ The Amazon Ads API v1 represents a reimagined approach to the Amazon Ads API, bu
 
 | Package Name | Description | Prefix |
 |-------------|-------------|--------|
+| `ads-api-v1-all` | Ads API v1 merged ALL surface | `allv1_` |
 | `ads-api-v1-sp` | Sponsored Products v1 | `spv1_` |
 | `ads-api-v1-sb` | Sponsored Brands v1 | `sbv1_` |
 | `ads-api-v1-dsp` | Amazon DSP v1 | `dspv1_` |
 | `ads-api-v1-sd` | Sponsored Display v1 | `sdv1_` |
 | `ads-api-v1-st` | Sponsored Television v1 | `stv1_` |
+| `ads-api-v1-beta` | Ads API v1 merged BETA surface | `beta_` |
 
 To activate Ads API v1 packages, add them to your `AMAZON_AD_API_PACKAGES` environment variable:
 
 ```bash
-# Example: Enable Sponsored Products v1 and DSP v1
-AMAZON_AD_API_PACKAGES="profiles,ads-api-v1-sp,ads-api-v1-dsp"
+# Example: Enable the merged Ads API v1 ALL surface
+AMAZON_AD_API_PACKAGES="profiles,ads-api-v1-all"
 ```
 
 For more information, see Amazon's [Campaign Management Overview](https://advertising.amazon.com/API/docs/en-us/guides/campaign-management/overview).
@@ -152,6 +183,9 @@ docker compose down
 For full installation instructions, including verification, upgrading, and developer setup, see the [**Installation Guide**](INSTALL.md).
 
 ## Configuration
+
+**Operators / self-hosters:** follow the steps below and your `.env` file. **Chat users** mostly interact via prompts once the server is connected; skim [Advertiser Profiles & Regions](#advertiser-profiles--regions) for profile and region behavior.
+
 Amazon Ads requires that all calls to the API are authorized. If you are not sure what this means, you should read the Amazon docs:
 
 * Amazon Ads API onboarding overview: https://advertising.amazon.com/API/docs/en-us/guides/onboarding/overview
@@ -169,9 +203,9 @@ If you have your own Amazon Ads API app, or want to create one, the process is d
 1. Go to the [Amazon Developer Console](https://developer.amazon.com/)
 2. Create or select your Login with Amazon application
 3. Note your `Client ID` and `Client Secret`
-4. Set your callback URL to "Allowed Return URLs". This is where you are running this server:
+4. Set your callback URL to "Allowed Return URLs". This must match the host and port of this MCP server’s HTTP listener (see `PORT` in `.env`; `.env.example` uses **9080**):
    - For production: `https://your-server.com/auth/callback`
-   - For local development: `http://localhost:8000/auth/callback`
+   - For local development: `http://localhost:<PORT>/auth/callback` (e.g. `http://localhost:9080/auth/callback`)
 
 Once you have your app secured and approved by Amazon, you will need the client ID and secret:
 ```bash
@@ -251,12 +285,15 @@ Your Amazon authorizations reside in Openbridge. Your first step in your client 
 
 
 ### Set Your Amazon Ads MCP Packages 
-To activate, you need to set a comma-separated package to load. For example, to activate `profiles` and `amc-workflow`, set your package environment like this:
-  - `AMAZON_AD_API_PACKAGES="profiles,amc-workflow"`
+To activate specific packages, set a comma-separated package list. For a streamlined default with unified Ads API v1 coverage:
+  - `AMAZON_AD_API_PACKAGES="profiles,accounts-ads-accounts,reporting-version-3,amc-workflow,ads-api-v1-all"`
 
 Here is the list of tool packages available in the server:
 
 - `profiles`
+- `test-account`
+- `forecasts`
+- `brand-stores-management`
 - `campaign-manage`
 - `accounts-manager-accounts`
 - `accounts-ads-accounts`
@@ -280,15 +317,12 @@ Here is the list of tool packages available in the server:
 - `dsp-target-kpi-recommendations`
 - `amazon-attribution`
 - `audience-insights`
-- `forecasts`
-- `brand-store-manangement`
 - `partner-opportunities`
 - `tactical-recommendations`
 - `persona-builder`
 - `creative-assets`
 - `change-history`
 - `data-provider-data`
-- `data-provider-hashed`
 - `products-metadata`
 - `products-eligibility`
 - `unified-pre-moderation-results`
@@ -307,15 +341,17 @@ Here is the list of tool packages available in the server:
 - `ads-api-v1-dsp` *(Beta)*
 - `ads-api-v1-sd` *(Beta)*
 - `ads-api-v1-st` *(Beta)*
+- `ads-api-v1-all`
+- `ads-api-v1-beta` *(Beta)*
 
 You will note that some are broken up into smaller groupings. For example, Amazon Marketing Cloud has bundles; `amc-ad-audience`, `amc-administration`, `amc-rule-audience`, and `amc-workflow`. This is done to create efficiencies and optimizations that reduce context limits in many AI clients. 
 
 ## Understanding Amazon Ads MCP Tools 
 
-Amazon Ads MCP tools have prefixes (like `cp_` for Campaign Performance or `amc_` for Amazon Marketing Cloud) to help organize the specific Ads API operation.
+Amazon Ads MCP tools have prefixes (like `cm_` for Campaign Management or `amc_` for Amazon Marketing Cloud) to help organize the specific Ads API operation.
 
 Example prefixes:
-- `cp_` → campaign/advertising APIs
+- `cm_` → campaign/advertising APIs
 - `amc_` → AMC-related APIs
 - `dsp_` → DSP APIs
 - `sd_` → Sponsored Display
@@ -328,12 +364,12 @@ Example prefixes:
 
 This will translate into collections of tools that align with the API operations that are available:
 
-**Campaign Management (`cp_`)**
-- `cp_listCampaigns` — List all campaigns  
-- `cp_getCampaign` — Get specific campaign  
-- `cp_createCampaign` — Create new campaign  
-- `cp_updateCampaign` — Update campaign  
-- `cp_archiveCampaign` — Archive campaign  
+**Campaign Management (`cm_`)**
+- `cm_QueryCampaign` — Query campaigns  
+- `cm_CreateCampaign` — Create campaign  
+- `cm_UpdateCampaign` — Update campaign  
+- `cm_DeleteCampaign` — Delete campaign  
+- `cm_QueryAdGroup` — Query ad groups  
 
 **Sponsored Products (`sp_`)**
 - `sp_listProductAds` — List product ads  
@@ -349,13 +385,15 @@ This will translate into collections of tools that align with the API operations
 Users would see tools like:
 
 - **"List my Amazon Ads campaigns"**  
-  → Claude uses: `cp_listCampaigns`
+  → Claude uses: `cm_QueryCampaign`
 
 - **"Create an AMC workflow"**  
-  → Claude uses: `amc_createWorkflow`
+  → Claude uses tools such as `amc_executeWorkflow` (after discovery; exact names depend on your enabled packages)
 
 - **"Export my sponsored products ads data"**
   → Claude uses: `export_createAdExport`
+
+<a id="downloading-reports-and-exports"></a>
 
 ## 📥 Downloading Reports & Exports
 
@@ -520,7 +558,6 @@ In this example, we show how to use the bearer token using the Openbridge API ke
         "--debug"
       ],
       "env": {
-        "MCP_TIMEOUT": "300",
         "HOSTNAME": "your_hostname",
         "PORT": "your_server_port",
         "MCP_TIMEOUT": "120000",
@@ -553,12 +590,11 @@ The config would look something like this:
         "http://${HOSTNAME}:${PORT}/mcp/",
         "--allow-http",
         "--header",
-        "Authorization:${AUTH_HEADER}"
+        "Authorization:${AUTH_HEADER}",
         "--header",
         "Accept: application/json, text/event-stream"
       ],
       "env": {
-        "MCP_TIMEOUT": "300",
         "HOSTNAME": "your_hostname",
         "PORT": "your_server_port",
         "MCP_TIMEOUT": "120000",
@@ -602,9 +638,11 @@ Here is another example, which can be used if you are using OAuth since the `OPE
 
 *Note: For various Claude configurations similar to what was shown above, see the [MCP Remote docs](https://github.com/geelen/mcp-remote) for the latest settings/options.*
 
-### 3. Restart Claude Desktop
+### Restart Claude Desktop
 
 After saving the configuration file, restart Claude Desktop to load the new MCP server.
+
+<a id="context-limits-and-active-mcp-server-tools"></a>
 
 ## ⚠️ Context Limits and Active MCP Server Tools
 MCP tool registration and use can impact your AI systems usage limits. Usage limits control how much you can interact with an AI system, like Claude, over a specific time period. As Anthropic states, think of the amount of information/data used as drawing down on a "conversation budget". That budget determines how many messages you can send to your AI client, or how long you can work, before needing to wait for your limit to reset.
@@ -634,6 +672,8 @@ Code Mode is a feature that dramatically reduces tool token consumption. Instead
 | Code Mode | 4 | ~470 | 0.2% |
 | **Reduction** | | | **98.6%** |
 
+*Illustrative comparison for a representative default-sized catalog; actual tool counts and token use depend on `AMAZON_AD_API_PACKAGES`, server version, and tokenizer.*
+
 ### How It Works
 
 Code Mode uses a 4-stage discovery pattern:
@@ -649,7 +689,7 @@ All 200+ tools remain fully accessible. The LLM simply discovers and calls them 
 
 ### Activating Code Mode
 
-Code Mode is the default setting `CODE_MODE=true`. To turn it off environment variable to your configuration:
+Code Mode defaults to **`CODE_MODE=true`**. To use the full tool catalog in context instead, set:
 
 ```bash
 CODE_MODE=false
@@ -661,12 +701,12 @@ environment:
   - CODE_MODE=false
 ```
 
-**Docker Run**:
+**Docker Run** (map the host port to the container `PORT`, e.g. 9080):
 ```bash
-docker run -d --env-file .env -e CODE_MODE=false -p 8000:8000 amazon-ads-mcp:latest
+docker run -d --env-file .env -e CODE_MODE=false -e PORT=9080 -p 9080:9080 amazon-ads-mcp:latest
 ```
 
-**Local Development**:
+**Local Development** (entry point is `python -m amazon_ads_mcp.server`, which runs the MCP server module):
 ```bash
 CODE_MODE=false uv run python -m amazon_ads_mcp.server --transport http --port 9080
 ```
@@ -675,7 +715,7 @@ CODE_MODE=false uv run python -m amazon_ads_mcp.server --transport http --port 9
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `CODE_MODE` | `false` | Enable code mode |
+| `CODE_MODE` | `true` | Enable code mode |
 | `CODE_MODE_INCLUDE_TAGS` | `true` | Include tag browsing in discovery (set `false` for small catalogs) |
 | `CODE_MODE_MAX_DURATION_SECS` | `30` | Maximum execution time per sandbox run |
 | `CODE_MODE_MAX_MEMORY` | `50000000` | Memory limit per sandbox run (50 MB) |
@@ -751,6 +791,56 @@ docker logs <container> 2>&1 | grep "Code mode"
 
 In your MCP client, you should see only four tools: `tags`, `search`, `get_schema`, and `execute`. If you see the full tool catalog, code mode is not active — check your environment variable.
 
+## Tool Audit
+
+Use `tool_audit` to measure token footprint for tool catalogs and code mode behavior.
+
+### Baseline Audit
+
+```bash
+.venv/bin/python -m amazon_ads_mcp.tool_audit \
+  --url http://127.0.0.1:9080/mcp \
+  --limit 20
+```
+
+JSON output:
+
+```bash
+.venv/bin/python -m amazon_ads_mcp.tool_audit \
+  --url http://127.0.0.1:9080/mcp \
+  --format json \
+  --limit 0 \
+  > /tmp/tool_audit.json
+```
+
+### Code Mode Probe Audit
+
+When code mode is active, use probe mode to estimate on-demand schema fetch cost:
+
+```bash
+.venv/bin/python -m amazon_ads_mcp.tool_audit \
+  --url http://127.0.0.1:9080/mcp \
+  --format json \
+  --limit 0 \
+  --code-mode-probe \
+  --probe-limit 50 \
+  --probe-queries "campaign,ad,report,profile,dsp,amc,brand,targeting" \
+  > /tmp/tool_audit_code_mode.json
+```
+
+### Quick Comparison
+
+```bash
+jq '{tool_count,total_tool_tokens,context_window_percent}' /tmp/tool_audit.json
+jq '{tool_count,total_tool_tokens,context_window_percent,code_mode_probe}' /tmp/tool_audit_code_mode.json
+```
+
+Key fields:
+- `total_tool_tokens`: Upfront token load from `tools/list`
+- `context_window_percent`: Share of configured context window
+- `code_mode_probe.total_schema_tokens`: Total sampled schema-fetch token cost in code mode
+- `code_mode_probe.avg_schema_tokens`: Average token cost per fetched schema
+
 ## Background Tasks
 
 Many Amazon Ads API operations are long-running — report generation, export creation, AMC workflow execution, audience processing, and DSP measurement studies can take seconds to minutes. Background tasks allow these operations to run without blocking the conversation.
@@ -765,9 +855,9 @@ Background tasks are **enabled by default**. When a client requests background e
 
 All async tools in the server support background execution automatically. The client decides per-call whether to run a tool in the foreground (wait for result) or background (get task ID, poll later).
 
-### Built-in Workflow Tools
+### Built-in workflow tools
 
-Two built-in tools orchestrate multi-step workflows that combine several API calls into a single operation:
+These tools orchestrate multi-step workflows (download and HTTP access to server-side files):
 
 | Tool | Purpose |
 |------|---------|
@@ -816,9 +906,9 @@ FASTMCP_DOCKET_URL=redis://localhost:6379
 ## Troubleshooting
 
 **Server not connecting?**
-- Ensure the Docker container is running: `docker-compose ps`
-- Check server logs: `docker-compose logs -f`
-- Verify the port is correct (8765 by default)
+- Ensure the Docker container is running: `docker compose ps`
+- Check server logs: `docker compose logs -f`
+- Verify the host port matches **`PORT`** in `.env` (`.env.example` uses **9080**; your mapping must match)
 
 **Authentication errors?**
 - Check your OpenBridge token is valid
@@ -831,7 +921,16 @@ FASTMCP_DOCKET_URL=redis://localhost:6379
 - Check the JSON syntax is valid
 - Ensure the server name matches exactly
 
+## Documentation map
+
+| Doc | Purpose |
+|-----|---------|
+| [**INSTALL.md**](INSTALL.md) | Full install, verification, upgrades, developer setup |
+| [**AGENTS.md**](AGENTS.md) | Environment variables, Docker, MCP tuning, contribution workflow |
+| This README | Overview, auth walkthrough, downloads, clients, code mode |
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+
+**Security:** report vulnerabilities through [GitHub private security advisories](https://github.com/KuudoAI/amazon-ads-mcp/security/advisories/new) for this repository.

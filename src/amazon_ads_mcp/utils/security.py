@@ -11,10 +11,14 @@ This module consolidates all security-related functionality including:
 
 import copy
 import html
+import ipaddress
 import logging
+import os
 import re
+import socket
 import sys
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse
 
 
 # Import ValidationError - using a different approach to avoid circular imports
@@ -488,6 +492,111 @@ def validate_url(url: str, allowed_schemes: Optional[List[str]] = None) -> str:
     # Prevent javascript: and data: URLs
     if url.lower().startswith(("javascript:", "data:", "vbscript:")):
         raise ValidationError("Invalid URL: potentially dangerous scheme", field="url")
+
+    return url
+
+
+# --- SSRF Protection ---
+
+# Default allowlist: Amazon Ads export URLs are always S3/CloudFront
+_DEFAULT_ALLOWED_HOSTS = [
+    ".amazonaws.com",
+    ".cloudfront.net",
+    ".amazon.com",
+]
+
+_BLOCKED_NETWORKS = [
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("127.0.0.0/8"),
+    ipaddress.ip_network("169.254.0.0/16"),  # link-local / cloud metadata
+    ipaddress.ip_network("0.0.0.0/8"),
+    ipaddress.ip_network("::1/128"),
+    ipaddress.ip_network("fe80::/10"),  # IPv6 link-local
+    ipaddress.ip_network("fc00::/7"),  # IPv6 ULA (private)
+    ipaddress.ip_network("fd00::/8"),
+]
+
+
+def _is_private_ip(ip_str: str) -> bool:
+    """Check if an IP address falls within blocked (private/reserved) ranges."""
+    try:
+        addr = ipaddress.ip_address(ip_str)
+    except ValueError:
+        return True  # unparseable → block
+    return any(addr in net for net in _BLOCKED_NETWORKS)
+
+
+def validate_download_url(
+    url: str,
+    allowed_host_suffixes: Optional[List[str]] = None,
+) -> str:
+    """Validate a URL is safe for server-side fetch (SSRF protection).
+
+    Resolves the hostname and rejects private/reserved IPs, link-local
+    addresses, and cloud metadata endpoints. Optionally restricts to an
+    allowlist of host suffixes (e.g. ".amazonaws.com").
+
+    :param url: URL to validate
+    :param allowed_host_suffixes: If provided, hostname must end with one of
+        these suffixes. Defaults to Amazon domains. Pass an empty list to
+        allow any public host.
+    :return: The validated URL (unchanged)
+    :raises ValidationError: If the URL targets a private/reserved IP or
+        fails the host allowlist check
+    """
+    ValidationError = _import_validation_error()
+
+    if not url:
+        raise ValidationError("Empty URL", field="url")
+
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise ValidationError(
+            f"Invalid scheme '{parsed.scheme}', must be http or https",
+            field="url",
+        )
+
+    hostname = parsed.hostname
+    if not hostname:
+        raise ValidationError("No hostname in URL", field="url")
+
+    # Host suffix allowlist (opt-out via AMAZON_ADS_ALLOW_PRIVATE_DOWNLOAD_HOSTS)
+    bypass = os.environ.get("AMAZON_ADS_ALLOW_PRIVATE_DOWNLOAD_HOSTS", "").lower()
+    if bypass in ("1", "true", "yes"):
+        return url
+
+    if allowed_host_suffixes is None:
+        allowed_host_suffixes = _DEFAULT_ALLOWED_HOSTS
+
+    if allowed_host_suffixes:
+        hostname_lower = hostname.lower()
+        if not any(
+            hostname_lower.endswith(suffix) or hostname_lower == suffix.lstrip(".")
+            for suffix in allowed_host_suffixes
+        ):
+            raise ValidationError(
+                f"Host '{hostname}' not in allowed list for downloads",
+                field="url",
+            )
+
+    # DNS resolution + private IP check
+    try:
+        addrinfos = socket.getaddrinfo(hostname, None, socket.AF_UNSPEC)
+    except socket.gaierror:
+        raise ValidationError(
+            f"Cannot resolve hostname '{hostname}'",
+            field="url",
+        )
+
+    for family, _type, _proto, _canonname, sockaddr in addrinfos:
+        ip_str = sockaddr[0]
+        if _is_private_ip(ip_str):
+            raise ValidationError(
+                "URL resolves to private/reserved address",
+                field="url",
+            )
 
     return url
 

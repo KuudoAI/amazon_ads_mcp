@@ -70,14 +70,14 @@ cp .env.example .env
 # Set your Amazon Ads API credentials in .env file
 
 # Start the server with Docker Compose
-docker-compose up -d
+docker compose up -d
 
-# The server will be available at http://localhost:9080
+# The server will be available at http://localhost:9080 (see `PORT` in `.env`)
 # Check logs
-docker-compose logs -f
+docker compose logs -f
 
 # Stop the server
-docker-compose down
+docker compose down
 ```
 
 **Quick Docker Run (without compose):**

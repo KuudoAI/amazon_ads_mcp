@@ -35,7 +35,7 @@ class TestProfileScopedResourcePath:
         handler = ExportDownloadHandler(base_dir=temp_base_dir)
 
         path = handler.get_resource_path(
-            url="https://example.com/exports/test.json",
+            url="https://advertising-api.amazon.com/exports/test.json",
             export_type="campaigns",
             profile_id="profile_123",
         )
@@ -54,7 +54,7 @@ class TestProfileScopedResourcePath:
         handler = ExportDownloadHandler(base_dir=temp_base_dir)
 
         path = handler.get_resource_path(
-            url="https://example.com/exports/test.json",
+            url="https://advertising-api.amazon.com/exports/test.json",
             export_type="campaigns",
             profile_id=None,
         )
@@ -73,7 +73,7 @@ class TestProfileScopedResourcePath:
         handler = ExportDownloadHandler(base_dir=temp_base_dir)
 
         path = handler.get_resource_path(
-            url="https://example.com/exports/test.json",
+            url="https://advertising-api.amazon.com/exports/test.json",
             export_type="campaigns",
             profile_id="12345",
         )
@@ -96,12 +96,12 @@ class TestProfileScopedResourcePath:
         handler = ExportDownloadHandler(base_dir=temp_base_dir)
 
         path1 = handler.get_resource_path(
-            url="https://example.com/exports/test.json",
+            url="https://advertising-api.amazon.com/exports/test.json",
             export_type="campaigns",
             profile_id="profile_A",
         )
         path2 = handler.get_resource_path(
-            url="https://example.com/exports/test.json",
+            url="https://advertising-api.amazon.com/exports/test.json",
             export_type="campaigns",
             profile_id="profile_B",
         )
@@ -157,7 +157,7 @@ class TestProfileScopedDownload:
             mock_client_class.return_value.__aexit__ = AsyncMock()
 
             file_path = await handler.download_export(
-                export_url="https://example.com/export.json",
+                export_url="https://advertising-api.amazon.com/export.json",
                 export_id="exp_123",
                 export_type="campaigns",
                 profile_id="profile_456",
@@ -188,7 +188,7 @@ class TestProfileScopedDownload:
             mock_client_class.return_value.__aexit__ = AsyncMock()
 
             file_path = await handler.download_export(
-                export_url="https://example.com/export.json",
+                export_url="https://advertising-api.amazon.com/export.json",
                 export_id="exp_123",
                 export_type="campaigns",
                 # No profile_id
@@ -218,7 +218,7 @@ class TestProfileScopedDownload:
             mock_client_class.return_value.__aexit__ = AsyncMock()
 
             file_path = await handler.download_export(
-                export_url="https://example.com/export.json",
+                export_url="https://advertising-api.amazon.com/export.json",
                 export_id="exp_123",
                 export_type="campaigns",
                 profile_id="profile_789",
@@ -274,7 +274,7 @@ class TestHandleExportResponseWithProfile:
         export_response = {
             "status": "COMPLETED",
             "exportId": "exp_abc",
-            "url": "https://example.com/download.json",
+            "url": "https://advertising-api.amazon.com/download.json",
         }
 
         with patch("httpx.AsyncClient") as mock_client_class:
