@@ -34,7 +34,7 @@ async def _run_download(tmp_path: Path):
         mock_async_client.return_value = mock_client
         
         out = await h.download_export(
-            export_url="https://example.com/exports/abc",
+            export_url="https://offline-report-storage.s3.amazonaws.com/exports/abc",
             export_id="abc",
             export_type="campaigns",
             metadata={"k": "v"},
