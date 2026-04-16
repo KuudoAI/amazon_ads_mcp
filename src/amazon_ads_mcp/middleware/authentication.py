@@ -650,7 +650,18 @@ class RefreshTokenMiddleware(Middleware):
             # Let ToolError propagate - it's handled by FastMCP
             raise
         except Exception as e:
-            self.logger.error(f"RefreshTokenMiddleware error: {e}")
+            # Fail closed: if auth setup raises unexpectedly, do not silently
+            # pass the request through to downstream handlers with no
+            # identity attached. An operator error (e.g. misconfigured
+            # header parsing) previously produced an unauthenticated
+            # request, which could surface as "silent success" against
+            # the Amazon Ads API using a stale/default identity.
+            self.logger.error(
+                "RefreshTokenMiddleware error (failing closed): %s", e
+            )
+            raise ToolError(
+                "Authentication pre-processing failed; request rejected."
+            ) from e
 
         # Wrap call_next in try/finally to ensure ContextVar cleanup
         # even if the downstream handler raises an exception

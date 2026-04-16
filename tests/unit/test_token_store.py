@@ -10,6 +10,7 @@ from amazon_ads_mcp.auth.token_store import (
     TokenEntry,
     TokenKey,
     TokenKind,
+    TokenStoreDecryptError,
     create_token_store,
 )
 
@@ -127,4 +128,53 @@ def test_initialize_encryption_requires_crypto(monkeypatch, tmp_path):
     storage_path = tmp_path / "tokens.json"
 
     with pytest.raises(RuntimeError):
+        PersistentTokenStore(storage_path=storage_path, encrypt_at_rest=True)
+
+
+def test_invalid_encryption_key_with_persistence_raises(monkeypatch, tmp_path):
+    """A bad AMAZON_ADS_ENCRYPTION_KEY must not silently fall back when
+    persistence is enabled — previously persisted tokens would be
+    unreadable."""
+    monkeypatch.setenv("AMAZON_ADS_ENCRYPTION_KEY", "not-a-valid-fernet-key")
+    monkeypatch.setenv("AMAZON_ADS_TOKEN_PERSIST", "true")
+
+    storage_path = tmp_path / "tokens.json"
+    with pytest.raises(RuntimeError, match="Invalid AMAZON_ADS_ENCRYPTION_KEY"):
+        PersistentTokenStore(storage_path=storage_path, encrypt_at_rest=True)
+
+
+def test_invalid_encryption_key_without_persistence_disables_cipher(
+    monkeypatch, tmp_path
+):
+    """With persistence disabled, an invalid key should log an error and
+    disable encryption for the session rather than hard-failing."""
+    monkeypatch.setenv("AMAZON_ADS_ENCRYPTION_KEY", "not-a-valid-fernet-key")
+    monkeypatch.setenv("AMAZON_ADS_TOKEN_PERSIST", "false")
+
+    storage_path = tmp_path / "tokens.json"
+    store = PersistentTokenStore(storage_path=storage_path, encrypt_at_rest=True)
+
+    assert store._cipher is None
+
+
+def test_decrypt_failure_raises_typed_error(monkeypatch, tmp_path):
+    """Decryption failures must surface as TokenStoreDecryptError, not
+    silently return an empty dict."""
+    import json
+
+    # Encrypt a payload under key A
+    key_a = Fernet.generate_key().decode("ascii")
+    monkeypatch.setenv("AMAZON_ADS_ENCRYPTION_KEY", key_a)
+
+    storage_path = tmp_path / "tokens.json"
+    store_a = PersistentTokenStore(storage_path=storage_path, encrypt_at_rest=True)
+    payload = store_a._encrypt_data({"some": "payload"})
+    storage_path.write_text(json.dumps(payload))
+
+    # Swap to key B and attempt to load: must raise the typed error rather
+    # than silently behave like a fresh store.
+    key_b = Fernet.generate_key().decode("ascii")
+    monkeypatch.setenv("AMAZON_ADS_ENCRYPTION_KEY", key_b)
+
+    with pytest.raises(TokenStoreDecryptError):
         PersistentTokenStore(storage_path=storage_path, encrypt_at_rest=True)

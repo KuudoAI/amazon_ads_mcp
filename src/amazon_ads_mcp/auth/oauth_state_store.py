@@ -89,11 +89,14 @@ class OAuthStateStore:
         state_base = secrets.token_urlsafe(32)
         nonce = secrets.token_hex(16)
 
-        # Create HMAC signature
+        # Create HMAC signature. Use the full SHA-256 hex digest (64 hex
+        # chars / 256 bits) rather than a 64-bit prefix: the state token is
+        # only ever sent back to us and the few extra bytes matter much
+        # less than making brute-force forgery infeasible.
         message = f"{state_base}:{nonce}:{auth_url}"
         signature = hmac.new(
             self.secret_key.encode(), message.encode(), hashlib.sha256
-        ).hexdigest()[:16]  # Use first 16 chars for brevity
+        ).hexdigest()
 
         # Combine into final state
         state = f"{state_base}.{signature}"
@@ -155,7 +158,7 @@ class OAuthStateStore:
             message = f"{state_base}:{entry.nonce}:{entry.auth_url}"
             expected_signature = hmac.new(
                 self.secret_key.encode(), message.encode(), hashlib.sha256
-            ).hexdigest()[:16]
+            ).hexdigest()
 
             if not hmac.compare_digest(signature, expected_signature):
                 logger.warning("Invalid OAuth state signature")
