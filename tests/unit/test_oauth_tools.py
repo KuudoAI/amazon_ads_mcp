@@ -277,3 +277,22 @@ async def test_handle_oauth_callback_invalid_state(monkeypatch):
 
     assert result["status"] == "error"
     assert result["message"] == "Invalid state"
+
+
+def test_oauth_redirect_uri_uses_configured_setting():
+    """OAUTH_REDIRECT_URI must be honored — Amazon rejects OAuth flows
+    whose redirect_uri does not match the registered value exactly."""
+    settings = DummySettings()
+    settings.oauth_redirect_uri = "https://ads.example.com/auth/callback"
+
+    tools = OAuthTools(settings)
+    assert tools.redirect_uri == "https://ads.example.com/auth/callback"
+
+
+def test_oauth_redirect_uri_defaults_to_localhost():
+    settings = DummySettings()
+    settings.oauth_redirect_uri = None
+
+    tools = OAuthTools(settings)
+    assert tools.redirect_uri.startswith("http://localhost:")
+    assert tools.redirect_uri.endswith("/auth/callback")

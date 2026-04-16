@@ -497,9 +497,13 @@ class TestDownloadAuth:
 class TestBaseUrlResolution:
     """Tests for _get_base_url function."""
 
-    def test_uses_forwarded_headers(self):
-        """Should use X-Forwarded-Proto and X-Forwarded-Host when present."""
+    def test_uses_forwarded_headers_only_when_trust_enabled(self, monkeypatch):
+        """Should honor X-Forwarded-* only when the operator has explicitly
+        opted in via AMAZON_ADS_TRUST_FORWARDED_HEADERS=true."""
         from amazon_ads_mcp.server.file_routes import _get_base_url
+
+        monkeypatch.setenv("AMAZON_ADS_TRUST_FORWARDED_HEADERS", "true")
+        monkeypatch.delenv("AMAZON_ADS_PUBLIC_BASE_URL", raising=False)
 
         request = Mock()
         request.headers = {
@@ -508,45 +512,58 @@ class TestBaseUrlResolution:
         }
         request.base_url = "http://localhost:9080/"
 
-        result = _get_base_url(request)
+        assert _get_base_url(request) == "https://api.example.com"
 
-        assert result == "https://api.example.com"
-
-    def test_falls_back_to_request_base_url(self):
-        """Should fall back to request.base_url when no forwarded headers."""
+    def test_ignores_forwarded_headers_by_default(self, monkeypatch):
+        """Forwarded headers must be ignored unless explicitly trusted,
+        otherwise any client can forge generated download URLs."""
         from amazon_ads_mcp.server.file_routes import _get_base_url
 
+        monkeypatch.delenv("AMAZON_ADS_TRUST_FORWARDED_HEADERS", raising=False)
+        monkeypatch.delenv("AMAZON_ADS_PUBLIC_BASE_URL", raising=False)
+
         request = Mock()
-        request.headers = {}
+        request.headers = {
+            "X-Forwarded-Proto": "https",
+            "X-Forwarded-Host": "attacker.example.com",
+        }
         request.base_url = "http://localhost:9080/"
 
         result = _get_base_url(request)
 
         assert result == "http://localhost:9080"
+        assert "attacker.example.com" not in result
 
-    def test_strips_trailing_slash(self):
-        """Should strip trailing slash from base URL."""
+    def test_public_base_url_wins(self, monkeypatch):
+        """An explicit AMAZON_ADS_PUBLIC_BASE_URL must win over everything."""
         from amazon_ads_mcp.server.file_routes import _get_base_url
+
+        monkeypatch.setenv(
+            "AMAZON_ADS_PUBLIC_BASE_URL", "https://ads.example.com/"
+        )
+        monkeypatch.setenv("AMAZON_ADS_TRUST_FORWARDED_HEADERS", "true")
+
+        request = Mock()
+        request.headers = {
+            "X-Forwarded-Proto": "https",
+            "X-Forwarded-Host": "attacker.example.com",
+        }
+        request.base_url = "http://localhost:9080/"
+
+        assert _get_base_url(request) == "https://ads.example.com"
+
+    def test_falls_back_to_request_base_url(self, monkeypatch):
+        """Fall back to request.base_url when no configuration is set."""
+        from amazon_ads_mcp.server.file_routes import _get_base_url
+
+        monkeypatch.delenv("AMAZON_ADS_TRUST_FORWARDED_HEADERS", raising=False)
+        monkeypatch.delenv("AMAZON_ADS_PUBLIC_BASE_URL", raising=False)
 
         request = Mock()
         request.headers = {}
         request.base_url = "http://localhost:9080/"
 
-        result = _get_base_url(request)
-
-        assert not result.endswith("/")
-
-    def test_fixes_http_to_https_with_forwarded_proto(self):
-        """Should upgrade HTTP to HTTPS when X-Forwarded-Proto is https."""
-        from amazon_ads_mcp.server.file_routes import _get_base_url
-
-        request = Mock()
-        request.headers = {"X-Forwarded-Proto": "https"}
-        request.base_url = "http://localhost:9080/"
-
-        result = _get_base_url(request)
-
-        assert result.startswith("https://")
+        assert _get_base_url(request) == "http://localhost:9080"
 
 
 # =============================================================================

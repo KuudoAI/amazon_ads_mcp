@@ -553,30 +553,39 @@ async def _verify_download_auth(request: Request) -> Optional[JSONResponse]:
 
 
 def _get_base_url(request: Request) -> str:
-    """Get the correct base URL, respecting proxy headers.
+    """Get the correct base URL.
 
-    Handles X-Forwarded-Proto and X-Forwarded-Host from reverse proxies.
+    Resolution order:
 
-    Args:
-        request: Starlette request object
+    1. ``AMAZON_ADS_PUBLIC_BASE_URL`` (explicit, operator-controlled). This
+       is the only option that is safe on a directly internet-exposed
+       server: Host/X-Forwarded-* headers are client-controlled and can
+       otherwise be used to forge public download URLs pointing at an
+       attacker's domain.
+    2. ``X-Forwarded-Proto`` / ``X-Forwarded-Host`` — only honored when
+       ``AMAZON_ADS_TRUST_FORWARDED_HEADERS=true`` is set explicitly by an
+       operator running behind a proxy that strips these headers from
+       untrusted callers.
+    3. Fallback to the raw ``request.base_url`` from the ASGI scope.
 
-    Returns:
-        Base URL string without trailing slash
+    :param request: Starlette request object
+    :returns: Base URL string without trailing slash
     """
-    forwarded_proto = request.headers.get("X-Forwarded-Proto")
-    forwarded_host = request.headers.get("X-Forwarded-Host")
+    from ..config.settings import Settings
 
-    if forwarded_proto and forwarded_host:
-        return f"{forwarded_proto}://{forwarded_host}"
+    settings = Settings()
 
-    # Fallback to request.base_url
-    base_url = str(request.base_url).rstrip("/")
+    public_base_url = getattr(settings, "public_base_url", None)
+    if public_base_url:
+        return public_base_url.rstrip("/")
 
-    # Fix common proxy misconfiguration
-    if forwarded_proto == "https" and base_url.startswith("http://"):
-        base_url = base_url.replace("http://", "https://", 1)
+    if getattr(settings, "trust_forwarded_headers", False):
+        forwarded_proto = request.headers.get("X-Forwarded-Proto")
+        forwarded_host = request.headers.get("X-Forwarded-Host")
+        if forwarded_proto and forwarded_host:
+            return f"{forwarded_proto}://{forwarded_host}"
 
-    return base_url
+    return str(request.base_url).rstrip("/")
 
 
 def _create_error_response(

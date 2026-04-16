@@ -52,11 +52,27 @@ class OAuthTools:
         self.client_id = settings.ad_api_client_id
         self.client_secret = settings.ad_api_client_secret
         self.region = settings.amazon_ads_region
-        # Use PORT env var (set at runtime) or settings.mcp_server_port or default to 9080
+
+        # Redirect URI resolution order:
+        #   1. Explicit OAUTH_REDIRECT_URI setting (required for any
+        #      deployment behind a proxy, load balancer, or on a non-local
+        #      host). Amazon rejects OAuth flows whose redirect_uri does
+        #      not match the registered application URL exactly, so this
+        #      must be operator-controllable.
+        #   2. Fall back to http://localhost:<port>/auth/callback for
+        #      local developer ergonomics only.
         import os
 
-        port = os.getenv("PORT") or getattr(settings, "mcp_server_port", None) or 9080
-        self.redirect_uri = f"http://localhost:{port}/auth/callback"
+        configured = getattr(settings, "oauth_redirect_uri", None)
+        if configured:
+            self.redirect_uri = configured
+        else:
+            port = (
+                os.getenv("PORT")
+                or getattr(settings, "mcp_server_port", None)
+                or 9080
+            )
+            self.redirect_uri = f"http://localhost:{port}/auth/callback"
 
     async def start_oauth_flow(
         self,
