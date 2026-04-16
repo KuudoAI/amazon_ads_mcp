@@ -428,12 +428,18 @@ def _validate_file_access(file_path: Path, base_dir: Path) -> Optional[dict]:
     Returns:
         None if access allowed, error dict otherwise
     """
-    # 1. Path traversal prevention
+    # 1. Path traversal prevention (symlink-aware, shared with MCP tools)
+    from ..utils.paths import PathTraversalError, safe_join_within
+
     try:
-        resolved = file_path.resolve()
         base_resolved = base_dir.resolve()
-        resolved.relative_to(base_resolved)
-    except ValueError:
+        resolved = file_path.resolve()
+        # Re-validate containment via the shared helper using the relative
+        # form of the resolved path. If ``file_path`` was already resolved
+        # inside ``base_dir`` this is a no-op; otherwise the helper raises.
+        rel = resolved.relative_to(base_resolved)
+        safe_join_within(base_dir, str(rel))
+    except (ValueError, PathTraversalError):
         return {
             "error": "Access denied: path traversal detected",
             "error_code": "PATH_TRAVERSAL",

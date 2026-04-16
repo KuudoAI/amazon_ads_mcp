@@ -555,12 +555,20 @@ Note: Requires HTTP transport (not stdio).
                 hint="Set active profile before getting download URLs",
             )
 
-        # Validate file exists
+        # Validate file exists and stays inside the active profile's dir
         from ..utils.export_download_handler import get_download_handler
+        from ..utils.paths import PathTraversalError, safe_join_within
 
         handler = get_download_handler()
         profile_dir = handler.base_dir / "profiles" / profile_id
-        full_path = profile_dir / file_path
+        try:
+            full_path = safe_join_within(profile_dir, file_path)
+        except PathTraversalError:
+            return GetDownloadUrlResponse(
+                success=False,
+                error="Invalid file path",
+                hint="Paths must be relative and stay within the active profile's directory",
+            )
 
         if not full_path.exists():
             return GetDownloadUrlResponse(

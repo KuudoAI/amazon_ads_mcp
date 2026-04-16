@@ -10,7 +10,6 @@ unified interface for managing downloaded data files.
 
 import json
 import logging
-from pathlib import Path
 from typing import Any, Dict, Optional
 
 from ..utils.export_download_handler import get_download_handler
@@ -142,19 +141,49 @@ async def list_downloaded_files(
     }
 
 
-async def get_download_metadata(file_path: str) -> Dict[str, Any]:
+async def get_download_metadata(
+    file_path: str,
+    profile_id: Optional[str] = None,
+) -> Dict[str, Any]:
     """Get metadata for a downloaded file.
 
     Retrieves metadata associated with a downloaded file, including
     any custom metadata stored alongside the file. Falls back to
     basic file information if no metadata is available.
 
-    :param file_path: Path to the downloaded file
+    The ``profile_id`` argument is required for multi-tenant isolation:
+    ``file_path`` is interpreted as relative to
+    ``data/profiles/{profile_id}/`` and is rejected if it contains
+    absolute segments, ``..`` components, or resolves outside that
+    directory.
+
+    :param file_path: Profile-relative path to the downloaded file.
     :type file_path: str
-    :return: Dictionary containing file metadata and status
+    :param profile_id: Profile ID that owns the file. Required.
+    :type profile_id: Optional[str]
+    :return: Dictionary containing file metadata and status.
     :rtype: Dict[str, Any]
     """
-    path = Path(file_path)
+    if not profile_id:
+        return {
+            "success": False,
+            "error": "profile_id is required",
+            "file_path": file_path,
+        }
+
+    from ..utils.paths import PathTraversalError, safe_join_within
+
+    handler = get_download_handler()
+    profile_dir = handler.base_dir / "profiles" / profile_id
+
+    try:
+        path = safe_join_within(profile_dir, file_path)
+    except PathTraversalError:
+        return {
+            "success": False,
+            "error": "Invalid file path",
+            "file_path": file_path,
+        }
 
     if not path.exists():
         return {

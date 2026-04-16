@@ -96,26 +96,62 @@ async def test_list_downloaded_files_summarizes(monkeypatch, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_get_download_metadata_reads_meta(tmp_path):
-    file_path = tmp_path / "export.csv"
+async def test_get_download_metadata_reads_meta(monkeypatch, tmp_path):
+    profile_id = "test_profile"
+    profile_dir = tmp_path / "profiles" / profile_id / "exports" / "campaigns"
+    profile_dir.mkdir(parents=True)
+
+    file_path = profile_dir / "export.csv"
     file_path.write_text("data")
     meta_path = file_path.with_suffix(".meta.json")
     meta_path.write_text('{"foo": "bar"}')
 
-    result = await download_tools.get_download_metadata(str(file_path))
+    handler = FakeHandler(tmp_path)
+    monkeypatch.setattr(download_tools, "get_download_handler", lambda: handler)
+
+    result = await download_tools.get_download_metadata(
+        "exports/campaigns/export.csv", profile_id=profile_id
+    )
 
     assert result["success"] is True
     assert result["metadata"]["foo"] == "bar"
 
 
 @pytest.mark.asyncio
-async def test_get_download_metadata_missing_file(tmp_path):
-    missing_path = tmp_path / "missing.csv"
+async def test_get_download_metadata_missing_file(monkeypatch, tmp_path):
+    profile_id = "test_profile"
+    (tmp_path / "profiles" / profile_id).mkdir(parents=True)
+    handler = FakeHandler(tmp_path)
+    monkeypatch.setattr(download_tools, "get_download_handler", lambda: handler)
 
-    result = await download_tools.get_download_metadata(str(missing_path))
+    result = await download_tools.get_download_metadata(
+        "missing.csv", profile_id=profile_id
+    )
 
     assert result["success"] is False
     assert result["error"] == "File not found"
+
+
+@pytest.mark.asyncio
+async def test_get_download_metadata_requires_profile_id(tmp_path):
+    result = await download_tools.get_download_metadata("any.csv")
+    assert result["success"] is False
+    assert "profile_id is required" in result["error"]
+
+
+@pytest.mark.asyncio
+async def test_get_download_metadata_rejects_traversal(monkeypatch, tmp_path):
+    profile_id = "test_profile"
+    (tmp_path / "profiles" / profile_id).mkdir(parents=True)
+    handler = FakeHandler(tmp_path)
+    monkeypatch.setattr(download_tools, "get_download_handler", lambda: handler)
+
+    for bad in ("../escape.csv", "/etc/passwd", "a/../../escape.csv"):
+        result = await download_tools.get_download_metadata(
+            bad, profile_id=profile_id
+        )
+        assert result["success"] is False
+        assert result["error"] == "Invalid file path"
 
 
 @pytest.mark.asyncio
