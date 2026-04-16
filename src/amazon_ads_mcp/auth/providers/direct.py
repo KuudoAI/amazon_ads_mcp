@@ -4,6 +4,7 @@ This module implements direct authentication using Amazon Ads API credentials,
 if you are using your own Amazon Ads API credentials/app.
 """
 
+import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
@@ -51,6 +52,9 @@ class DirectAmazonAdsProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
         self.profile_id = config.get("profile_id")
         self._region = config.get("region", "na")
         self._access_token: Optional[Token] = None
+        # Serializes concurrent refresh token -> access token exchanges
+        # so that N in-flight tool calls do not trigger N OAuth2 requests.
+        self._refresh_lock: Optional[asyncio.Lock] = None
 
     @property
     def provider_type(self) -> str:
@@ -150,11 +154,24 @@ class DirectAmazonAdsProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
         Performs OAuth2 token refresh to obtain a new access token
         from Amazon's authentication servers.
 
+        Concurrent callers are coalesced via an ``asyncio.Lock`` so only
+        one OAuth2 exchange runs at a time; waiters re-use the cached
+        token set by the first winner.
+
         :return: New access token with expiration
         :rtype: Token
         :raises ValueError: If no refresh token is available or token response is invalid
         :raises httpx.HTTPError: If the OAuth2 token request fails
         """
+        if self._refresh_lock is None:
+            self._refresh_lock = asyncio.Lock()
+        async with self._refresh_lock:
+            # Inside the lock, see if another task already refreshed.
+            if self._access_token and await self.validate_token(self._access_token):
+                return self._access_token
+            return await self._refresh_access_token_locked()
+
+    async def _refresh_access_token_locked(self) -> Token:
         # Check if refresh token is available from secure store
         if not self.refresh_token:
             try:

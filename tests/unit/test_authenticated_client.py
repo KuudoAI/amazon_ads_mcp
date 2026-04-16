@@ -116,25 +116,22 @@ class TestAuthenticatedClient:
             assert sent_request.headers.get("authorization") == "Bearer test-token"
             assert sent_request.headers.get("Amazon-Advertising-API-ClientId") is not None
     
-    async def test_idempotent_injection(self, authenticated_client):
-        """Test that headers are only injected once."""
+    async def test_headers_reinjected_on_every_send(self, authenticated_client):
+        """Headers must be (re-)injected on every ``send`` so retry attempts
+        pick up refreshed tokens. The legacy ``auth_injected`` short-circuit
+        broke refresh-during-retry and has been removed."""
         request = httpx.Request(
             method="GET",
             url="https://advertising-api.amazon.com/test"
         )
-        
-        # Mark as already processed
-        request.extensions["auth_injected"] = True
-        
+
         with patch.object(authenticated_client, '_inject_headers', new_callable=AsyncMock) as mock_inject:
             with patch.object(httpx.AsyncClient, 'send', new_callable=AsyncMock) as mock_send:
-                mock_response = httpx.Response(200)
-                mock_send.return_value = mock_response
-                
+                mock_send.return_value = httpx.Response(200)
                 await authenticated_client.send(request)
-                
-                # Verify injection was skipped
-                mock_inject.assert_not_called()
+                await authenticated_client.send(request)
+
+                assert mock_inject.await_count == 2
     
     async def test_media_type_negotiation(self, authenticated_client, mock_media_registry):
         """Test that media types are negotiated from registry."""

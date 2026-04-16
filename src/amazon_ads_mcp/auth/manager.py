@@ -12,6 +12,7 @@ The module supports:
 - Region-specific endpoint handling
 """
 
+import asyncio
 import logging
 import os
 from datetime import datetime, timedelta, timezone
@@ -113,8 +114,32 @@ class AuthManager:
         # the token is still valid.
         self._credentials_cache: Dict[str, "AuthCredentials"] = {}
 
+        # Per-identity asyncio locks used to coalesce concurrent
+        # credential refreshes (single-flight).  ``_refresh_locks_lock``
+        # guards lazy creation of the per-identity locks so two tasks
+        # racing into the first request for the same identity cannot
+        # create two different Lock objects.
+        self._identity_refresh_locks: Dict[str, asyncio.Lock] = {}
+        self._refresh_locks_lock: Optional[asyncio.Lock] = None
+
         # Initialize provider based on settings
         self._setup_provider()
+
+    async def _get_refresh_lock(self, identity_id: str) -> asyncio.Lock:
+        """Return the asyncio.Lock that serializes refreshes for *identity_id*.
+
+        The outer ``_refresh_locks_lock`` is created lazily because
+        :class:`asyncio.Lock` must be constructed inside a running loop
+        on some Python versions.
+        """
+        if self._refresh_locks_lock is None:
+            self._refresh_locks_lock = asyncio.Lock()
+        async with self._refresh_locks_lock:
+            lock = self._identity_refresh_locks.get(identity_id)
+            if lock is None:
+                lock = asyncio.Lock()
+                self._identity_refresh_locks[identity_id] = lock
+            return lock
 
     def _setup_provider(self):
         """Setup authentication provider using the registry.
@@ -469,9 +494,11 @@ class AuthManager:
                     )
 
             identity_id = active_identity.id
-            logger.info(f"Getting credentials for active identity: {identity_id}")
+            logger.debug(
+                "Getting credentials for active identity: %s", identity_id
+            )
 
-            # Prefer in-memory credentials for active identity until just before expiry.
+            # Fast path: in-memory credentials still comfortably valid
             cached_creds = self._credentials_cache.get(identity_id)
             if cached_creds and cached_creds.identity_id == identity_id:
                 now = datetime.now(timezone.utc)
@@ -485,99 +512,110 @@ class AuthManager:
                         refresh_at,
                     )
                     return cached_creds
-                logger.info(
-                    "In-memory credentials for %s are near expiry, refreshing now",
+                logger.debug(
+                    "In-memory credentials for %s are near expiry, refreshing",
                     identity_id,
                 )
 
-            # Try to get cached credentials from token store
-            cached_access = await self.get_token(
-                provider_type=self.provider.provider_type,
-                identity_id=identity_id,
-                token_kind=TokenKind.ACCESS,
-                region=active_identity.attributes.get("region"),
-            )
-
-            if cached_access and not cached_access.is_expired():
-                # Check if provider requires identity-specific headers
-                if (
-                    hasattr(self.provider, "headers_are_identity_specific")
-                    and self.provider.headers_are_identity_specific()
-                ):
-                    # For identity-specific providers (e.g. Openbridge), the
-                    # full AuthCredentials are cached alongside the token so
-                    # we don't need to re-fetch from the remote service on
-                    # every tool call.
-                    cached_creds = self._credentials_cache.get(identity_id)
-                    if (
-                        cached_creds
-                        and cached_creds.access_token == cached_access.value
-                        and datetime.now(timezone.utc) < cached_creds.expires_at
-                    ):
-                        logger.info(
-                            f"Using cached full credentials for {identity_id}"
+            # Slow path: coalesce concurrent refreshes per identity so
+            # bursty tool calls trigger at most one provider fetch.
+            refresh_lock = await self._get_refresh_lock(identity_id)
+            async with refresh_lock:
+                # Re-check in-memory cache now that we hold the lock; a
+                # previous waiter may have already refreshed.
+                cached_creds = self._credentials_cache.get(identity_id)
+                if cached_creds and cached_creds.identity_id == identity_id:
+                    now = datetime.now(timezone.utc)
+                    refresh_at = cached_creds.expires_at - timedelta(
+                        seconds=self._CREDENTIAL_REFRESH_SKEW_SECONDS
+                    )
+                    if now < refresh_at:
+                        logger.debug(
+                            "Reusing credentials refreshed by another task for %s",
+                            identity_id,
                         )
-                        _ctx_set_credentials(cached_creds)
                         return cached_creds
-                    logger.info(
-                        f"{self.provider.provider_type}: Cached token valid but "
-                        f"full credentials not cached, fetching fresh"
+
+                # Re-check token store cache as well
+                cached_access = await self.get_token(
+                    provider_type=self.provider.provider_type,
+                    identity_id=identity_id,
+                    token_kind=TokenKind.ACCESS,
+                    region=active_identity.attributes.get("region"),
+                )
+
+                if cached_access and not cached_access.is_expired():
+                    if (
+                        hasattr(self.provider, "headers_are_identity_specific")
+                        and self.provider.headers_are_identity_specific()
+                    ):
+                        cached_creds = self._credentials_cache.get(identity_id)
+                        if (
+                            cached_creds
+                            and cached_creds.access_token == cached_access.value
+                            and datetime.now(timezone.utc) < cached_creds.expires_at
+                        ):
+                            logger.debug(
+                                "Using cached full credentials for %s",
+                                identity_id,
+                            )
+                            _ctx_set_credentials(cached_creds)
+                            return cached_creds
+                        logger.debug(
+                            "%s: cached token valid but full credentials not cached, fetching fresh",
+                            self.provider.provider_type,
+                        )
+                    else:
+                        creds = AuthCredentials(
+                            identity_id=identity_id,
+                            access_token=cached_access.value,
+                            expires_at=cached_access.expires_at,
+                            base_url=(
+                                self.provider.get_region_endpoint()
+                                if hasattr(self.provider, "get_region_endpoint")
+                                else None
+                            ),
+                            headers=(
+                                await self.provider.get_headers()
+                                if hasattr(self.provider, "get_headers")
+                                else {}
+                            ),
+                        )
+                        _ctx_set_credentials(creds)
+                        return creds
+                elif cached_access:
+                    logger.debug(
+                        "Credentials for %s expired, refreshing", identity_id
                     )
-                    # Fall through to fetch fresh credentials
-                else:
-                    # Reconstruct credentials from cached token (for providers without identity-specific headers)
-                    creds = AuthCredentials(
-                        identity_id=identity_id,
-                        access_token=cached_access.value,
-                        expires_at=cached_access.expires_at,
-                        base_url=(
-                            self.provider.get_region_endpoint()
-                            if hasattr(self.provider, "get_region_endpoint")
-                            else None
-                        ),
-                        headers=(
-                            await self.provider.get_headers()
-                            if hasattr(self.provider, "get_headers")
-                            else {}
-                        ),
-                    )
-                    _ctx_set_credentials(creds)
-                    return creds
-            elif cached_access:
-                logger.info(f"Credentials for {identity_id} expired, refreshing")
 
-            # Get new credentials
-            logger.info(
-                f"Fetching fresh credentials from {self.provider.provider_type} for identity {identity_id}"
-            )
-            credentials = await self.provider.get_identity_credentials(identity_id)
-            logger.info(
-                f"Got credentials with headers: {list(credentials.headers.keys())}"
-            )
-            logger.info(
-                f"Client ID in credentials: {credentials.headers.get('Amazon-Advertising-API-ClientId')}"
-            )
+                logger.debug(
+                    "Fetching fresh credentials from %s for identity %s",
+                    self.provider.provider_type,
+                    identity_id,
+                )
+                credentials = await self.provider.get_identity_credentials(
+                    identity_id
+                )
 
-            # Store access token in unified store
-            await self.set_token(
-                provider_type=self.provider.provider_type,
-                identity_id=identity_id,
-                token_kind=TokenKind.ACCESS,
-                token=credentials.access_token,
-                expires_at=credentials.expires_at,
-                metadata={"base_url": credentials.base_url},
-                region=active_identity.attributes.get("region"),
-            )
+                await self.set_token(
+                    provider_type=self.provider.provider_type,
+                    identity_id=identity_id,
+                    token_kind=TokenKind.ACCESS,
+                    token=credentials.access_token,
+                    expires_at=credentials.expires_at,
+                    metadata={"base_url": credentials.base_url},
+                    region=active_identity.attributes.get("region"),
+                )
 
-            # Cache full credentials for identity-specific providers
-            self._credentials_cache[identity_id] = credentials
+                self._credentials_cache[identity_id] = credentials
+                _ctx_set_credentials(credentials)
 
-            _ctx_set_credentials(credentials)
-
-            logger.info(
-                f"Got credentials for {identity_id}, expires at {credentials.expires_at}"
-            )
-            return credentials
+                logger.debug(
+                    "Got credentials for %s, expires at %s",
+                    identity_id,
+                    credentials.expires_at,
+                )
+                return credentials
 
         # For single-identity providers, create synthetic credentials
         else:
