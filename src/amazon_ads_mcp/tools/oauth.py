@@ -184,6 +184,27 @@ class OAuthTools:
             except Exception as e:
                 logger.debug(f"Could not check auth manager: {e}")
 
+        # Last resort: env-configured Direct auth (AMAZON_AD_API_REFRESH_TOKEN
+        # or legacy amazon_ads_refresh_token). Read the underlying fields to
+        # avoid Settings.effective_refresh_token's DeprecationWarning on every
+        # status poll.
+        if not tokens_data:
+            try:
+                env_refresh = (
+                    getattr(self.settings, "ad_api_refresh_token", None)
+                    or getattr(self.settings, "amazon_ads_refresh_token", None)
+                )
+                if env_refresh:
+                    tokens_data = {
+                        "refresh_token": env_refresh,
+                        "access_token": "",
+                        "expires_in": 0,
+                        "obtained_at": datetime.now(timezone.utc).isoformat(),
+                    }
+                    await ctx.set_state("oauth_tokens", tokens_data)
+            except Exception as e:
+                logger.debug(f"Could not read env refresh token: {e}")
+
         # Check if callback has been received (legacy path)
         if hasattr(self, "_callback_tokens"):
             tokens = self._callback_tokens
