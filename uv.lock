@@ -44,6 +44,7 @@ code-mode = [
 [package.dev-dependencies]
 dev = [
     { name = "black" },
+    { name = "fastmcp", extra = ["code-mode"] },
     { name = "isort" },
     { name = "mypy" },
     { name = "pytest" },
@@ -74,6 +75,7 @@ provides-extras = ["audit", "code-mode"]
 [package.metadata.requires-dev]
 dev = [
     { name = "black", specifier = ">=25.12.0" },
+    { name = "fastmcp", extras = ["code-mode"], specifier = ">=3.1.0,<4" },
     { name = "isort", specifier = ">=7.0.0" },
     { name = "mypy", specifier = ">=1.19.1" },
     { name = "pytest", specifier = ">=9.0.2" },

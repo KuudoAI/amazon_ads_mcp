@@ -39,6 +39,25 @@ def _reset_session_state():
     reset_session_state()
 
 
+def _rebind_imported_settings(monkeypatch) -> None:
+    """Replace cached ``settings`` on modules that use ``from ... import settings``.
+
+    The global ``amazon_ads_mcp.config.settings.settings`` instance is created at
+    import time; ``monkeypatch.setenv`` alone does not update other modules that
+    bound the old object. Rebuild :class:`~amazon_ads_mcp.config.settings.Settings`
+    from the current environment and assign it everywhere the server reads config.
+    """
+    from amazon_ads_mcp.auth.manager import AuthManager
+    from amazon_ads_mcp.config.settings import Settings
+
+    fresh = Settings()
+    monkeypatch.setattr("amazon_ads_mcp.auth.manager.settings", fresh)
+    monkeypatch.setattr("amazon_ads_mcp.server.server_builder.settings", fresh)
+    monkeypatch.setattr("amazon_ads_mcp.server.builtin_tools.settings", fresh)
+    monkeypatch.setattr("amazon_ads_mcp.server.code_mode.settings", fresh)
+    AuthManager.reset()
+
+
 @pytest.fixture(autouse=True)
 def mock_env_vars(monkeypatch):
     """Set required environment variables for tests.
@@ -50,10 +69,13 @@ def mock_env_vars(monkeypatch):
     monkeypatch.setenv("AUTH_METHOD", "direct")
     monkeypatch.setenv("AMAZON_AD_API_CLIENT_ID", "test-client-id")
     monkeypatch.setenv("AMAZON_AD_API_CLIENT_SECRET", "test-client-secret")
-    
+    monkeypatch.setenv("AMAZON_AD_API_REFRESH_TOKEN", "test-refresh-token")
+
     # Optional but commonly needed
     monkeypatch.setenv("AMAZON_ADS_REGION", "na")
     monkeypatch.setenv("AMAZON_ADS_SANDBOX_MODE", "false")
+    # Full tool catalog for integration tests; avoids requiring pydantic_monty.
+    monkeypatch.setenv("CODE_MODE", "false")
     
     # OAuth configuration (for OAuth tests)
     monkeypatch.setenv("OAUTH_REDIRECT_URI", "http://localhost:5173/auth/callback")
@@ -64,7 +86,9 @@ def mock_env_vars(monkeypatch):
     
     # Logging
     monkeypatch.setenv("LOG_LEVEL", "INFO")
-    
+
+    _rebind_imported_settings(monkeypatch)
+
     yield
 
 

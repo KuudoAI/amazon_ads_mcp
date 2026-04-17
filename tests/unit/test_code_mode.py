@@ -4,7 +4,10 @@ Tests cover settings, tagging, discovery tools, dependency guards,
 and interaction with progressive disclosure.
 """
 
+import asyncio
+import json
 import os
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -418,3 +421,157 @@ class TestPrefixMapping:
         for prefix, tag in PREFIX_TO_TAG.items():
             assert tag == tag.lower(), f"Tag '{tag}' for prefix '{prefix}' not lowercase"
             assert " " not in tag, f"Tag '{tag}' contains spaces"
+
+
+class ScriptedSandbox:
+    """Test sandbox that runs scripted call_tool operations."""
+
+    async def run(self, code, *, external_functions=None, inputs=None):
+        del inputs
+        payload = json.loads(code)
+        call_tool = external_functions["call_tool"]
+        result = None
+
+        for op in payload.get("ops", []):
+            result = await call_tool(op["tool"], op.get("params", {}))
+        return result
+
+
+class ConcurrentSandbox:
+    """Test sandbox that runs concurrent call_tool operations."""
+
+    async def run(self, code, *, external_functions=None, inputs=None):
+        del code, inputs
+        call_tool = external_functions["call_tool"]
+        return await asyncio.gather(
+            call_tool("page_profiles", {"slot": "a"}),
+            call_tool("page_profiles", {"slot": "b"}),
+        )
+
+
+class DummyContext:
+    def __init__(self, fastmcp):
+        self.fastmcp = fastmcp
+        self.request_context = object()
+        self.state = {}
+
+    async def get_state(self, key):
+        return self.state.get(key)
+
+    async def set_state(self, key, value):
+        self.state[key] = value
+
+
+class TestSessionAwareCodeMode:
+    @pytest.mark.asyncio
+    async def test_nested_call_tool_persists_and_rehydrates_identity(self):
+        from fastmcp.experimental.transforms import code_mode as fm_code_mode
+        from fastmcp.tools.base import ToolResult
+
+        from amazon_ads_mcp.auth.session_state import (
+            get_active_identity,
+            reset_all_session_state,
+            set_active_identity,
+        )
+        from amazon_ads_mcp.middleware.auth_session_bridge import AUTH_SESSION_STATE_KEY
+        from amazon_ads_mcp.models import Identity
+        from amazon_ads_mcp.server.code_mode import (
+            create_auth_bridging_sandbox_provider,
+        )
+
+        reset_all_session_state()
+        transform = fm_code_mode.CodeMode(
+            sandbox_provider=create_auth_bridging_sandbox_provider(ScriptedSandbox()),
+            discovery_tools=[],
+        )
+        transform.get_tool_catalog = AsyncMock(
+            return_value=[
+                SimpleNamespace(name="set_active_identity"),
+                SimpleNamespace(name="page_profiles"),
+            ]
+        )
+
+        async def fake_call_tool(name, params):
+            if name == "set_active_identity":
+                set_active_identity(
+                    Identity(id=params["identity_id"], type="openbridge", attributes={})
+                )
+                return ToolResult(structured_content={"status": "ok"})
+            if name == "page_profiles":
+                identity = get_active_identity()
+                return ToolResult(
+                    structured_content={"identity_id": identity.id if identity else None}
+                )
+            raise RuntimeError(f"Unknown tool {name}")
+
+        ctx = DummyContext(fastmcp=SimpleNamespace(call_tool=fake_call_tool))
+        execute_tool = transform._get_execute_tool()
+
+        with patch("amazon_ads_mcp.server.code_mode.get_context", return_value=ctx):
+            first = await execute_tool.fn(
+                code=json.dumps(
+                    {
+                        "ops": [
+                            {"tool": "set_active_identity", "params": {"identity_id": "id-A"}}
+                        ]
+                    }
+                ),
+                ctx=ctx,
+            )
+        assert first["status"] == "ok"
+        assert ctx.state[AUTH_SESSION_STATE_KEY]["active_identity"]["id"] == "id-A"
+
+        # Simulate a fresh async context between execute calls.
+        reset_all_session_state()
+        with patch("amazon_ads_mcp.server.code_mode.get_context", return_value=ctx):
+            second = await execute_tool.fn(
+                code=json.dumps({"ops": [{"tool": "page_profiles", "params": {}}]}),
+                ctx=ctx,
+            )
+        assert second["identity_id"] == "id-A"
+        reset_all_session_state()
+
+    @pytest.mark.asyncio
+    async def test_nested_call_tool_serializes_concurrent_calls(self):
+        from fastmcp.experimental.transforms import code_mode as fm_code_mode
+        from fastmcp.tools.base import ToolResult
+
+        from amazon_ads_mcp.auth.session_state import (
+            reset_all_session_state,
+        )
+        from amazon_ads_mcp.server.code_mode import (
+            create_auth_bridging_sandbox_provider,
+        )
+
+        reset_all_session_state()
+        transform = fm_code_mode.CodeMode(
+            sandbox_provider=create_auth_bridging_sandbox_provider(ConcurrentSandbox()),
+            discovery_tools=[],
+        )
+        transform.get_tool_catalog = AsyncMock(
+            return_value=[SimpleNamespace(name="page_profiles")]
+        )
+
+        max_concurrency = 0
+        in_flight = 0
+        lock = asyncio.Lock()
+
+        async def fake_call_tool(name, params):
+            nonlocal in_flight, max_concurrency
+            del name, params
+            async with lock:
+                in_flight += 1
+                max_concurrency = max(max_concurrency, in_flight)
+            await asyncio.sleep(0.01)
+            async with lock:
+                in_flight -= 1
+            return ToolResult(structured_content={"ok": True})
+
+        ctx = DummyContext(fastmcp=SimpleNamespace(call_tool=fake_call_tool))
+        execute_tool = transform._get_execute_tool()
+
+        with patch("amazon_ads_mcp.server.code_mode.get_context", return_value=ctx):
+            result = await execute_tool.fn(code="{}", ctx=ctx)
+        assert result == [{"ok": True}, {"ok": True}]
+        assert max_concurrency == 1
+        reset_all_session_state()

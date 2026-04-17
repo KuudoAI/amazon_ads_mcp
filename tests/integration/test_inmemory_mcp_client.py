@@ -25,34 +25,15 @@ import pytest_asyncio
 pytest.importorskip("fastmcp")
 
 
-@pytest.fixture
-def mock_auth_for_inmemory(monkeypatch):
-    """Set up authentication mocks for in-memory testing.
-
-    This fixture configures the minimum required auth state for
-    testing MCP tools without hitting real Amazon Ads API.
-    """
-    monkeypatch.setenv("AUTH_METHOD", "direct")
-    monkeypatch.setenv("AMAZON_AD_API_CLIENT_ID", "test-client-id")
-    monkeypatch.setenv("AMAZON_AD_API_CLIENT_SECRET", "test-client-secret")
-    monkeypatch.setenv("AD_API_REFRESH_TOKEN", "test-refresh-token")
-    monkeypatch.setenv("AMAZON_ADS_REGION", "na")
-    monkeypatch.setenv("AMAZON_ADS_SANDBOX_MODE", "false")
-    monkeypatch.setenv("CODE_MODE", "false")  # Expose all tools for testing
-
-    # Reset singletons so env changes take effect
-    from amazon_ads_mcp.config.settings import Settings
-    monkeypatch.setattr("amazon_ads_mcp.auth.manager.settings", Settings())
-    from amazon_ads_mcp.auth.manager import AuthManager
-    AuthManager.reset()
-
-
 @pytest_asyncio.fixture
-async def mcp_server(mock_auth_for_inmemory):
+async def mcp_server():
     """Create a configured MCP server instance for in-memory testing.
 
     This fixture creates the full Amazon Ads MCP server with all
     builtin tools registered, suitable for in-memory client testing.
+
+    Auth env and ``CODE_MODE=false`` (full tool catalog) come from
+    ``tests/conftest.py`` autouse fixtures.
     """
     import pathlib
 
