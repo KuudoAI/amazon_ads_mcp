@@ -934,12 +934,14 @@ class ServerBuilder:
         from starlette.requests import Request
         from starlette.responses import JSONResponse
 
+        from .. import __version__ as package_version
+
         @self.server.custom_route("/health", methods=["GET"])
         async def health_check(request: Request) -> JSONResponse:
             return JSONResponse(
                 {
                     "status": "healthy",
                     "service": "amazon-ads-mcp",
-                    "version": "1.0.0",
+                    "version": package_version,
                 }
             )

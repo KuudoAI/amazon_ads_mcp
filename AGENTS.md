@@ -321,6 +321,25 @@ export AMAZON_ADS_DOWNLOAD_ALLOWED_EXTENSIONS=".json,.csv,.txt,.gz"
 export AMAZON_ADS_DOWNLOAD_DIR="./data"
 ```
 
+### Public URL Resolution
+
+```bash
+# Canonical external URL of this server. When set, all public links
+# (download URLs, OAuth redirect_uri fallbacks) use this value. Required
+# for any deployment behind a proxy or load balancer.
+export AMAZON_ADS_PUBLIC_BASE_URL="https://ads.example.com"
+
+# Only honor X-Forwarded-Proto / X-Forwarded-Host from the client when
+# explicitly enabled. Do NOT enable on a directly internet-exposed server:
+# a malicious client can otherwise forge public URLs pointing at their
+# own domain.
+export AMAZON_ADS_TRUST_FORWARDED_HEADERS="false"
+
+# OAuth redirect URI (required for non-localhost deployments). Must match
+# the value registered with Amazon Ads.
+export OAUTH_REDIRECT_URI="https://ads.example.com/auth/callback"
+```
+
 ### Security-Related Environment Variables
 
 ```bash

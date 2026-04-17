@@ -5,6 +5,7 @@ which manages multiple Amazon Ads identities through OpenBridge's
 remote identity service.
 """
 
+import asyncio
 import hashlib
 import logging
 import os
@@ -123,6 +124,20 @@ class OpenBridgeProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
         self._identities_cache: Dict[tuple, List[Identity]] = {}
         # Max cache entries to prevent unbounded growth
         self._max_cache_entries = 32
+        # Per-fingerprint locks that serialize concurrent refresh-token ->
+        # JWT exchanges so bursty tool calls share a single network fetch.
+        self._refresh_locks: Dict[str, asyncio.Lock] = {}
+        self._refresh_locks_guard: Optional[asyncio.Lock] = None
+
+    async def _get_refresh_lock(self, fingerprint: str) -> asyncio.Lock:
+        if self._refresh_locks_guard is None:
+            self._refresh_locks_guard = asyncio.Lock()
+        async with self._refresh_locks_guard:
+            lock = self._refresh_locks.get(fingerprint)
+            if lock is None:
+                lock = asyncio.Lock()
+                self._refresh_locks[fingerprint] = lock
+            return lock
 
     @property
     def provider_type(self) -> str:
@@ -197,11 +212,27 @@ class OpenBridgeProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
         return await self._refresh_jwt_token()
 
     async def _refresh_jwt_token(self) -> Token:
-        """Convert refresh token to JWT via OpenBridge."""
+        """Convert refresh token to JWT via OpenBridge.
+
+        Concurrent callers for the same refresh token share a single
+        network fetch via a per-fingerprint ``asyncio.Lock``; waiters
+        return the freshly cached JWT.
+        """
         effective_token = self._get_effective_refresh_token()
         if not effective_token:
             raise ValueError("Cannot refresh JWT: No refresh token available")
 
+        fingerprint = self._token_fingerprint(effective_token)
+        lock = await self._get_refresh_lock(fingerprint)
+        async with lock:
+            cached = self._jwt_tokens.get(fingerprint)
+            if cached and await self.validate_token(cached):
+                return cached
+            return await self._refresh_jwt_token_locked(effective_token, fingerprint)
+
+    async def _refresh_jwt_token_locked(
+        self, effective_token: str, fingerprint: str
+    ) -> Token:
         logger.debug("Converting OpenBridge refresh token to JWT")
 
         client = await self._get_client()
@@ -242,8 +273,6 @@ class OpenBridgeProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
                 },
             )
 
-            # Store in fingerprinted cache with bounded eviction
-            fingerprint = self._token_fingerprint(effective_token)
             if len(self._jwt_tokens) >= self._max_cache_entries:
                 oldest_key = next(iter(self._jwt_tokens))
                 del self._jwt_tokens[oldest_key]

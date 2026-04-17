@@ -32,7 +32,9 @@ Environment Variables:
     - AMAZON_ADS_DOWNLOAD_DIR: Custom download directory path
 """
 
+import asyncio
 import gzip
+import hashlib
 import json
 import logging
 import re
@@ -366,58 +368,104 @@ class ExportDownloadHandler:
 
         validate_download_url(export_url)
 
-        # Use plain httpx client for S3 URLs (they don't need auth headers)
+        from ..config.settings import settings as _settings
+        from .errors import DownloadTooLargeError
+
+        max_size = int(getattr(_settings, "download_max_file_size", 512 * 1024 * 1024))
+        chunk_size = 1024 * 1024  # 1 MiB
+
+        # Stream the body to disk so we never hold the full payload in memory
+        # and can abort as soon as the configured cap is reached.
         async with httpx.AsyncClient(
             timeout=httpx.Timeout(60.0),
             follow_redirects=False,
         ) as client:
-            response = await client.get(export_url)
-        response.raise_for_status()
+            async with client.stream("GET", export_url) as response:
+                response.raise_for_status()
 
-        # Determine filename and gzip state
-        cd = response.headers.get("content-disposition")
-        ct = response.headers.get("content-type")
-        filename, is_gzipped = self._infer_filename_and_type(
-            export_url, cd, ct, export_id
-        )
+                # Pre-check advertised size when available
+                content_length_header = response.headers.get("content-length")
+                if content_length_header:
+                    try:
+                        advertised = int(content_length_header)
+                    except ValueError:
+                        advertised = -1
+                    if advertised > max_size:
+                        raise DownloadTooLargeError(advertised, max_size)
 
-        # Paths
-        file_path = resource_path / filename
-        final_path = file_path
+                cd = response.headers.get("content-disposition")
+                ct = response.headers.get("content-type")
+                filename, is_gzipped = self._infer_filename_and_type(
+                    export_url, cd, ct, export_id
+                )
 
-        # Save original bytes
-        content_bytes = response.content
-        with open(file_path, "wb") as f:
-            f.write(content_bytes)
+                file_path = resource_path / filename
+                final_path = file_path
+                total_bytes = 0
+                try:
+                    with open(file_path, "wb") as f:
+                        async for chunk in response.aiter_bytes(chunk_size):
+                            if not chunk:
+                                continue
+                            total_bytes += len(chunk)
+                            if total_bytes > max_size:
+                                raise DownloadTooLargeError(total_bytes, max_size)
+                            await asyncio.to_thread(f.write, chunk)
+                except BaseException:
+                    # Clean up partial file on any failure (cap breach, I/O, cancel)
+                    try:
+                        file_path.unlink(missing_ok=True)
+                    except OSError:
+                        pass
+                    raise
 
-        # If gzipped, also decompress to base (without .gz)
+        # Optionally decompress gzipped streams to a sibling file without
+        # holding the full payload in memory.
         if is_gzipped and filename.endswith(".gz"):
+            base_name = filename[:-3]
+            decompressed_path = resource_path / base_name
+
+            def _decompress() -> None:
+                with gzip.open(file_path, "rb") as src, open(
+                    decompressed_path, "wb"
+                ) as dst:
+                    while True:
+                        block = src.read(chunk_size)
+                        if not block:
+                            break
+                        dst.write(block)
+
             try:
-                decompressed = gzip.decompress(content_bytes)
-                base_name = filename[:-3]  # strip .gz
-                decompressed_path = resource_path / base_name
-                with open(decompressed_path, "wb") as out:
-                    out.write(decompressed)
+                await asyncio.to_thread(_decompress)
                 final_path = decompressed_path
                 logger.info(
-                    f"Downloaded and decompressed export to: {final_path} (original: {file_path})"
+                    "Downloaded and decompressed export to: %s (original: %s)",
+                    final_path,
+                    file_path,
                 )
             except Exception as e:
+                try:
+                    decompressed_path.unlink(missing_ok=True)
+                except OSError:
+                    pass
                 logger.warning(
-                    f"Failed to decompress gzip content, keeping original: {e}"
+                    "Failed to decompress gzip content, keeping original: %s", e
                 )
         else:
-            logger.info(f"Downloaded export to: {final_path}")
+            logger.info("Downloaded export to: %s", final_path)
 
-        # Save metadata if provided
         if metadata:
             meta_path = final_path.with_suffix(".meta.json")
-            metadata = dict(metadata)  # shallow copy to avoid side effects
+            metadata = dict(metadata)
             metadata["download_timestamp"] = datetime.now().isoformat()
             metadata["export_id"] = export_id
             metadata["export_type"] = export_type
-            metadata["original_url"] = export_url
-            metadata["file_size"] = len(content_bytes)
+            # Do not persist the raw pre-signed URL; store a hash only so any
+            # tokens embedded in the URL do not rest on disk.
+            metadata["original_url_sha256"] = hashlib.sha256(
+                export_url.encode("utf-8")
+            ).hexdigest()
+            metadata["file_size"] = total_bytes
             metadata["original_filename"] = filename
             metadata["content_type"] = ct
             metadata["gzipped"] = is_gzipped
@@ -425,11 +473,20 @@ class ExportDownloadHandler:
             if profile_id:
                 metadata["profile_id"] = profile_id
 
-            with open(meta_path, "w", encoding="utf-8") as f:
-                json.dump(metadata, f, indent=2)
-            logger.debug(f"Saved metadata to: {meta_path}")
+            await asyncio.to_thread(
+                self._write_json_atomic, meta_path, metadata
+            )
+            logger.debug("Saved metadata to: %s", meta_path)
 
         return final_path
+
+    @staticmethod
+    def _write_json_atomic(path: Path, data: dict) -> None:
+        """Write JSON metadata via a temp-file swap to avoid torn writes."""
+        tmp = path.with_suffix(path.suffix + ".tmp")
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+        tmp.replace(path)
 
     async def handle_export_response(
         self,

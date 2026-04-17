@@ -400,6 +400,29 @@ class ExternalServiceError(MCPError):
         self.service = service
 
 
+class DownloadTooLargeError(MCPError):
+    """Raised when a streamed download exceeds the configured size cap.
+
+    :param size: Observed size in bytes (partial count when streamed).
+    :type size: int
+    :param max_size: Configured maximum size in bytes.
+    :type max_size: int
+    """
+
+    def __init__(self, size: int, max_size: int, **kwargs):
+        details = kwargs.pop("details", {})
+        details.update({"size": size, "max_size": max_size})
+        super().__init__(
+            f"Download exceeds max size: {size} > {max_size} bytes",
+            category=ErrorCategory.VALIDATION,
+            status_code=413,
+            details=details,
+            **kwargs,
+        )
+        self.size = size
+        self.max_size = max_size
+
+
 # =============================================================================
 # Error Pattern Models
 # =============================================================================

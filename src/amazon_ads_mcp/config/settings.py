@@ -253,6 +253,29 @@ class Settings(BaseSettings):
         description="Comma-separated list of allowed file extensions (e.g., '.json,.csv,.gz')",
     )
 
+    # Public URL resolution
+    public_base_url: Optional[str] = Field(
+        None,
+        alias="AMAZON_ADS_PUBLIC_BASE_URL",
+        description=(
+            "Absolute external URL of this server (e.g. 'https://ads.example.com'). "
+            "When set, all generated public links (downloads, OAuth callbacks) "
+            "use this value instead of attempting to infer it from request headers. "
+            "Required for any deployment where the server sits behind a proxy or "
+            "load balancer."
+        ),
+    )
+    trust_forwarded_headers: bool = Field(
+        False,
+        alias="AMAZON_ADS_TRUST_FORWARDED_HEADERS",
+        description=(
+            "If true, honor X-Forwarded-Proto / X-Forwarded-Host from the client. "
+            "Only enable this when the server is behind a proxy that strips or "
+            "rewrites these headers from untrusted callers. Enabling it on a "
+            "directly exposed server allows any client to forge public URLs."
+        ),
+    )
+
     @field_validator("auth_method")
     @classmethod
     def auto_detect_auth_method(cls, v: str, info) -> str:

@@ -157,21 +157,14 @@ class AuthenticatedClient(httpx.AsyncClient):
         :rtype: httpx.Response
         :raises httpx.RequestError: When required auth headers are missing
         """
-        # Check if already processed (idempotent) - CRITICAL for preventing double injection
-        if request.extensions.get("auth_injected"):
-            logger.debug(
-                f"Request already processed, skipping injection: {request.method} {request.url}"
-            )
-            return await super().send(request, **kwargs)
-
-        # Mark as processing to prevent concurrent/recursive injection
-        request.extensions["auth_injected"] = True
-
-        # Log incoming request for debugging (only once)
+        # Always (re-)inject auth headers on send. This matters for the
+        # retry path: when a 401 triggers a token refresh between
+        # attempts, the retry must pick up the fresh Authorization
+        # header. Injection is idempotent: the helper overwrites the
+        # Amazon auth headers, so re-calling it is safe.
         logger.debug(f"=== SEND: {request.method} {request.url}")
         logger.debug(f"    Headers before injection: {list(request.headers.keys())}")
 
-        # Inject headers (only once)
         await self._inject_headers(request)
 
         logger.debug(f"Headers injected for {request.method} {request.url}")

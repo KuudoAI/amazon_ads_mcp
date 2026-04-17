@@ -27,6 +27,17 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
+class TokenStoreDecryptError(RuntimeError):
+    """Raised when a persisted token store cannot be decrypted.
+
+    This is distinct from "file missing" or "file empty": it means the
+    on-disk ciphertext is present but cannot be decrypted with the
+    configured key. Silently returning ``{}`` would look identical to a
+    fresh install and would cause the server to quietly re-authenticate
+    every identity from scratch, which is a security-relevant surprise.
+    """
+
+
 class TokenKind(Enum):
     """Types of tokens stored in the system."""
 
@@ -436,6 +447,11 @@ class PersistentTokenStore(InMemoryTokenStore):
 
             logger.info(f"Loaded {len(self._store)} tokens from persistent storage")
 
+        except TokenStoreDecryptError:
+            # Let decryption failures surface: silently discarding the
+            # persisted store on a bad key would look identical to a fresh
+            # install and would force unexpected re-authentication.
+            raise
         except Exception as e:
             logger.error(f"Failed to load tokens from disk: {e}")
 
@@ -535,12 +551,31 @@ class PersistentTokenStore(InMemoryTokenStore):
                     logger.info("Using encryption key from AMAZON_ADS_ENCRYPTION_KEY")
                     return cipher
                 except Exception as e:
-                    logger.error(
-                        f"CRITICAL: Invalid AMAZON_ADS_ENCRYPTION_KEY: {e}\n"
-                        f"Previously encrypted tokens will be UNREADABLE!\n"
-                        f'Generate a valid key with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"\n'
-                        f"Falling back to auto-generated random key"
+                    # Hard fail when persistence is enabled: silently falling
+                    # back to an auto-generated key would (a) make previously
+                    # encrypted on-disk tokens unreadable and (b) make the
+                    # security posture depend on an invalid key being
+                    # configured, which is never what operators want.
+                    persist_enabled = (
+                        os.getenv("AMAZON_ADS_TOKEN_PERSIST", "false").lower()
+                        == "true"
                     )
+                    if persist_enabled:
+                        raise RuntimeError(
+                            "Invalid AMAZON_ADS_ENCRYPTION_KEY while "
+                            "AMAZON_ADS_TOKEN_PERSIST=true: refusing to start "
+                            "with a random fallback key that would make "
+                            "previously persisted tokens unreadable. "
+                            f"Underlying error: {e}"
+                        ) from e
+                    logger.error(
+                        "Invalid AMAZON_ADS_ENCRYPTION_KEY: %s. "
+                        "Persistence is disabled so encryption is also disabled "
+                        "for this session. Fix the key before enabling "
+                        "AMAZON_ADS_TOKEN_PERSIST=true.",
+                        e,
+                    )
+                    return None
 
             # Generate and persist a strong random key
             # This ensures we always use strong encryption, never weak deterministic keys
@@ -595,6 +630,11 @@ class PersistentTokenStore(InMemoryTokenStore):
 
             return cipher
 
+        except RuntimeError:
+            # Typed hard-fail paths (e.g. invalid AMAZON_ADS_ENCRYPTION_KEY
+            # while persistence is enabled) must propagate rather than
+            # silently disable encryption and fall back to plaintext.
+            raise
         except Exception as e:
             logger.error(f"Failed to initialize encryption: {e}")
             return None
@@ -666,8 +706,11 @@ class PersistentTokenStore(InMemoryTokenStore):
             return data
 
         if not self._cipher:
-            logger.error("Cannot decrypt data - encryption not available")
-            return {}
+            raise TokenStoreDecryptError(
+                "Persisted token store is encrypted but no cipher is "
+                "available to decrypt it. Configure AMAZON_ADS_ENCRYPTION_KEY "
+                "or remove the persisted store."
+            )
 
         try:
             # Extract and decode the encrypted data
@@ -680,9 +723,15 @@ class PersistentTokenStore(InMemoryTokenStore):
             # Parse the JSON
             return json.loads(decrypted_bytes.decode())
 
+        except TokenStoreDecryptError:
+            raise
         except Exception as e:
-            logger.error(f"Decryption failed: {e}")
-            return {}
+            raise TokenStoreDecryptError(
+                f"Failed to decrypt persisted token store: {e}. "
+                "The on-disk file may be corrupt or encrypted with a "
+                "different key. Move or remove the file to force a clean "
+                "start, or restore the original AMAZON_ADS_ENCRYPTION_KEY."
+            ) from e
 
 
 # Factory function for creating token stores

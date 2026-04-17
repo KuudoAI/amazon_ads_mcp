@@ -446,13 +446,18 @@ class ResilientRetry:
                         # Network errors and timeouts are retryable
                         should_retry = True
 
-                    # Record failure
-                    if self.use_circuit_breaker and url:
-                        breaker = get_circuit_breaker(endpoint)
-                        breaker.record_failure()
+                    # Do NOT record a circuit-breaker failure per attempt:
+                    # with max_attempts=3 every transient error would
+                    # count as 3 failures and trip the breaker after a
+                    # single logical request. Count at most one failure
+                    # per logical request, recorded only when we exit
+                    # the loop without success.
 
                     if not should_retry or attempt >= self.max_attempts:
                         logger.error(f"Request failed after {attempt} attempts: {e}")
+                        if self.use_circuit_breaker and url:
+                            breaker = get_circuit_breaker(endpoint)
+                            breaker.record_failure()
                         raise
 
                     # Calculate delay
@@ -475,6 +480,9 @@ class ResilientRetry:
 
                     if delay <= 0:
                         logger.error("No time left in retry budget")
+                        if self.use_circuit_breaker and url:
+                            breaker = get_circuit_breaker(endpoint)
+                            breaker.record_failure()
                         raise
 
                     metrics.record_retry(endpoint, attempt, delay)

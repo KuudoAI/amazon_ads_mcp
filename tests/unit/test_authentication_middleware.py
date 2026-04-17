@@ -417,3 +417,35 @@ async def test_auth_session_state_persists_across_tool_calls():
         return current.id if current else None
 
     assert await middleware.on_request(ctx2, second_call_next) == "3175"
+
+
+@pytest.mark.asyncio
+async def test_refresh_token_middleware_fails_closed_on_unexpected_error():
+    """Unexpected errors during auth pre-processing must reject the request,
+    not silently continue with a missing/stale identity."""
+    from fastmcp.exceptions import ToolError
+
+    config = AuthConfig()
+    config.enabled = False
+    config.refresh_token_enabled = False
+
+    middleware = RefreshTokenMiddleware(config, auth_manager=None)
+
+    class ExplodingRequest:
+        @property
+        def headers(self):
+            raise RuntimeError("boom: headers unavailable")
+
+    class ExplodingFastMCPContext:
+        def __init__(self):
+            self.request_context = DummyRequestContext(ExplodingRequest())
+
+    ctx = DummyContext(ExplodingFastMCPContext())
+
+    async def call_next(_):
+        pytest.fail(
+            "call_next must not run after auth pre-processing raises"
+        )
+
+    with pytest.raises(ToolError):
+        await middleware.on_request(ctx, call_next)
