@@ -108,6 +108,7 @@ def create_code_mode_transform():
 
     :return: Configured CodeMode transform
     :raises ImportError: If ``fastmcp[code-mode]`` extra is not installed
+        or the ``pydantic_monty`` runtime dependency is missing.
     """
     try:
         from fastmcp.experimental.transforms.code_mode import (
@@ -118,6 +119,20 @@ def create_code_mode_transform():
         raise ImportError(
             "Code mode requires the 'code-mode' extra. "
             "Install with: pip install 'fastmcp[code-mode]>=3.1.0'"
+        ) from exc
+
+    # MontySandboxProvider lazy-imports pydantic_monty at .run() time.  Verify
+    # it is importable now so we fail loudly at server startup rather than
+    # deep inside a tool call like `execute`.
+    try:
+        import pydantic_monty  # noqa: F401
+    except ImportError as exc:
+        raise ImportError(
+            "Code mode is enabled (CODE_MODE=true) but the Monty sandbox "
+            "runtime dependency 'pydantic_monty' is not installed. "
+            "Install the code-mode extra with: "
+            "pip install 'fastmcp[code-mode]>=3.1.0' "
+            "(or set CODE_MODE=false to disable code mode)."
         ) from exc
 
     sandbox = MontySandboxProvider(

@@ -123,6 +123,31 @@ class TestCodeModeDependencyGuard:
             with pytest.raises(ImportError, match="code-mode"):
                 create_code_mode_transform()
 
+    def test_create_transform_pydantic_monty_missing(self):
+        """create_code_mode_transform fails loudly when pydantic_monty missing.
+
+        The fastmcp.experimental.transforms.code_mode module can import even
+        when the Monty runtime (pydantic_monty) is not installed.  In that
+        case we want the error at server startup, not mid-tool-call.
+        """
+        fake_module = MagicMock()
+        fake_module.CodeMode = MagicMock()
+        fake_module.MontySandboxProvider = MagicMock()
+
+        with patch.dict(
+            "sys.modules",
+            {
+                "fastmcp.experimental.transforms.code_mode": fake_module,
+                "pydantic_monty": None,
+            },
+        ):
+            from amazon_ads_mcp.server.code_mode import (
+                create_code_mode_transform,
+            )
+
+            with pytest.raises(ImportError, match="pydantic_monty"):
+                create_code_mode_transform()
+
 
 # ---------------------------------------------------------------------------
 # Discovery tool composition tests

@@ -20,8 +20,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY pyproject.toml uv.lock README.md ./
 COPY src/ src/
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv
+# Install runtime deps plus the code-mode extra so MontySandboxProvider
+# (pydantic_monty) is available when CODE_MODE is enabled (default: true).
 RUN uv venv /opt/venv && \
-    uv sync --no-dev --frozen
+    uv sync --no-dev --frozen --extra code-mode
 
 # Copy remaining application files (configs, openapi specs, etc.)
 COPY . .

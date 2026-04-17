@@ -289,11 +289,15 @@ export MCP_ON_DUPLICATE_TOOLS=warn
 ```bash
 # Code mode replaces tool catalog with meta-tools (98% token reduction)
 # See docs/code-mode.md for full documentation
-export CODE_MODE=false                    # Master switch
+export CODE_MODE=true                     # Master switch (default: true)
 export CODE_MODE_INCLUDE_TAGS=true        # Include tag browsing (default true)
 export CODE_MODE_MAX_DURATION_SECS=30     # Sandbox timeout
 export CODE_MODE_MAX_MEMORY=50000000      # Sandbox memory (50MB)
-# Requires: pip install "fastmcp[code-mode]>=3.1.0"
+# The Docker image ships with the code-mode extra pre-installed
+# (fastmcp[code-mode], which pulls pydantic-monty for the Monty sandbox).
+# For non-Docker installs (or custom images), install it explicitly:
+#   pip install "fastmcp[code-mode]>=3.1.0"
+# Set CODE_MODE=false to expose the full tool catalog directly instead.
 ```
 
 ### Background Tasks Environment Variables
