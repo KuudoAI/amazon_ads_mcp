@@ -30,6 +30,16 @@ COPY . .
 RUN mkdir -p /app/.cache/amazon-ads-mcp /app/data && \
     chmod 755 /app/.cache /app/.cache/amazon-ads-mcp /app/data
 
+# Build provenance: embed the commit SHA and build timestamp so the
+# running container can self-report which source it was built from.
+# Populate via `docker build --build-arg GIT_SHA=$(git rev-parse --short HEAD)`
+# or via docker-compose `build.args`. Defaults keep images reproducible
+# when args are omitted.
+ARG GIT_SHA=unknown
+ARG BUILD_TIME=unknown
+ENV AMAZON_ADS_MCP_GIT_SHA=$GIT_SHA \
+    AMAZON_ADS_MCP_BUILD_TIME=$BUILD_TIME
+
 # Runtime configuration
 ENV TRANSPORT=streamable-http \
     HOST=0.0.0.0 \

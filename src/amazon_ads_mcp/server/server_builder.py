@@ -948,6 +948,9 @@ class ServerBuilder:
 
         from .. import __version__ as package_version
 
+        git_sha = os.getenv("AMAZON_ADS_MCP_GIT_SHA", "unknown")
+        built_at = os.getenv("AMAZON_ADS_MCP_BUILD_TIME", "unknown")
+
         @self.server.custom_route("/health", methods=["GET"])
         async def health_check(request: Request) -> JSONResponse:
             return JSONResponse(
@@ -955,5 +958,7 @@ class ServerBuilder:
                     "status": "healthy",
                     "service": "amazon-ads-mcp",
                     "version": package_version,
+                    "git_sha": git_sha,
+                    "built_at": built_at,
                 }
             )
