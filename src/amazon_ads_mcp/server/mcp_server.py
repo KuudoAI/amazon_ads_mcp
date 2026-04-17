@@ -61,6 +61,17 @@ async def server_lifespan(server: Any) -> AsyncIterator[None]:
     _ = server  # Server instance available if needed for future enhancements
     logger.info("Server lifespan: Starting up...")
 
+    import os
+
+    from .. import __version__ as package_version
+
+    logger.info(
+        "Build provenance: version=%s git_sha=%s built_at=%s",
+        package_version,
+        os.getenv("AMAZON_ADS_MCP_GIT_SHA", "unknown"),
+        os.getenv("AMAZON_ADS_MCP_BUILD_TIME", "unknown"),
+    )
+
     # Startup phase
     try:
         # Log initial state

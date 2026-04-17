@@ -3,6 +3,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # Populated by the caller to stamp build provenance into the image.
+        # Example: GIT_SHA=$(git rev-parse --short HEAD) \
+        #          BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+        #          docker compose build amazon-ads-mcp
+        GIT_SHA: ${GIT_SHA:-unknown}
+        BUILD_TIME: ${BUILD_TIME:-unknown}
     image: amazon-ads-mcp:latest
     container_name: amazon-ads-mcp
     env_file:

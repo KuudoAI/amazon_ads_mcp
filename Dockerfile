@@ -20,8 +20,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY pyproject.toml uv.lock README.md ./
 COPY src/ src/
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv
+# Install runtime deps plus the code-mode extra so MontySandboxProvider
+# (pydantic_monty) is available when CODE_MODE is enabled (default: true).
 RUN uv venv /opt/venv && \
-    uv sync --no-dev --frozen
+    uv sync --no-dev --frozen --extra code-mode
 
 # Copy remaining application files (configs, openapi specs, etc.)
 COPY . .
@@ -29,6 +31,16 @@ COPY . .
 # Create cache and data directories for persistent storage
 RUN mkdir -p /app/.cache/amazon-ads-mcp /app/data && \
     chmod 755 /app/.cache /app/.cache/amazon-ads-mcp /app/data
+
+# Build provenance: embed the commit SHA and build timestamp so the
+# running container can self-report which source it was built from.
+# Populate via `docker build --build-arg GIT_SHA=$(git rev-parse --short HEAD)`
+# or via docker-compose `build.args`. Defaults keep images reproducible
+# when args are omitted.
+ARG GIT_SHA=unknown
+ARG BUILD_TIME=unknown
+ENV AMAZON_ADS_MCP_GIT_SHA=$GIT_SHA \
+    AMAZON_ADS_MCP_BUILD_TIME=$BUILD_TIME
 
 # Runtime configuration
 ENV TRANSPORT=streamable-http \
