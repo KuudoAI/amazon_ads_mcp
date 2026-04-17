@@ -16,6 +16,7 @@ from .. import __version__
 from ..auth.manager import get_auth_manager
 from ..config.settings import settings
 from ..middleware.authentication import (
+    AuthSessionStateMiddleware,
     create_auth_middleware,
     create_openbridge_config,
 )
@@ -212,8 +213,19 @@ class ServerBuilder:
                 middleware_list.append(sampling_middleware)
             logger.info("Added server-side sampling middleware")
 
-        # Add OpenBridge middleware if using OpenBridge auth
+        # Bridge ContextVar auth state with FastMCP session state for all
+        # providers. Tool calls may cross async contexts within the same MCP
+        # session; without this, Direct+HTTP loses identity/credentials/profile
+        # ContextVars between calls. OpenBridge gets the same middleware via
+        # create_auth_middleware below, so skip adding it twice.
         provider_type = getattr(self.auth_manager.provider, "provider_type", None)
+        if provider_type != "openbridge":
+            middleware_list.append(AuthSessionStateMiddleware())
+            logger.info(
+                "Added AuthSessionStateMiddleware for %s auth", provider_type or "unknown"
+            )
+
+        # Add OpenBridge middleware if using OpenBridge auth
         if provider_type == "openbridge":
             ob_config = create_openbridge_config()
             auth_middlewares = create_auth_middleware(
