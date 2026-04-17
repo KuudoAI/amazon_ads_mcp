@@ -3,9 +3,12 @@
 This module tests the server creation and bootstrap process,
 ensuring the server can be properly initialized with OpenAPI
 specifications.
+
+Credentials and ``CODE_MODE=false`` come from ``tests/conftest.py`` autouse
+fixtures (``AMAZON_AD_API_*`` env vars and rebinding imported ``settings``).
 """
 
-import os
+import pathlib
 
 import pytest
 
@@ -13,7 +16,6 @@ import pytest
 @pytest.mark.asyncio
 async def test_create_server_bootstrap():
     # Only run if resources directory exists; otherwise skip
-    import pathlib
     from amazon_ads_mcp.server.mcp_server import create_amazon_ads_server
 
     root = pathlib.Path(__file__).parents[2]
@@ -21,12 +23,5 @@ async def test_create_server_bootstrap():
     if not resources.exists():
         pytest.skip("No openapi/resources present in repo")
 
-    # Use direct auth method for testing to avoid OpenBridge refresh token requirement
-    os.environ["AUTH_METHOD"] = "direct"
-    # Set minimal required credentials for direct auth
-    os.environ["AD_API_CLIENT_ID"] = "test_client_id"
-    os.environ["AD_API_CLIENT_SECRET"] = "test_client_secret"
-    os.environ["AD_API_REFRESH_TOKEN"] = "test_refresh_token"
-    
     srv = await create_amazon_ads_server()
     assert srv is not None

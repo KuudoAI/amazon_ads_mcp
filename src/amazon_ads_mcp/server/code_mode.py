@@ -17,13 +17,20 @@ See also: docs/code-mode.md
 
 from __future__ import annotations
 
+import asyncio
 import logging
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List
 
 if TYPE_CHECKING:
     from fastmcp import FastMCP
 
+from fastmcp.server.dependencies import get_context
+
 from ..config.settings import settings
+from ..middleware.auth_session_bridge import (
+    hydrate_auth_from_mcp_session,
+    persist_auth_to_mcp_session,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -103,6 +110,59 @@ def build_discovery_tools() -> list:
     return tools
 
 
+class AuthBridgingSandboxProvider:
+    """Wrap a SandboxProvider and bridge auth state for nested call_tool."""
+
+    def __init__(self, inner: Any):
+        self._inner = inner
+
+    async def run(
+        self,
+        code: str,
+        *,
+        inputs: dict[str, Any] | None = None,
+        external_functions: dict[str, Any] | None = None,
+    ) -> Any:
+        wrapped_functions = dict(external_functions or {})
+        original_call_tool = wrapped_functions.get("call_tool")
+        parent_ctx = None
+
+        try:
+            parent_ctx = get_context()
+        except RuntimeError:
+            parent_ctx = None
+
+        if parent_ctx is not None and original_call_tool is not None:
+            call_lock = asyncio.Lock()
+
+            async def bridged_call_tool(name: str, params: dict[str, Any]) -> Any:
+                # Each nested call hydrates from parent MCP session and
+                # persists back to parent session after completion.
+                async with call_lock:
+                    await hydrate_auth_from_mcp_session(
+                        parent_ctx, logger_instance=logger
+                    )
+                    try:
+                        return await original_call_tool(name, params)
+                    finally:
+                        await persist_auth_to_mcp_session(
+                            parent_ctx, logger_instance=logger
+                        )
+
+            wrapped_functions["call_tool"] = bridged_call_tool
+
+        return await self._inner.run(
+            code,
+            inputs=inputs,
+            external_functions=wrapped_functions,
+        )
+
+
+def create_auth_bridging_sandbox_provider(inner: Any) -> AuthBridgingSandboxProvider:
+    """Create auth-bridging sandbox wrapper for code-mode execution."""
+    return AuthBridgingSandboxProvider(inner)
+
+
 def create_code_mode_transform():
     """Create a configured CodeMode transform instance.
 
@@ -111,10 +171,8 @@ def create_code_mode_transform():
         or the ``pydantic_monty`` runtime dependency is missing.
     """
     try:
-        from fastmcp.experimental.transforms.code_mode import (
-            CodeMode,
-            MontySandboxProvider,
-        )
+        from fastmcp.experimental.transforms import code_mode as fastmcp_code_mode
+        from fastmcp.experimental.transforms.code_mode import MontySandboxProvider
     except ImportError as exc:
         raise ImportError(
             "Code mode requires the 'code-mode' extra. "
@@ -144,8 +202,8 @@ def create_code_mode_transform():
 
     discovery_tools = build_discovery_tools()
 
-    transform = CodeMode(
-        sandbox_provider=sandbox,
+    transform = fastmcp_code_mode.CodeMode(
+        sandbox_provider=create_auth_bridging_sandbox_provider(sandbox),
         discovery_tools=discovery_tools,
     )
 

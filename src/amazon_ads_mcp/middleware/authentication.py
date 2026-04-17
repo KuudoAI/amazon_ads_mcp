@@ -52,6 +52,12 @@ from fastmcp.server.middleware import Middleware, MiddlewareContext
 
 from ..utils.http import get_http_client
 from ..utils.security import sanitize_string
+from .auth_session_bridge import (
+    AUTH_SESSION_STATE_KEY as BRIDGE_AUTH_SESSION_STATE_KEY,
+    has_auth_session,
+    hydrate_auth_from_mcp_session,
+    persist_auth_to_mcp_session,
+)
 
 # Context-safe storage for sharing JWT tokens between middleware
 # Using contextvars instead of threading.local() for async safety
@@ -60,9 +66,8 @@ jwt_claims_var: ContextVar[Optional[dict]] = ContextVar("jwt_claims", default=No
 
 logger = logging.getLogger(__name__)
 
-# FastMCP per-session state key for auth context persistence across tool calls.
-AUTH_SESSION_STATE_KEY = "amazon_ads_auth_session"
-
+# Backward-compatible export for tests/importers.
+AUTH_SESSION_STATE_KEY = BRIDGE_AUTH_SESSION_STATE_KEY
 
 class AuthConfig:
     """Configuration for authentication middleware.
@@ -792,92 +797,17 @@ class AuthSessionStateMiddleware(Middleware):
         ``get_state``/``set_state`` without ``request_context`` are
         treated as having an active session.
         """
-        if not fastmcp_context:
-            return False
-        if not hasattr(fastmcp_context, "get_state"):
-            return False
-        # Real FastMCP Context: request_context is None during startup
-        # introspection.  .session raises RuntimeError in that case.
-        if hasattr(fastmcp_context, "request_context"):
-            if getattr(fastmcp_context, "request_context", None) is None:
-                return False
-        return True
+        return has_auth_session(fastmcp_context)
 
     async def _hydrate(self, fastmcp_context: Any) -> None:
-        if not self._has_session(fastmcp_context):
-            return
-
-        try:
-            state = await fastmcp_context.get_state(AUTH_SESSION_STATE_KEY)
-            if not state or not isinstance(state, dict):
-                return
-
-            from ..auth.session_state import (
-                set_active_credentials,
-                set_active_identity,
-                set_active_profiles,
-                set_last_seen_token_fingerprint,
-            )
-            from ..models import AuthCredentials, Identity
-
-            identity_payload = state.get("active_identity")
-            credentials_payload = state.get("active_credentials")
-            profiles_payload = state.get("active_profiles")
-            last_fp = state.get("last_seen_token_fingerprint")
-
-            identity = (
-                Identity.model_validate(identity_payload)
-                if isinstance(identity_payload, dict)
-                else None
-            )
-            credentials = (
-                AuthCredentials.model_validate(credentials_payload)
-                if isinstance(credentials_payload, dict)
-                else None
-            )
-
-            profiles: Optional[Dict[str, str]] = None
-            if isinstance(profiles_payload, dict):
-                profiles = {
-                    str(key): str(value)
-                    for key, value in profiles_payload.items()
-                }
-
-            set_active_identity(identity)
-            set_active_credentials(credentials)
-            set_active_profiles(profiles)
-            set_last_seen_token_fingerprint(last_fp if isinstance(last_fp, str) else None)
-        except Exception as exc:
-            self.logger.warning("Failed to hydrate auth session state: %s", exc)
+        await hydrate_auth_from_mcp_session(
+            fastmcp_context, logger_instance=self.logger
+        )
 
     async def _persist(self, fastmcp_context: Any) -> None:
-        if not self._has_session(fastmcp_context):
-            return
-
-        try:
-            from ..auth.session_state import (
-                get_active_credentials,
-                get_active_identity,
-                get_active_profiles,
-                get_last_seen_token_fingerprint,
-            )
-
-            identity = get_active_identity()
-            credentials = get_active_credentials()
-            profiles = get_active_profiles()
-            last_fp = get_last_seen_token_fingerprint()
-
-            state = {
-                "active_identity": identity.model_dump(mode="json") if identity else None,
-                "active_credentials": (
-                    credentials.model_dump(mode="json") if credentials else None
-                ),
-                "active_profiles": profiles,
-                "last_seen_token_fingerprint": last_fp,
-            }
-            await fastmcp_context.set_state(AUTH_SESSION_STATE_KEY, state)
-        except Exception as exc:
-            self.logger.warning("Failed to persist auth session state: %s", exc)
+        await persist_auth_to_mcp_session(
+            fastmcp_context, logger_instance=self.logger
+        )
 
     async def on_request(self, context: MiddlewareContext, call_next):
         fastmcp_context = getattr(context, "fastmcp_context", None)
