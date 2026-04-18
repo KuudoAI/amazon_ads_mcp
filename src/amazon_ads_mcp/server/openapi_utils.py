@@ -494,8 +494,14 @@ def slim_openapi_for_tools(spec: Dict[str, Any], max_desc: int = 200) -> None:
         # ----------------------------------------------------------------
         auth_header_names = {
             "Authorization",
+            # Legacy v2 header naming
             "Amazon-Advertising-API-ClientId",
             "Amazon-Advertising-API-Scope",
+            # New AdsAPIv1 header naming (auto-injected by auth middleware;
+            # normalized from the legacy names in utils/http_client.py)
+            "Amazon-Ads-ClientId",
+            "Amazon-Ads-AccountId",
+            "Amazon-Ads-Manager-AccountId",
         }
         auth_parameter_keys: set[str] = set()
 

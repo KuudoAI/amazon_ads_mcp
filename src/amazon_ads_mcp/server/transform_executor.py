@@ -81,6 +81,27 @@ class DeclarativeTransformExecutor:
                 # coercions
                 a = self._apply_coercions(a, cfg.get("coerce", []))
 
+                # argument aliases (compatibility shims)
+                # Example: {"from": "reportId", "to": "reportIds", "wrap": "list"}
+                aliases = cfg.get("arg_aliases")
+                if isinstance(aliases, list):
+                    for alias in aliases:
+                        if not isinstance(alias, dict):
+                            continue
+                        src = alias.get("from")
+                        dst = alias.get("to")
+                        wrap = alias.get("wrap")
+                        if not isinstance(src, str) or not isinstance(dst, str):
+                            continue
+                        if dst in a and a.get(dst) not in (None, ""):
+                            continue
+                        if src not in a or a.get(src) in (None, ""):
+                            continue
+                        val = a.get(src)
+                        if wrap == "list":
+                            val = val if isinstance(val, list) else [val]
+                        a[dst] = val
+
                 # defaults: relative time (e.g., set minCreationTime if missing)
                 defaults = cfg.get("defaults") if isinstance(cfg, dict) else None
                 if isinstance(defaults, dict):

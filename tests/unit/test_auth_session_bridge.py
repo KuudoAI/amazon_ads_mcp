@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import pytest
 
@@ -58,6 +60,24 @@ async def test_hydrate_auth_from_session_state():
 
 
 @pytest.mark.asyncio
+async def test_hydrate_auth_from_session_state_restores_region():
+    reset_all_session_state()
+    ctx = DummyFastMCPContext(with_session=True)
+    ctx._state[AUTH_SESSION_STATE_KEY] = {"active_region": "eu"}
+    fake_provider = SimpleNamespace(_region="na")
+    fake_auth_manager = SimpleNamespace(provider=fake_provider)
+
+    with patch(
+        "amazon_ads_mcp.auth.manager.get_auth_manager",
+        return_value=fake_auth_manager,
+    ):
+        await hydrate_auth_from_mcp_session(ctx)
+
+    assert fake_provider._region == "eu"
+    reset_all_session_state()
+
+
+@pytest.mark.asyncio
 async def test_persist_auth_to_session_state():
     reset_all_session_state()
     ctx = DummyFastMCPContext(with_session=True)
@@ -76,13 +96,19 @@ async def test_persist_auth_to_session_state():
     set_active_profiles({"id-2": "profile-2"})
     set_last_seen_token_fingerprint("fp-456")
 
-    await persist_auth_to_mcp_session(ctx)
+    fake_auth_manager = SimpleNamespace(get_active_region=lambda: "na")
+    with patch(
+        "amazon_ads_mcp.auth.manager.get_auth_manager",
+        return_value=fake_auth_manager,
+    ):
+        await persist_auth_to_mcp_session(ctx)
 
     state = ctx._state[AUTH_SESSION_STATE_KEY]
     assert state["active_identity"]["id"] == "id-2"
     assert state["active_credentials"]["identity_id"] == "id-2"
     assert state["active_profiles"] == {"id-2": "profile-2"}
     assert state["last_seen_token_fingerprint"] == "fp-456"
+    assert state["active_region"] == "na"
     reset_all_session_state()
 
 

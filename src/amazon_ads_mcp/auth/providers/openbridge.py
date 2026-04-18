@@ -24,6 +24,14 @@ from ..session_state import get_refresh_token_override
 
 logger = logging.getLogger(__name__)
 
+CLIENT_ID_CANDIDATE_KEYS = (
+    "oauth_client_id",
+    "client_id",
+    "clientId",
+    "amazon_advertising_api_client_id",
+    "amazonAdvertisingApiClientId",
+)
+
 
 class OpenbridgeTokenResponse(BaseModel):
     """OpenBridge token response model.
@@ -398,6 +406,143 @@ class OpenBridgeProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
                 return identity
         return None
 
+    @staticmethod
+    def _normalize_client_id(value: Optional[str]) -> Optional[str]:
+        """Normalize and reject unusable client-id placeholders."""
+        if not value:
+            return None
+        normalized = str(value).strip()
+        if not normalized:
+            return None
+        if normalized.lower() == "openbridge":
+            return None
+        return normalized
+
+    @classmethod
+    def _extract_client_id_from_obj(cls, payload: Any) -> Optional[str]:
+        """Find a usable client ID recursively in nested payloads."""
+        if isinstance(payload, dict):
+            for key in CLIENT_ID_CANDIDATE_KEYS:
+                resolved = cls._normalize_client_id(payload.get(key))
+                if resolved:
+                    return resolved
+            for value in payload.values():
+                resolved = cls._extract_client_id_from_obj(value)
+                if resolved:
+                    return resolved
+            return None
+
+        if isinstance(payload, list):
+            for item in payload:
+                resolved = cls._extract_client_id_from_obj(item)
+                if resolved:
+                    return resolved
+        return None
+
+    @staticmethod
+    def _extract_remote_identity_type_application_ids(identity: Identity) -> List[str]:
+        """Extract related remote-identity-type-application IDs from identity."""
+        relationships = getattr(identity, "relationships", None)
+        if not isinstance(relationships, dict):
+            return []
+
+        rel = relationships.get("remote_identity_type_application")
+        if not isinstance(rel, dict):
+            return []
+
+        data = rel.get("data")
+        ids: List[str] = []
+        if isinstance(data, dict):
+            app_id = data.get("id")
+            if app_id:
+                ids.append(str(app_id))
+        elif isinstance(data, list):
+            for item in data:
+                if isinstance(item, dict) and item.get("id"):
+                    ids.append(str(item["id"]))
+        return ids
+
+    async def _try_fetch_json(
+        self,
+        client: httpx.AsyncClient,
+        url: str,
+        headers: Dict[str, str],
+        params: Optional[Dict[str, Any]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Best-effort JSON fetch used by client-id fallback resolution."""
+        try:
+            response = await client.get(
+                url,
+                headers=headers,
+                params=params,
+                timeout=httpx.Timeout(20.0, connect=10.0),
+            )
+            if response.status_code >= 400:
+                logger.debug(
+                    "Client-id fallback probe failed: GET %s -> %s",
+                    url,
+                    response.status_code,
+                )
+                return None
+            payload = response.json()
+            if isinstance(payload, dict):
+                return payload
+        except Exception as exc:
+            logger.debug("Client-id fallback probe failed for %s: %s", url, exc)
+        return None
+
+    async def _resolve_client_id_from_identity_relationship(
+        self,
+        identity: Identity,
+        client: httpx.AsyncClient,
+        jwt_token: Token,
+    ) -> Optional[str]:
+        """Resolve client ID from identity payload/relationships when token API omits it."""
+        resolved = self._extract_client_id_from_obj(
+            {
+                "attributes": getattr(identity, "attributes", {}) or {},
+                "relationships": getattr(identity, "relationships", {}) or {},
+            }
+        )
+        if resolved:
+            return resolved
+
+        headers = {
+            "Authorization": f"Bearer {jwt_token.value}",
+            "x-api-key": self._get_effective_refresh_token(),
+        }
+
+        # First try richer identity fetch, with and without relationship include.
+        identity_urls = [
+            (f"{self.identity_base_url}/sri/{identity.id}", {"include": "remote_identity_type_application"}),
+            (f"{self.identity_base_url}/sri/{identity.id}", None),
+        ]
+        for url, params in identity_urls:
+            payload = await self._try_fetch_json(client, url, headers, params=params)
+            if not payload:
+                continue
+            resolved = self._extract_client_id_from_obj(payload)
+            if resolved:
+                return resolved
+
+        # Then follow relationship IDs through likely application endpoints.
+        application_ids = self._extract_remote_identity_type_application_ids(identity)
+        for application_id in application_ids:
+            candidate_urls = [
+                f"{self.identity_base_url}/rita/{application_id}",
+                f"{self.identity_base_url}/remote-identity-type-applications/{application_id}",
+                f"{self.identity_base_url}/remote_identity_type_applications/{application_id}",
+            ]
+            for url in candidate_urls:
+                payload = await self._try_fetch_json(client, url, headers)
+                if not payload:
+                    continue
+                resolved = self._extract_client_id_from_obj(payload)
+                if resolved:
+                    return resolved
+
+        return None
+
     async def get_identity_credentials(self, identity_id: str) -> AuthCredentials:
         """Get Amazon Ads credentials for specific identity.
 
@@ -447,32 +592,34 @@ class OpenBridgeProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
             if not amazon_ads_token:
                 raise ValueError("No Amazon Ads token in response")
 
+            normalized_client_id = self._normalize_client_id(client_id)
+
             # Handle client ID fallback
-            if not client_id:
+            if not normalized_client_id:
+                relationship_client_id = (
+                    await self._resolve_client_id_from_identity_relationship(
+                        identity=identity,
+                        client=client,
+                        jwt_token=jwt_token,
+                    )
+                )
+                if relationship_client_id:
+                    logger.info(
+                        "Resolved client ID from identity relationship/application metadata"
+                    )
+                    normalized_client_id = relationship_client_id
+
+            if not normalized_client_id:
                 # Only fall back to env var if OpenBridge didn't provide a client ID
                 env_client_id = os.getenv("AMAZON_AD_API_CLIENT_ID")
                 if env_client_id:
                     logger.info(
                         "OpenBridge didn't provide client ID, using AMAZON_AD_API_CLIENT_ID env var"
                     )
-                    client_id = env_client_id
+                    normalized_client_id = env_client_id
                 else:
                     raise ValueError(
                         "No client ID from OpenBridge and AMAZON_AD_API_CLIENT_ID not set"
-                    )
-            elif client_id.lower() == "openbridge":
-                # Legacy: Some older OpenBridge setups might return "openbridge" as placeholder
-                logger.warning(
-                    "OpenBridge returned 'openbridge' as client ID placeholder. "
-                    "Please update your OpenBridge configuration to provide the real client ID."
-                )
-                env_client_id = os.getenv("AMAZON_AD_API_CLIENT_ID")
-                if env_client_id:
-                    logger.info("Using AMAZON_AD_API_CLIENT_ID env var as fallback")
-                    client_id = env_client_id
-                else:
-                    raise ValueError(
-                        "OpenBridge returned 'openbridge' placeholder and AMAZON_AD_API_CLIENT_ID not set"
                     )
 
             # Try to parse expiration from the Amazon token if it's a JWT
@@ -515,7 +662,7 @@ class OpenBridgeProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
             # Build headers with all available information
             headers = {
                 "Authorization": f"Bearer {amazon_ads_token}",
-                "Amazon-Advertising-API-ClientId": client_id,
+                "Amazon-Advertising-API-ClientId": normalized_client_id,
             }
 
             # Add scope if provided by OpenBridge
