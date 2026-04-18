@@ -48,6 +48,7 @@ _CATALOG_FILES: Dict[str, str] = {
 }
 _META_FILE = "catalog_meta.json"
 _INDEX_FILE = "index.json"
+_LABEL_INDEX_FILE = "dimension_label_index.json"
 
 
 class CatalogSchemaError(RuntimeError):
@@ -65,6 +66,7 @@ _META: Optional[Dict[str, Any]] = None
 _INDEX: Optional[Dict[str, Any]] = None
 _DIMENSIONS: Optional[List[Dict[str, Any]]] = None
 _METRICS: Optional[List[Dict[str, Any]]] = None
+_DIM_LABEL_INDEX: Optional[Dict[str, List[str]]] = None
 
 
 def _default_catalog_dir() -> Path:
@@ -82,12 +84,13 @@ def set_catalog_dir(path: Optional[Path]) -> None:
     Passing ``None`` restores the default packaged location. Never call
     this from runtime code.
     """
-    global _CATALOG_DIR, _META, _INDEX, _DIMENSIONS, _METRICS
+    global _CATALOG_DIR, _META, _INDEX, _DIMENSIONS, _METRICS, _DIM_LABEL_INDEX
     _CATALOG_DIR = Path(path) if path is not None else None
     _META = None
     _INDEX = None
     _DIMENSIONS = None
     _METRICS = None
+    _DIM_LABEL_INDEX = None
 
 
 # ---------- IO + verification helpers ------------------------------------
@@ -125,8 +128,14 @@ def _load_meta() -> Dict[str, Any]:
         )
 
     # Verify on-disk hashes of the data files match the commit manifest.
+    # dimension_label_index.json is verified when present in the manifest
+    # so old catalog_meta.json lacking that entry still loads cleanly
+    # (schema_version bumps would fail closed via the version check above).
     expected = meta.get("output_files_sha256") or {}
-    for fname in ("dimensions.json", "metrics.json"):
+    required_names = ["dimensions.json", "metrics.json"]
+    if "dimension_label_index.json" in expected:
+        required_names.append("dimension_label_index.json")
+    for fname in required_names:
         data_path = directory / fname
         if not data_path.exists():
             raise CatalogSchemaError(
@@ -181,6 +190,31 @@ def get_index() -> Dict[str, Any]:
     return _load_index_file()
 
 
+def get_dimension_label_index() -> Dict[str, List[str]]:
+    """Return the ``{display_label: [field_id, ...]}`` map for dimensions.
+
+    Amazon's source data stores display labels (e.g. ``"Ad group"``) inside
+    metric compatibility lists rather than canonical field IDs. This map
+    enables the handler to resolve either form in ``compatible_with`` and
+    validate-mode incompatible-pair checks. See bug_fix_plan.md §2.
+
+    Returns an empty dict if the catalog predates the label-index file
+    (old catalog + new runtime — see §4.7 strict versioning).
+    """
+    global _DIM_LABEL_INDEX
+    if _DIM_LABEL_INDEX is not None:
+        return _DIM_LABEL_INDEX
+    _load_meta()  # commit-signal verification runs first
+    path = _catalog_dir() / _LABEL_INDEX_FILE
+    if not path.exists():
+        _DIM_LABEL_INDEX = {}
+        return _DIM_LABEL_INDEX
+    payload = _read_json(path)
+    labels = payload.get("labels", {}) if isinstance(payload, dict) else {}
+    _DIM_LABEL_INDEX = {k: list(v) for k, v in labels.items()}
+    return _DIM_LABEL_INDEX
+
+
 def get_dimensions() -> List[Dict[str, Any]]:
     return _load_records("dimensions")
 
@@ -212,4 +246,5 @@ def load_catalog() -> Dict[str, Any]:
     _load_index_file()
     _load_records("dimensions")
     _load_records("metrics")
-    return {"meta": _META, "index": _INDEX}
+    get_dimension_label_index()
+    return {"meta": _META, "index": _INDEX, "labels": _DIM_LABEL_INDEX}

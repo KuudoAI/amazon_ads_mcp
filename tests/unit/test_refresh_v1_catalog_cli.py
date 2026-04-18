@@ -76,11 +76,12 @@ def test_catalog_meta_carries_sha256_manifest(tmp_path: Path):
     assert set(meta["output_files_sha256"].keys()) == {
         "dimensions.json",
         "metrics.json",
+        "dimension_label_index.json",
     }
 
     # output_files_sha256 must match actual on-disk hashes of the packaged outputs.
-    assert meta["output_files_sha256"]["dimensions.json"] == _sha256_file(dest / "dimensions.json")
-    assert meta["output_files_sha256"]["metrics.json"] == _sha256_file(dest / "metrics.json")
+    for fname in ("dimensions.json", "metrics.json", "dimension_label_index.json"):
+        assert meta["output_files_sha256"][fname] == _sha256_file(dest / fname)
 
 
 def test_index_routes_to_correct_files(tmp_path: Path):
@@ -154,8 +155,9 @@ def test_meta_written_last_after_all_data(tmp_path: Path, monkeypatch):
     """If os.replace raises before meta is written, meta.json must be absent."""
     dest = tmp_path / "dest"
 
-    # Count os.replace calls and raise on the 4th (the catalog_meta commit).
-    # Commit order: dimensions(1) -> metrics(2) -> index(3) -> catalog_meta(4).
+    # Count os.replace calls and raise on the 5th (the catalog_meta commit).
+    # Commit order: dimensions(1) -> metrics(2) -> dim_label_index(3) ->
+    # index(4) -> catalog_meta(5).
     import amazon_ads_mcp.build.atomic_json as atomic_mod
 
     call_count = {"n": 0}
@@ -163,7 +165,7 @@ def test_meta_written_last_after_all_data(tmp_path: Path, monkeypatch):
 
     def failing_replace(src, dst):
         call_count["n"] += 1
-        if call_count["n"] == 4:
+        if call_count["n"] == 5:
             raise OSError("simulated crash before meta commit")
         return real(src, dst)
 
@@ -172,9 +174,10 @@ def test_meta_written_last_after_all_data(tmp_path: Path, monkeypatch):
     with pytest.raises(OSError):
         refresh_mod.refresh(SOURCE_VALID, dest)
 
-    # The first three made it, the fourth did not.
+    # The first four made it, the fifth did not.
     assert (dest / "dimensions.json").exists()
     assert (dest / "metrics.json").exists()
+    assert (dest / "dimension_label_index.json").exists()
     assert (dest / "index.json").exists()
     assert not (dest / "catalog_meta.json").exists(), (
         "catalog_meta.json must be the LAST file written — when its commit "

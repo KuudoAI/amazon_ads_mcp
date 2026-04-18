@@ -61,6 +61,11 @@ def small_catalog(tmp_path: Path, monkeypatch):
             "source": {"md_file": "cname.md", "parsed_at": "2026-04-18T00:00:00Z"},
         },
     ]
+    # Note on fixture shape: compat lists are populated on METRIC records in
+    # real Amazon source data (bug_fix_plan.md §1) and carry dim display
+    # labels, translated to field_ids via the dimension_label_index. This
+    # fixture mirrors that shape so the handler's compatibility semantics
+    # are exercised the way they run in production.
     metrics = [
         {
             "field_id": "metric.clicks",
@@ -72,6 +77,9 @@ def small_catalog(tmp_path: Path, monkeypatch):
             "description": "Sum of click events recorded.",
             "required_fields": [],
             "complementary_fields": [],
+            # Labels, to be translated via dim_label_index below:
+            "compatible_dimensions": ["Campaign"],
+            "incompatible_dimensions": [],
             "v3_name_dsp": "clicks",
             "v3_name_sponsored_ads": "clicks",
             "source": {"md_file": "clicks.md", "parsed_at": "2026-04-18T00:00:00Z"},
@@ -86,6 +94,8 @@ def small_catalog(tmp_path: Path, monkeypatch):
             "description": "Sum of impression events.",
             "required_fields": [],
             "complementary_fields": [],
+            "compatible_dimensions": ["Campaign"],
+            "incompatible_dimensions": [],
             "v3_name_dsp": "impressions",
             "v3_name_sponsored_ads": "impressions",
             "source": {"md_file": "imps.md", "parsed_at": "2026-04-18T00:00:00Z"},
@@ -114,6 +124,17 @@ def small_catalog(tmp_path: Path, monkeypatch):
             sort_keys=True,
         )
     )
+    # Dim label index — mirrors what the refresh CLI emits in production.
+    (tmp_path / "dimension_label_index.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "labels": {"Campaign": ["campaign.id", "campaign.name"]},
+            },
+            indent=2,
+            sort_keys=True,
+        )
+    )
     meta = {
         "schema_version": 1,
         "parsed_at": "2026-04-18T00:00:00Z",
@@ -124,6 +145,9 @@ def small_catalog(tmp_path: Path, monkeypatch):
         "output_files_sha256": {
             "dimensions.json": hashlib.sha256((tmp_path / "dimensions.json").read_bytes()).hexdigest(),
             "metrics.json": hashlib.sha256((tmp_path / "metrics.json").read_bytes()).hexdigest(),
+            "dimension_label_index.json": hashlib.sha256(
+                (tmp_path / "dimension_label_index.json").read_bytes()
+            ).hexdigest(),
         },
     }
     (tmp_path / "catalog_meta.json").write_text(json.dumps(meta, indent=2, sort_keys=True))
@@ -176,13 +200,28 @@ def test_search_substring_on_both_field_id_and_display_name(small_catalog):
 
 
 def test_compatible_with_uses_and_intersection(small_catalog):
-    # campaign.id lists compatible_dimensions=["campaign.name"] so it matches
-    r = handle(mode="query", compatible_with=["campaign.name"])
-    ids = [e.field_id for e in r.fields]
-    assert "campaign.id" in ids
+    """compatible_with filters metrics by the set of dims they pair with.
 
-    # nothing lists both campaign.name AND unrelated → empty
-    r = handle(mode="query", compatible_with=["campaign.name", "unknown.ref"])
+    Fixture: both metrics list compatible_dimensions=["Campaign"] (label).
+    Querying with the label form should match both metrics; querying with
+    a canonical field_id of any campaign dim should match the same set
+    via the dim_label_index resolver.
+    """
+    # Label form: "Campaign" resolves to campaign.id + campaign.name.
+    r = handle(mode="query", compatible_with=["Campaign"])
+    ids = [e.field_id for e in r.fields]
+    assert set(ids) == {"metric.clicks", "metric.impressions"}
+
+    # Field_id form: campaign.id resolves directly; same intersection.
+    r = handle(mode="query", compatible_with=["campaign.id"])
+    ids = [e.field_id for e in r.fields]
+    assert set(ids) == {"metric.clicks", "metric.impressions"}
+
+    # Add an unknown reference → resolver returns partial set; AND filter
+    # requires ALL inputs to resolve/match, so result narrows. Unknown
+    # entirely → resolver returns empty → empty result set (per the
+    # "unknown inputs return empty, not error" policy).
+    r = handle(mode="query", compatible_with=["unknown.ref"])
     assert r.fields == []
 
 

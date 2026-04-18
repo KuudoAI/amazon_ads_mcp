@@ -29,6 +29,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -109,6 +110,11 @@ def _normalize_record(record: Dict[str, Any], category: str) -> Dict[str, Any]:
     The packaged form is what the loader hands to handlers — it carries
     category, provenance, and short_description already computed. Kept
     stable so catalog diffs are semantic, not formatting noise.
+
+    NOTE: Amazon populates compat lists on metric records only (the
+    relationship is one-sided in source). We copy them from whichever
+    side of the graph has data; downstream the inverted index adds
+    compatible_metrics/incompatible_metrics to dimension records.
     """
     out: Dict[str, Any] = {
         "field_id": record["field_id"].strip(),
@@ -120,11 +126,12 @@ def _normalize_record(record: Dict[str, Any], category: str) -> Dict[str, Any]:
         "description": record.get("description") or None,
         "required_fields": list(record.get("required_fields", []) or []),
         "complementary_fields": list(record.get("complementary_fields", []) or []),
+        # Carry compat lists for BOTH categories — dropping on the wrong
+        # category is what caused the Issue 10 regression. Source records
+        # may have empty lists; that's fine, the inverted index fills in.
+        "compatible_dimensions": list(record.get("compatible_dimensions", []) or []),
+        "incompatible_dimensions": list(record.get("incompatible_dimensions", []) or []),
     }
-
-    if category == "dimension":
-        out["compatible_dimensions"] = list(record.get("compatible_dimensions", []) or [])
-        out["incompatible_dimensions"] = list(record.get("incompatible_dimensions", []) or [])
 
     out["v3_name_dsp"] = record.get("v3_name_dsp")
     out["v3_name_sponsored_ads"] = record.get("v3_name_sponsored_ads")
@@ -135,6 +142,82 @@ def _normalize_record(record: Dict[str, Any], category: str) -> Dict[str, Any]:
         "parsed_at": src.get("parsed_at"),
     }
     return out
+
+
+_PK_LABEL_RE = re.compile(r" (?:ID )?\(Primary Key\)$")
+
+
+def _build_dimension_label_index(
+    dimensions: List[Dict[str, Any]],
+) -> Dict[str, List[str]]:
+    """Map Amazon display labels (e.g. 'Ad group') to the field_ids that
+    share that prefix.
+
+    Derivation: scan dimensions for records whose display_name ends with
+    ' ID (Primary Key)' or ' (Primary Key)'. Strip the suffix to get the
+    label; split the field_id on '.' to get the prefix. Then for every
+    dimension whose field_id starts with that prefix, attach it to the
+    label.
+
+    Labels not backed by a Primary Key record are not emitted — those
+    references in metric compat lists stay unresolved by design (there
+    are 7 such labels out of 51 in the current source).
+    """
+    # label -> prefix (e.g. "Ad group" -> "adGroup")
+    label_to_prefix: Dict[str, str] = {}
+    for r in dimensions:
+        name = r.get("display_name", "")
+        if "(Primary Key)" not in name:
+            continue
+        label = _PK_LABEL_RE.sub("", name).strip()
+        prefix = r["field_id"].split(".", 1)[0]
+        if label and prefix:
+            label_to_prefix[label] = prefix
+
+    # label -> [field_id, ...] for every dim with that prefix
+    label_index: Dict[str, List[str]] = {}
+    by_prefix: Dict[str, List[str]] = {}
+    for r in dimensions:
+        by_prefix.setdefault(r["field_id"].split(".", 1)[0], []).append(r["field_id"])
+
+    for label, prefix in label_to_prefix.items():
+        field_ids = sorted(by_prefix.get(prefix, []))
+        if field_ids:
+            label_index[label] = field_ids
+
+    return dict(sorted(label_index.items()))
+
+
+def _build_inverted_compat_index(
+    metrics: List[Dict[str, Any]],
+    label_index: Dict[str, List[str]],
+) -> Dict[str, Dict[str, List[str]]]:
+    """For each dimension field_id, collect the metric field_ids that
+    mark the dimension compatible or incompatible.
+
+    Uses the label_index to translate the display labels stored in
+    metric compat lists to concrete dimension field_ids. Labels that
+    don't resolve are silently dropped (see _build_dimension_label_index).
+    """
+    out: Dict[str, Dict[str, set]] = {}
+
+    def _push(bucket: str, dim_fid: str, metric_fid: str) -> None:
+        out.setdefault(dim_fid, {"compatible_metrics": set(), "incompatible_metrics": set()})
+        out[dim_fid][bucket].add(metric_fid)
+
+    for m in metrics:
+        m_fid = m["field_id"]
+        for label in m.get("compatible_dimensions") or []:
+            for dim_fid in label_index.get(label, []):
+                _push("compatible_metrics", dim_fid, m_fid)
+        for label in m.get("incompatible_dimensions") or []:
+            for dim_fid in label_index.get(label, []):
+                _push("incompatible_metrics", dim_fid, m_fid)
+
+    return {
+        dim_fid: {bucket: sorted(metrics) for bucket, metrics in buckets.items()}
+        for dim_fid, buckets in out.items()
+    }
 
 
 def _load_source_array(path: Path) -> List[Dict[str, Any]]:
@@ -227,9 +310,16 @@ def _build_outputs(
     parsed_at: str,
     generated_at: str,
     source_commit: str,
-) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any], Dict[str, Any]]:
-    """Produce the four packaged output payloads as Python dicts.
+) -> Tuple[
+    List[Dict[str, Any]],
+    List[Dict[str, Any]],
+    Dict[str, Any],
+    Dict[str, List[str]],
+    Dict[str, Any],
+]:
+    """Produce the five packaged output payloads as Python dicts.
 
+    Returns: (dimensions, metrics, index, dim_label_index, catalog_meta).
     output_files_sha256 is populated AFTER the data files are written, so
     catalog_meta returned here has an empty output_files_sha256 map that
     the caller fills before the final commit.
@@ -240,6 +330,19 @@ def _build_outputs(
     # Stable ordering in packaged files so diffs are semantic.
     dimensions.sort(key=lambda r: r["field_id"])
     metrics.sort(key=lambda r: r["field_id"])
+
+    # Build label index from dimensions with (Primary Key) in display_name.
+    dim_label_index = _build_dimension_label_index(dimensions)
+
+    # Build symmetric inverted index: for each dimension field_id, list of
+    # metric field_ids marking it compatible/incompatible. Then attach
+    # those lists onto the dimension records so queries like
+    # `report_fields(mode="query", category="dimension")` carry the graph.
+    inverted = _build_inverted_compat_index(metrics, dim_label_index)
+    for dim in dimensions:
+        entry = inverted.get(dim["field_id"], {})
+        dim["compatible_metrics"] = entry.get("compatible_metrics", [])
+        dim["incompatible_metrics"] = entry.get("incompatible_metrics", [])
 
     index_fields: Dict[str, Dict[str, str]] = {}
     for r in dimensions:
@@ -264,10 +367,11 @@ def _build_outputs(
             "amazon_ads_v1_dimensions.json": _sha256_file(src_dims),
             "amazon_ads_v1_metrics.json": _sha256_file(src_metrics),
         },
-        "output_files_sha256": {},  # filled in after writing dims + metrics
+        # Filled in after writing dims + metrics + label_index.
+        "output_files_sha256": {},
     }
 
-    return dimensions, metrics, index, meta
+    return dimensions, metrics, index, dim_label_index, meta
 
 
 def _enforce_floors(
@@ -328,7 +432,7 @@ def refresh(
     # matches — the catalog *is* this point in time from the source.
     generated_at = parsed_at
 
-    dimensions, metrics, index, meta = _build_outputs(
+    dimensions, metrics, index, dim_label_index, meta = _build_outputs(
         catalog,
         source=source,
         parsed_at=parsed_at,
@@ -338,15 +442,22 @@ def refresh(
 
     dest.mkdir(parents=True, exist_ok=True)
 
-    # Commit order matters. dimensions -> metrics -> index -> catalog_meta.
-    # After dimensions + metrics land, we hash them and stamp the meta payload.
+    # Commit order matters:
+    #   dimensions -> metrics -> dimension_label_index -> index -> catalog_meta.
+    # catalog_meta.json is the last write and doubles as the commit signal;
+    # the loader verifies on-disk SHAs against meta.output_files_sha256 on
+    # first load so a crash mid-commit fails closed.
+    label_index_payload = {"schema_version": SCHEMA_VERSION, "labels": dim_label_index}
+
     save_json_atomic(dest / "dimensions.json", dimensions)
     save_json_atomic(dest / "metrics.json", metrics)
+    save_json_atomic(dest / "dimension_label_index.json", label_index_payload)
 
     # Fill output_files_sha256 AFTER data files have landed on disk.
     meta["output_files_sha256"] = {
         "dimensions.json": _sha256_file(dest / "dimensions.json"),
         "metrics.json": _sha256_file(dest / "metrics.json"),
+        "dimension_label_index.json": _sha256_file(dest / "dimension_label_index.json"),
     }
 
     save_json_atomic(dest / "index.json", index)
@@ -369,7 +480,12 @@ def check_drift(source: Path, dest: Path) -> bool:
         tmp_dest = Path(tmpdir)
         refresh(source, tmp_dest, do_validate=True, production_floors=False)
 
-        for name in ("dimensions.json", "metrics.json", "index.json"):
+        for name in (
+            "dimensions.json",
+            "metrics.json",
+            "dimension_label_index.json",
+            "index.json",
+        ):
             expected = (tmp_dest / name).read_bytes()
             actual_path = dest / name
             if not actual_path.exists():

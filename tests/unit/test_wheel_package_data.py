@@ -25,6 +25,7 @@ REQUIRED_IN_WHEEL = [
     "amazon_ads_mcp/resources/adsv1/metrics.json",
     "amazon_ads_mcp/resources/adsv1/index.json",
     "amazon_ads_mcp/resources/adsv1/catalog_meta.json",
+    "amazon_ads_mcp/resources/adsv1/dimension_label_index.json",
 ]
 
 

@@ -603,9 +603,14 @@ class ReportFieldEntry(BaseModel):
     required_fields: List[str] = Field(default_factory=list)
     complementary_fields: List[str] = Field(default_factory=list)
 
-    # Category-conditional — None when not applicable; dropped via exclude_none:
+    # Compatibility graph — dropped via exclude_none when empty.
+    # Source-side (populated on metric records by Amazon; carries display labels):
     compatible_dimensions: Optional[List[str]] = None
     incompatible_dimensions: Optional[List[str]] = None
+    # Inverted index (built at refresh; attached to dimension records so the
+    # graph is queryable from either direction):
+    compatible_metrics: Optional[List[str]] = None
+    incompatible_metrics: Optional[List[str]] = None
 
     # Optional cross-references — None when not requested or not applicable:
     v3_name_dsp: Optional[str] = None

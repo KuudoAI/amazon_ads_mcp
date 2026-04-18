@@ -97,14 +97,43 @@ def check_no_cycles(catalog: Mapping[str, Any]) -> None:
             dfs(node, [])
 
 
+#: Bug-fix-plan §1.5 — fraction of metric records that must carry non-empty
+#: compatible_dimensions after refresh. Guards against the Issue 10 regression
+#: class (refresh silently dropping compat lists).
+COMPAT_FLOOR_FRACTION = 0.95
+
+
+def check_compatibility_floor(catalog: Mapping[str, Any]) -> None:
+    """Fail if fewer than COMPAT_FLOOR_FRACTION of metrics carry compat data.
+
+    Only runs in production-flag refreshes. Fixture-size catalogs (used by
+    unit tests) aren't large enough for a percentage floor to be meaningful.
+    """
+    metrics = catalog.get("metrics", []) or []
+    # Threshold only meaningful for realistic catalogs (unit-test fixtures
+    # are too small; production floors in refresh_v1_catalog.py gate this).
+    if len(metrics) < 50:
+        return
+    populated = sum(1 for m in metrics if (m.get("compatible_dimensions") or []))
+    fraction = populated / len(metrics)
+    if fraction < COMPAT_FLOOR_FRACTION:
+        raise CatalogIntegrityError(
+            f"compatibility data populated for {fraction:.1%} of metrics "
+            f"(floor: {COMPAT_FLOOR_FRACTION:.0%}); refresh likely dropped data. "
+            f"Check _normalize_record category gate and source files."
+        )
+
+
 def check_catalog(catalog: Mapping[str, Any]) -> None:
     """Run every integrity check in a stable order.
 
     Order matters: charset first (fast-fail on artifact data), then
     uniqueness (required for the reference/cycle checks to be meaningful),
-    then references, then cycles.
+    then references, then cycles, then the compat floor (last because it
+    assumes uniqueness is already established).
     """
     check_charset(catalog)
     check_uniqueness(catalog)
     check_references_exist(catalog)
     check_no_cycles(catalog)
+    check_compatibility_floor(catalog)

@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Literal, Optional, Tuple
 
@@ -211,10 +212,27 @@ def _record_to_entry(
     include_description: bool,
     include_v3: bool,
 ) -> ReportFieldEntry:
+    """Project a catalog record onto a ReportFieldEntry.
+
+    compat lists are emitted from whichever side of the graph has data:
+      - metric records carry source-side ``compatible_dimensions`` /
+        ``incompatible_dimensions`` (Amazon populates these per-metric).
+      - dimension records carry the refresh-time inverted index
+        (``compatible_metrics`` / ``incompatible_metrics``) so the graph
+        is queryable from either direction.
+    None is emitted (→ dropped by exclude_none) only when the record
+    has nothing useful to report.
+    """
     category = record["category"]
     source = record.get("source") or {}
 
-    entry = ReportFieldEntry(
+    def _nonempty_or_none(key: str) -> Optional[List[str]]:
+        vals = record.get(key)
+        if not vals:
+            return None
+        return list(vals)
+
+    entry_kwargs: Dict[str, Any] = dict(
         field_id=record["field_id"],
         display_name=record.get("display_name", ""),
         data_type=record.get("data_type", "UNKNOWN"),
@@ -224,18 +242,8 @@ def _record_to_entry(
         description=record.get("description") if include_description else None,
         required_fields=list(record.get("required_fields") or []),
         complementary_fields=list(record.get("complementary_fields") or []),
-        compatible_dimensions=(
-            list(record.get("compatible_dimensions") or [])
-            if category == "dimension"
-            else None
-        ),
-        incompatible_dimensions=(
-            list(record.get("incompatible_dimensions") or [])
-            if category == "dimension"
-            else None
-        ),
-        v3_name_dsp=record.get("v3_name_dsp") if include_v3 else None,
-        v3_name_sponsored_ads=record.get("v3_name_sponsored_ads") if include_v3 else None,
+        compatible_dimensions=_nonempty_or_none("compatible_dimensions"),
+        incompatible_dimensions=_nonempty_or_none("incompatible_dimensions"),
         source=(
             CatalogSourceMeta(
                 md_file=source.get("md_file") or "",
@@ -245,7 +253,17 @@ def _record_to_entry(
             else None
         ),
     )
-    return entry
+    if include_v3:
+        entry_kwargs["v3_name_dsp"] = record.get("v3_name_dsp")
+        entry_kwargs["v3_name_sponsored_ads"] = record.get("v3_name_sponsored_ads")
+    # Dimension inverted-index lists can be up to ~700 items on hub
+    # dimensions (e.g. campaign.id) — emitting them in a listing response
+    # would blow the 16 KB byte cap in a single record. Restrict them to
+    # detail-lookup mode (fields=[...], same gate as description+source).
+    if include_description:
+        entry_kwargs["compatible_metrics"] = _nonempty_or_none("compatible_metrics")
+        entry_kwargs["incompatible_metrics"] = _nonempty_or_none("incompatible_metrics")
+    return ReportFieldEntry(**entry_kwargs)
 
 
 def _parsed_at() -> str:
@@ -271,6 +289,39 @@ def _stale_warning_or_none() -> Optional[str]:
     return None
 
 
+def _resolve_to_field_ids(values: List[str]) -> set[str]:
+    """Translate a list of ``compatible_with``/``requires`` inputs to field IDs.
+
+    Each input may be either:
+    - a canonical field_id already present in the catalog index, or
+    - an Amazon display label (e.g. ``"Ad group"``) resolvable via the
+      dimension_label_index.
+
+    Unknown inputs (neither field_id nor label) resolve to nothing; the
+    caller sees an empty result set rather than an error.
+    """
+    index = (catalog_mod.get_index() or {}).get("fields", {})
+    label_index = catalog_mod.get_dimension_label_index() or {}
+    out: set[str] = set()
+    for value in values:
+        if value in index:
+            out.add(value)
+            continue
+        for fid in label_index.get(value, []):
+            out.add(fid)
+    return out
+
+
+def _compat_labels_for_metric(record: Dict[str, Any]) -> set[str]:
+    """Translate a metric record's stored display labels to field IDs."""
+    label_index = catalog_mod.get_dimension_label_index() or {}
+    out: set[str] = set()
+    for label in record.get("compatible_dimensions") or []:
+        for fid in label_index.get(label, []):
+            out.add(fid)
+    return out
+
+
 def _select_query_records(inp: ReportFieldsInput) -> List[Dict[str, Any]]:
     """Apply category filter + compatibility graph filters.
 
@@ -289,13 +340,31 @@ def _select_query_records(inp: ReportFieldsInput) -> List[Dict[str, Any]]:
         pool = list(catalog_mod.get_dimensions()) + list(catalog_mod.get_metrics())
 
     if inp.compatible_with:
-        target = set(inp.compatible_with)
-        pool = [
-            r
-            for r in pool
-            if r.get("category") == "dimension"
-            and target.issubset(set(r.get("compatible_dimensions") or []))
-        ]
+        # Source-side relation: metric.compatible_dimensions lists display
+        # labels of dimensions the metric is compatible with. Resolve the
+        # caller's inputs (either field_ids or labels) to the canonical
+        # dim field_ids the metric references.
+        target_fids = _resolve_to_field_ids(inp.compatible_with)
+
+        if not target_fids:
+            # Caller passed values that resolved to nothing — unknown label
+            # or id. Don't let empty-set-is-subset-of-anything match every
+            # record; return an empty pool. (The spec's "unknown inputs
+            # return empty results, not errors" policy.)
+            pool = []
+        else:
+            # compatible_with is semantically "give me the things I can
+            # pair alongside these field ids". For metrics that means
+            # target_fids must all appear in the metric's compatible
+            # dimension set (via label resolution). Dims don't carry
+            # source-side compat lists, so the filter only applies to
+            # metrics here — users query from the metric side.
+            pool = [
+                r
+                for r in pool
+                if r.get("category") == "metric"
+                and target_fids.issubset(_compat_labels_for_metric(r))
+            ]
 
     if inp.requires:
         required_set = set(inp.requires)
@@ -411,11 +480,21 @@ def _handle_validate(inp: ReportFieldsInput) -> ValidateReportFieldsResponse:
 
     incompatible_pairs: List[Tuple[str, str]] = []
     seen_pairs: set[Tuple[str, str]] = set()
+    label_index = catalog_mod.get_dimension_label_index() or {}
     for fid in known:
         record = catalog_mod.lookup_field(fid) or {}
-        for other in record.get("incompatible_dimensions") or []:
-            if other in known_set:
-                pair = tuple(sorted((fid, other)))
+        # Source-side incompatibility (metric records): labels → field_ids.
+        for label in record.get("incompatible_dimensions") or []:
+            for other_fid in label_index.get(label, []):
+                if other_fid in known_set and other_fid != fid:
+                    pair = tuple(sorted((fid, other_fid)))
+                    if pair not in seen_pairs:
+                        incompatible_pairs.append(pair)
+                        seen_pairs.add(pair)
+        # Inverted side (dimension records): direct field_ids.
+        for other_fid in record.get("incompatible_metrics") or []:
+            if other_fid in known_set and other_fid != fid:
+                pair = tuple(sorted((fid, other_fid)))
                 if pair not in seen_pairs:
                     incompatible_pairs.append(pair)
                     seen_pairs.add(pair)
@@ -441,27 +520,60 @@ def _handle_validate(inp: ReportFieldsInput) -> ValidateReportFieldsResponse:
     return response
 
 
-def _suggest_replacements(bad: str, all_ids: List[str], top_n: int = 3) -> List[str]:
-    """Return up to ``top_n`` catalog ids whose prefix up to the first '.'
-    matches the bad id's prefix.
+#: camelCase-aware tokenizer. Splits "metric.totalCost" → ["metric","total","cost"]
+#: and "metric.DSPAdId" → ["metric","dsp","ad","id"]. Lowercases in _tokens.
+_TOKEN_RE = re.compile(r"[A-Z]?[a-z0-9]+|[A-Z]+(?=[A-Z]|$)")
 
-    Intentionally simple — the goal is to flag likely typos (``metric.click``
-    vs ``metric.clicks``) without pulling in a fuzzy-match library.
+
+def _tokens(field_id: str) -> set[str]:
+    """Tokenize the suffix (after the first dot) into a lowercase set.
+
+    Used for token-overlap scoring in _suggest_replacements. We ignore
+    the prefix because the prefix is already an exact-match gate.
     """
-    prefix = bad.split(".")[0] if "." in bad else bad
-    prefix_lower = prefix.lower()
-    needle = bad.lower()
+    suffix = field_id.split(".", 1)[-1]
+    return {t.lower() for t in _TOKEN_RE.findall(suffix) if t}
 
-    # First tier: same prefix + substring similarity.
-    tier1 = [c for c in all_ids if c.split(".")[0].lower() == prefix_lower]
-    tier1.sort(
-        key=lambda c: (
-            abs(len(c) - len(bad)),
-            0 if needle in c.lower() else 1,
-            c,
-        )
-    )
-    return tier1[:top_n]
+
+def _suggest_replacements(bad: str, all_ids: List[str], top_n: int = 3) -> List[str]:
+    """Rank candidates by camelCase token overlap + substring containment.
+
+    Same-prefix candidates get priority (`metric.*` stays within `metric.*`).
+    Scoring (lower wins):
+        (-jaccard - 0.5*substring_bonus, abs(len_diff), alphabetical)
+
+    Deterministic, no external dependencies. Catches typos like
+    ``metric.cost`` → ``metric.totalCost`` which the old prefix-only
+    suggester missed because ``"metric.cost" in "metric.totalCost"`` is
+    False (the dot before ``cost`` doesn't appear in the target).
+    """
+    prefix = bad.split(".", 1)[0].lower() if "." in bad else bad.lower()
+    bad_tokens = _tokens(bad)
+    bad_suffix = bad.split(".", 1)[-1].lower()
+
+    candidates = [c for c in all_ids if c.split(".", 1)[0].lower() == prefix and c != bad]
+
+    def score(c: str) -> Tuple[float, int, str]:
+        c_tokens = _tokens(c)
+        c_suffix = c.split(".", 1)[-1].lower()
+        denom = max(1, len(bad_tokens | c_tokens))
+        jaccard = len(bad_tokens & c_tokens) / denom
+        # Substring bonus in either direction — catches "cost" ⊂ "totalcost".
+        substr = 1 if (bad_suffix in c_suffix or c_suffix in bad_suffix) else 0
+        # Edge bonus — one suffix is a prefix OR trailing suffix of the other.
+        # Catches pluralization (click → clicks) and compound extensions
+        # (cost → totalCost) that generic substring matching under-weights
+        # when longer records also share the substring.
+        edge = 1 if (
+            c_suffix.startswith(bad_suffix)
+            or c_suffix.endswith(bad_suffix)
+            or bad_suffix.startswith(c_suffix)
+            or bad_suffix.endswith(c_suffix)
+        ) else 0
+        # Lower score wins.
+        return (-jaccard - 0.5 * substr - 1.0 * edge, abs(len(c) - len(bad)), c)
+
+    return sorted(candidates, key=score)[:top_n]
 
 
 # ---------- byte-cap at serializer boundary -----------------------------
