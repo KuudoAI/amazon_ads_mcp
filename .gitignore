@@ -170,6 +170,9 @@ openapi/resources/
 # Build directories
 # .build/ contains essential build scripts - DO NOT IGNORE
 build/
+# src/amazon_ads_mcp/build/ is an internal package (refresh CLI, validators) — un-ignore it.
+!src/amazon_ads_mcp/build/
+!src/amazon_ads_mcp/build/*.py
 *.tar.gz
 *.whl
 

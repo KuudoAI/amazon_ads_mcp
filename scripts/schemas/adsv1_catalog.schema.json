@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/amazon-ads/mcp/schemas/adsv1_catalog.schema.json",
+  "title": "Ads API v1 catalog source record",
+  "description": "Schema for a single raw record under .build/adsv1_specs/ (one dimension or metric).",
+  "type": "object",
+  "required": ["field_id", "display_name", "source"],
+  "properties": {
+    "field_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Canonical dotted identifier (e.g. 'metric.clicks'). Charset enforced at post-schema guard."
+    },
+    "display_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "data_type": {
+      "type": ["string", "null"]
+    },
+    "description": {
+      "type": ["string", "null"]
+    },
+    "required_fields": {
+      "type": "array",
+      "items": {"type": "string"},
+      "default": []
+    },
+    "complementary_fields": {
+      "type": "array",
+      "items": {"type": "string"},
+      "default": []
+    },
+    "compatible_dimensions": {
+      "type": "array",
+      "items": {"type": "string"},
+      "default": []
+    },
+    "incompatible_dimensions": {
+      "type": "array",
+      "items": {"type": "string"},
+      "default": []
+    },
+    "v3_name_dsp": {"type": ["string", "null"]},
+    "v3_name_sponsored_ads": {"type": ["string", "null"]},
+    "page_title": {"type": ["string", "null"]},
+    "source": {
+      "type": "object",
+      "required": ["parsed_at"],
+      "properties": {
+        "md_file": {"type": ["string", "null"]},
+        "parsed_at": {
+          "type": "string",
+          "minLength": 1,
+          "description": "ISO-8601 UTC timestamp from the source parser."
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

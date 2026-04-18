@@ -13,9 +13,9 @@ All models inherit from BaseModel with consistent patterns:
 - Typed fields for all response data
 """
 
-from typing import Any, Dict, List, Literal, Optional
+from typing import Annotated, Any, Dict, List, Literal, Optional, Tuple, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # ============================================================================
@@ -563,3 +563,94 @@ class EnableToolGroupResponse(BaseModel):
     tool_names: List[str] = Field(default_factory=list)
     message: Optional[str] = None
     error: Optional[str] = None
+
+
+# ============================================================================
+# report_fields Tool Responses (adsv1.md §4.5) — extra="forbid" scoped to these
+# models only; existing models above intentionally preserve their permissive
+# contracts.
+# ============================================================================
+
+
+class CatalogSourceMeta(BaseModel):
+    """Provenance pointer for a single v1 catalog record.
+
+    Returned only on detail lookups (`mode="query"`, `fields=[...]`).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    md_file: str
+    parsed_at: str  # ISO timestamp from the source parser
+
+
+class ReportFieldEntry(BaseModel):
+    """A single entry in the report_fields catalog query result."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    field_id: str
+    display_name: str
+    data_type: str
+    category: Literal["dimension", "metric", "filter", "time"]
+    provenance: Literal["empirical", "documented", "schema-derived"]
+    short_description: str  # always; clipped to <=160 chars upstream
+
+    # Detail-only:
+    description: Optional[str] = None
+
+    # Always-applicable (may be empty; always included in output):
+    required_fields: List[str] = Field(default_factory=list)
+    complementary_fields: List[str] = Field(default_factory=list)
+
+    # Category-conditional — None when not applicable; dropped via exclude_none:
+    compatible_dimensions: Optional[List[str]] = None
+    incompatible_dimensions: Optional[List[str]] = None
+
+    # Optional cross-references — None when not requested or not applicable:
+    v3_name_dsp: Optional[str] = None
+    v3_name_sponsored_ads: Optional[str] = None
+
+    source: Optional[CatalogSourceMeta] = None  # detail lookup only
+
+
+class QueryReportFieldsResponse(BaseModel):
+    """Response for `report_fields(mode="query", ...)`."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    mode: Literal["query"]  # discriminator
+    success: bool
+    operation: str
+    catalog_schema_version: int
+    parsed_at: str  # ISO timestamp
+    stale_warning: Optional[str] = None
+    truncated: bool = False
+    truncated_reason: Optional[Literal["byte_cap", "limit", "field_filter"]] = None
+    total_matching: int
+    returned: int
+    offset: int
+    limit: int
+    fields: List[ReportFieldEntry] = Field(default_factory=list)
+
+
+class ValidateReportFieldsResponse(BaseModel):
+    """Response for `report_fields(mode="validate", ...)`."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    mode: Literal["validate"]  # discriminator
+    success: bool
+    operation: str
+    valid: bool
+    unknown_fields: List[str] = Field(default_factory=list)
+    missing_required: Dict[str, List[str]] = Field(default_factory=dict)
+    incompatible_pairs: List[Tuple[str, str]] = Field(default_factory=list)
+    suggested_replacements: Dict[str, List[str]] = Field(default_factory=dict)
+
+
+#: Discriminated union tagged on the `mode` field.
+ReportFieldsResponse = Annotated[
+    Union[QueryReportFieldsResponse, ValidateReportFieldsResponse],
+    Field(discriminator="mode"),
+]

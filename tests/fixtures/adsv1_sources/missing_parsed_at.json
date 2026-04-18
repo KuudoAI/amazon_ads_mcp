@@ -1,0 +1,8 @@
+{
+  "field_id": "metric.clicks",
+  "display_name": "Clicks",
+  "data_type": "INTEGER",
+  "source": {
+    "md_file": "clicks.md"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "display_name": "Clicks",
+  "data_type": "INTEGER",
+  "source": {
+    "md_file": "clicks.md",
+    "parsed_at": "2026-04-18T17:20:49Z"
+  }
+}
