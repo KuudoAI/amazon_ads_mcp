@@ -856,7 +856,11 @@ async def register_report_catalog_tools(server: FastMCP):
                 "detail lookup with pagination) or mode='validate' to "
                 "pre-flight a field list before AdsApiv1CreateReport. "
                 "See list_report_fields for the minimal baseline and "
-                "other report APIs (rp_*, br_*, mmm_*)."
+                "other report APIs (rp_*, br_*, mmm_*). "
+                "Response.stale_warning is a string when the catalog "
+                "parse timestamp is older than LIST_REPORT_FIELDS_STALE_DAYS "
+                "(default 90) and null otherwise. Set that env var lower in "
+                "staging/dev to surface stale-catalog warnings earlier."
             ),
         )
         async def report_fields_tool(
@@ -873,9 +877,16 @@ async def register_report_catalog_tools(server: FastMCP):
             offset: int = 0,
             validate_fields: Optional[list] = None,
         ):
-            """Dispatch to the query/validate handler."""
+            """Dispatch to the query/validate handler.
+
+            Serializes with exclude_none=True so optional fields the caller
+            hasn't requested (e.g. v3_name_dsp when include_v3_mapping=False)
+            drop from the wire payload rather than serializing as `null`.
+            Matches the byte-cap serializer's policy so wire-level and
+            byte-measured payload shapes agree.
+            """
             try:
-                return report_fields_handle(
+                result = report_fields_handle(
                     mode=mode,
                     operation=operation,
                     category=category,
@@ -888,6 +899,7 @@ async def register_report_catalog_tools(server: FastMCP):
                     offset=offset,
                     validate_fields=validate_fields,
                 )
+                return result.model_dump(exclude_none=True)
             except ReportFieldsToolError as exc:
                 raise ValueError(str(exc)) from exc
 
