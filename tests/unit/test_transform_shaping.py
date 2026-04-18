@@ -55,6 +55,36 @@ def test_input_transform_parses_and_composes():
     assert result["status"] == "OK"
 
 
+def test_input_transform_arg_aliases_report_id_to_report_ids():
+    rules = {"version": "1.0"}
+    ex = DeclarativeTransformExecutor("Test", rules)
+    rule = {
+        "input_transform": {
+            "arg_aliases": [
+                {"from": "reportId", "to": "reportIds", "wrap": "list"}
+            ]
+        }
+    }
+    input_tx = ex.create_input_transform(rule)
+    result = run(input_tx({"reportId": "abc123"}))
+    assert result["reportIds"] == ["abc123"]
+
+
+def test_input_transform_arg_aliases_no_override_when_target_present():
+    rules = {"version": "1.0"}
+    ex = DeclarativeTransformExecutor("Test", rules)
+    rule = {
+        "input_transform": {
+            "arg_aliases": [
+                {"from": "reportId", "to": "reportIds", "wrap": "list"}
+            ]
+        }
+    }
+    input_tx = ex.create_input_transform(rule)
+    result = run(input_tx({"reportId": "abc123", "reportIds": ["x"]}))
+    assert result["reportIds"] == ["x"]
+
+
 def test_call_transform_pagination_all_pages():
     rules = {"version": "1.0"}
     ex = DeclarativeTransformExecutor("Test", rules)

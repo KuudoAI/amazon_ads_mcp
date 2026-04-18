@@ -60,6 +60,7 @@ async def hydrate_auth_from_mcp_session(
         credentials_payload = state.get("active_credentials")
         profiles_payload = state.get("active_profiles")
         last_fp = state.get("last_seen_token_fingerprint")
+        active_region = state.get("active_region")
 
         identity = (
             Identity.model_validate(identity_payload)
@@ -80,6 +81,18 @@ async def hydrate_auth_from_mcp_session(
         set_active_credentials(credentials)
         set_active_profiles(profiles)
         set_last_seen_token_fingerprint(last_fp if isinstance(last_fp, str) else None)
+
+        # Region is provider-managed (not ContextVar). Restore when possible.
+        if isinstance(active_region, str):
+            try:
+                from ..auth.manager import get_auth_manager
+
+                auth_manager = get_auth_manager()
+                provider = getattr(auth_manager, "provider", None)
+                if provider and hasattr(provider, "_region"):
+                    provider._region = active_region
+            except Exception as region_exc:
+                log.debug("Failed to hydrate active region: %s", region_exc)
     except Exception as exc:
         log.warning("Failed to hydrate auth session state: %s", exc)
 
@@ -97,6 +110,14 @@ async def persist_auth_to_mcp_session(
         credentials = get_active_credentials()
         profiles = get_active_profiles()
         last_fp = get_last_seen_token_fingerprint()
+        active_region: Optional[str] = None
+        try:
+            from ..auth.manager import get_auth_manager
+
+            auth_manager = get_auth_manager()
+            active_region = auth_manager.get_active_region()
+        except Exception as region_exc:
+            log.debug("Failed to persist active region: %s", region_exc)
 
         state = {
             "active_identity": identity.model_dump(mode="json") if identity else None,
@@ -105,6 +126,7 @@ async def persist_auth_to_mcp_session(
             ),
             "active_profiles": profiles,
             "last_seen_token_fingerprint": last_fp,
+            "active_region": active_region,
         }
         await fastmcp_context.set_state(AUTH_SESSION_STATE_KEY, state)
     except Exception as exc:

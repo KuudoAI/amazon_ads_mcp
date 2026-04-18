@@ -839,16 +839,28 @@ class AuthenticatedClient(httpx.AsyncClient):
             # Map to spec-preferred names
             auth_headers = self._map_auth_headers_to_spec(auth_headers)
 
-            # Handle missing client ID (should not happen with properly configured OpenBridge)
-            client_id = auth_headers.get("Amazon-Advertising-API-ClientId")
+            # Resolve the client ID across ALL known header variants (legacy
+            # Amazon-Advertising-API-ClientId AND the new Amazon-Ads-ClientId
+            # used by AdsAPIv1 specs). Fall back to env var if nothing present.
+            def _resolve_client_id() -> Optional[str]:
+                for key in (
+                    "Amazon-Advertising-API-ClientId",
+                    "Amazon-Ads-ClientId",
+                ):
+                    val = auth_headers.get(key) or request.headers.get(key)
+                    if val:
+                        return val
+                return None
+
+            client_id = _resolve_client_id()
             if not client_id:
-                # Try to get from environment as last resort
                 env_client_id = self._get_env_client_id(current_value="")
                 if env_client_id:
                     logger.warning(
                         "No client ID in auth headers, using environment variable"
                     )
                     auth_headers["Amazon-Advertising-API-ClientId"] = env_client_id
+                    client_id = env_client_id
 
             # Validate mandatory headers
             if not (
@@ -859,12 +871,14 @@ class AuthenticatedClient(httpx.AsyncClient):
                     "Missing Authorization header for Amazon Ads API request.",
                     request=request,
                 )
-            if not (
-                auth_headers.get("Amazon-Advertising-API-ClientId")
-                or request.headers.get("Amazon-Advertising-API-ClientId")
-            ):
+            if not client_id:
+                provided_keys = sorted(set(auth_headers.keys()))
                 raise httpx.RequestError(
-                    "Missing ClientId header. Set AMAZON_AD_API_CLIENT_ID (preferred) or AMAZON_ADS_CLIENT_ID, or ensure provider supplies ClientId.",
+                    "Missing ClientId header. Auth provider returned "
+                    f"headers {provided_keys} but no Amazon-Advertising-API-ClientId "
+                    "or Amazon-Ads-ClientId. Set AMAZON_AD_API_CLIENT_ID "
+                    "(preferred) or AMAZON_ADS_CLIENT_ID, or ensure the "
+                    "active identity carries a Client ID.",
                     request=request,
                 )
 
@@ -875,6 +889,24 @@ class AuthenticatedClient(httpx.AsyncClient):
                     "Amazon-Ads-AccountId",
                 ]:
                     auth_headers.pop(k, None)
+
+            # AdsAPIv1 endpoints (/adsApi/v1/...) require the new-style
+            # "Amazon-Ads-ClientId" header. Mirror the resolved client ID
+            # under both the legacy and new names so either spec is satisfied.
+            # Safe: Amazon Ads tolerates both headers; downstream APIs ignore
+            # the one they don't consume.
+            if "/adsApi/v1/" in path or path.startswith("/adsApi/v1"):
+                resolved_client = (
+                    auth_headers.get("Amazon-Advertising-API-ClientId")
+                    or auth_headers.get("Amazon-Ads-ClientId")
+                    or request.headers.get("Amazon-Advertising-API-ClientId")
+                    or request.headers.get("Amazon-Ads-ClientId")
+                )
+                if resolved_client:
+                    auth_headers.setdefault("Amazon-Ads-ClientId", resolved_client)
+                    auth_headers.setdefault(
+                        "Amazon-Advertising-API-ClientId", resolved_client
+                    )
 
             # Merge auth headers last
             logger.info("Adding auth headers to request:")

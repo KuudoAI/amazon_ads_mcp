@@ -359,6 +359,47 @@ class GetDownloadUrlResponse(BaseModel):
     hint: Optional[str] = None
 
 
+class ReadDownloadResponse(BaseModel):
+    """Response from read_download tool."""
+
+    success: bool
+    file_path: Optional[str] = None
+    profile_id: Optional[str] = None
+    offset: int = 0
+    bytes_read: int = 0
+    size_bytes: Optional[int] = None
+    truncated: bool = False
+    encoding: Optional[str] = None
+    content: Optional[str] = None
+    content_base64: Optional[str] = None
+    error: Optional[str] = None
+    hint: Optional[str] = None
+
+
+class SetContextResponse(BaseModel):
+    """Response from set_context tool."""
+
+    success: bool
+    identity_id: Optional[str] = None
+    region: Optional[str] = None
+    profile_id: Optional[str] = None
+    message: Optional[str] = None
+    error: Optional[str] = None
+
+
+class ListReportFieldsResponse(BaseModel):
+    """Response from list_report_fields tool."""
+
+    success: bool
+    operation: Optional[str] = None
+    operations: Optional[List[str]] = None
+    catalog: Optional[Dict[str, Any]] = None
+    catalog_entry: Optional[Dict[str, Any]] = None
+    message: Optional[str] = None
+    error: Optional[str] = None
+    hint: Optional[str] = None
+
+
 # ============================================================================
 # OAuth Tool Responses
 # ============================================================================

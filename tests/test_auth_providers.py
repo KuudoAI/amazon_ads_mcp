@@ -10,7 +10,7 @@ from amazon_ads_mcp.auth.base import BaseAmazonAdsProvider, ProviderConfig
 from amazon_ads_mcp.auth.providers.direct import DirectAmazonAdsProvider
 from amazon_ads_mcp.auth.providers.openbridge import OpenBridgeProvider
 from amazon_ads_mcp.auth.registry import ProviderRegistry, register_provider
-from amazon_ads_mcp.models import Token
+from amazon_ads_mcp.models import Identity, Token
 
 
 class TestProviderRegistry:
@@ -393,6 +393,64 @@ class TestOpenBridgeProvider:
             identities1 = await openbridge_provider.list_identities()
             assert len(identities1) == 1
             assert identities1[0].id == "test-1"
+
+    @pytest.mark.asyncio
+    async def test_openbridge_resolves_client_id_from_identity_relationship(
+        self, openbridge_provider
+    ):
+        """Provider resolves missing token client_id using relationship metadata."""
+        identity = Identity(
+            id="id-1",
+            type="remote_identity",
+            attributes={"name": "Relationship Test", "region": "na"},
+            relationships={
+                "remote_identity_type_application": {
+                    "data": {"id": "16", "type": "RemoteIdentityTypeApplication"}
+                }
+            },
+        )
+        jwt_token = Token(
+            value="test_jwt",
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            token_type="Bearer",
+        )
+
+        token_response = MagicMock()
+        token_response.status_code = 200
+        token_response.raise_for_status = MagicMock()
+        token_response.json.return_value = {"data": {"access_token": "amazon_token"}}
+
+        not_found_response = MagicMock()
+        not_found_response.status_code = 404
+        not_found_response.json.return_value = {}
+
+        app_response = MagicMock()
+        app_response.status_code = 200
+        app_response.json.return_value = {
+            "data": {
+                "id": "16",
+                "attributes": {"oauth_client_id": "resolved-client-id"},
+            }
+        }
+
+        async def get_side_effect(url, **kwargs):
+            if "/service/amzadv/token/" in url:
+                return token_response
+            if "/rita/16" in url:
+                return app_response
+            if "/sri/id-1" in url:
+                return not_found_response
+            return not_found_response
+
+        mock_client = AsyncMock()
+        mock_client.get = AsyncMock(side_effect=get_side_effect)
+
+        with patch.object(openbridge_provider, "get_identity", return_value=identity):
+            with patch.object(openbridge_provider, "get_token", return_value=jwt_token):
+                with patch.object(openbridge_provider, "_get_client", return_value=mock_client):
+                    credentials = await openbridge_provider.get_identity_credentials("id-1")
+
+        assert credentials.headers["Amazon-Advertising-API-ClientId"] == "resolved-client-id"
 
 
 class TestAuthManagerIntegration:

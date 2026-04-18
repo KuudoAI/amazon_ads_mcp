@@ -124,8 +124,8 @@ class TestInMemoryMCPOperations:
         from fastmcp import Client
 
         async with Client(mcp_server) as client:
-            # Set to EU region (parameter is region_code)
-            set_result = await client.call_tool("set_region", {"region_code": "eu"})
+            # Set to EU region (parameter is `region`)
+            set_result = await client.call_tool("set_region", {"region": "eu"})
             assert set_result is not None
 
             # Verify the change
@@ -133,13 +133,48 @@ class TestInMemoryMCPOperations:
             assert get_result is not None
 
     @pytest.mark.asyncio
-    async def test_set_region_accepts_region_code(self, mcp_server):
-        """set_region accepts the `region_code` parameter."""
+    async def test_set_region_accepts_region(self, mcp_server):
+        """set_region accepts the `region` parameter."""
         from fastmcp import Client
 
         async with Client(mcp_server) as client:
-            set_result = await client.call_tool("set_region", {"region_code": "na"})
+            set_result = await client.call_tool("set_region", {"region": "na"})
             assert set_result is not None
+
+    @pytest.mark.asyncio
+    async def test_set_region_accepts_region_code_alias(self, mcp_server):
+        """set_region accepts the legacy `region_code` parameter alias.
+
+        Regression lock: cached LLM schemas may still call with the old
+        `region_code` name; this must continue to work.
+        """
+        from fastmcp import Client
+
+        async with Client(mcp_server) as client:
+            set_result = await client.call_tool(
+                "set_region", {"region_code": "eu"}
+            )
+            assert set_result is not None
+
+    @pytest.mark.asyncio
+    async def test_list_report_fields_returns_catalog(self, mcp_server):
+        """list_report_fields returns operation-scoped field catalogs."""
+        import json
+
+        from fastmcp import Client
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("list_report_fields", {})
+            assert result is not None
+            assert result.content is not None
+            content = result.content[0]
+            if hasattr(content, "text"):
+                data = json.loads(content.text)
+                assert data["success"] is True
+                assert "allv1_AdsApiv1CreateReport" in data.get("operations", [])
+                assert "rp_createAsyncReport" in data.get("operations", [])
+                assert "br_generateBrandMetricsReport" in data.get("operations", [])
+                assert "mmm_createMmmReport" in data.get("operations", [])
 
     @pytest.mark.asyncio
     async def test_get_routing_state_on_fresh_server(self, mcp_server):
@@ -201,6 +236,26 @@ class TestInMemoryMCPOperations:
             assert set_result is not None
 
             # Verify it was set
+            get_result = await client.call_tool("get_active_profile", {})
+            assert get_result is not None
+
+    @pytest.mark.asyncio
+    async def test_set_context_can_set_profile_in_one_call(self, mcp_server):
+        """set_context should set profile without separate setup calls."""
+        from fastmcp import Client
+
+        test_profile_id = "9988776655"
+
+        async with Client(mcp_server) as client:
+            tools = await client.list_tools()
+            if "set_context" not in [t.name for t in tools]:
+                pytest.skip("set_context is not registered for this auth mode")
+
+            set_result = await client.call_tool(
+                "set_context", {"profile_id": test_profile_id}
+            )
+            assert set_result is not None
+
             get_result = await client.call_tool("get_active_profile", {})
             assert get_result is not None
 
@@ -280,7 +335,7 @@ class TestInMemoryErrorHandling:
             try:
                 result = await client.call_tool(
                     "set_region",
-                    {"region_code": "invalid_region_code"}
+                    {"region": "invalid_region_code"}
                 )
                 # Tool may return an error response with success=False
                 assert result is not None
@@ -295,7 +350,7 @@ class TestInMemoryErrorHandling:
         from fastmcp.exceptions import ToolError
 
         async with Client(mcp_server) as client:
-            # set_region requires region_code; calling with {} should error
+            # set_region requires region; calling with {} should error
             try:
                 result = await client.call_tool("set_region", {})
                 # If it returns, check for error in response

@@ -36,20 +36,25 @@ from ..models.builtin_responses import (
     GetProfileResponse,
     GetRegionResponse,
     ListDownloadsResponse,
+    ListReportFieldsResponse,
     ListRegionsResponse,
     ProfileSelectorResponse,
     ProfilePageResponse,
     ProfileCacheRefreshResponse,
     ProfileSearchResponse,
     ProfileSummaryResponse,
+    ReadDownloadResponse,
     RoutingStateResponse,
     SamplingTestResponse,
+    SetContextResponse,
     SetProfileResponse,
     SetRegionResponse,
     ToolGroupInfo,
     ToolGroupsResponse,
 )
-from ..tools import identity, profile, profile_listing, region
+from ..tools import identity, profile, profile_listing
+from ..tools import report_fields
+from ..tools import region as region_module
 from ..tools.oauth import OAuthTools
 
 # Removed http_client imports - override functions were removed
@@ -93,6 +98,63 @@ async def register_identity_tools(server: FastMCP):
     async def list_identities_tool(ctx: Context) -> dict:
         """List all available identities."""
         return await identity.list_identities()
+
+    @server.tool(
+        name="set_context",
+        description=(
+            "Set active context in one call. Any subset is allowed: "
+            "`identity_id`, `region` (or legacy `region_code`), and `profile_id`."
+        ),
+    )
+    async def set_context_tool(
+        ctx: Context,
+        identity_id: Optional[str] = None,
+        region: Optional[str] = None,
+        region_code: Optional[str] = None,
+        profile_id: Optional[str] = None,
+        persist: bool = False,
+    ) -> SetContextResponse:
+        """Set identity, region, and profile context in one call."""
+        if not any([identity_id, region, region_code, profile_id]):
+            raise ValueError(
+                "set_context requires at least one of: "
+                "identity_id, region/region_code, profile_id"
+            )
+
+        if identity_id:
+            from ..models import SetActiveIdentityRequest
+
+            await identity.set_active_identity(
+                SetActiveIdentityRequest(identity_id=identity_id, persist=persist)
+            )
+
+        requested_region = region or region_code
+        if requested_region:
+            region_result = await region_module.set_region(requested_region)
+            if not region_result.get("success", False):
+                return SetContextResponse(
+                    success=False,
+                    identity_id=identity_id,
+                    profile_id=profile_id,
+                    region=requested_region,
+                    error=region_result.get("error"),
+                    message=region_result.get("message"),
+                )
+
+        if profile_id:
+            await profile.set_active_profile(profile_id)
+
+        active_identity = await identity.get_active_identity()
+        active_region = await region_module.get_region()
+        active_profile = await profile.get_active_profile()
+
+        return SetContextResponse(
+            success=True,
+            identity_id=active_identity.id if active_identity else None,
+            region=active_region.get("region"),
+            profile_id=active_profile.get("profile_id"),
+            message="Context updated",
+        )
 
 
 async def register_profile_tools(server: FastMCP):
@@ -336,23 +398,37 @@ async def register_region_tools(server: FastMCP):
 
     @server.tool(
         name="set_region",
-        description="Set the region for Amazon Ads API calls",
+        description=(
+            "Set the region for Amazon Ads API calls. "
+            "Pass `region` (preferred) or `region_code` (legacy alias). "
+            "Valid values: 'na', 'eu', 'fe'."
+        ),
     )
-    async def set_region_tool(ctx: Context, region_code: str) -> SetRegionResponse:
-        """Set the region for API calls."""
-        result = await region.set_region(region_code)
+    async def set_region_tool(
+        ctx: Context,
+        region: Optional[str] = None,
+        region_code: Optional[str] = None,
+    ) -> SetRegionResponse:
+        """Set the region for API calls. Accepts legacy `region_code` alias."""
+        value = region or region_code
+        if not value:
+            raise ValueError(
+                "set_region requires `region` (or legacy `region_code`). "
+                "Valid values: 'na', 'eu', 'fe'."
+            )
+        result = await region_module.set_region(value)
         return SetRegionResponse(**result)
 
     @server.tool(name="get_region", description="Get the current region setting")
     async def get_region_tool(ctx: Context) -> GetRegionResponse:
         """Get the current region."""
-        result = await region.get_region()
+        result = await region_module.get_region()
         return GetRegionResponse(**result)
 
     @server.tool(name="list_regions", description="List all available regions")
     async def list_regions_tool(ctx: Context) -> ListRegionsResponse:
         """List available regions."""
-        result = await region.list_regions()
+        result = await region_module.list_regions()
         return ListRegionsResponse(**result)
 
     @server.tool(
@@ -428,6 +504,10 @@ async def register_download_tools(server: FastMCP):
         # Get active profile for scoped storage
         auth_mgr = get_auth_manager()
         profile_id = auth_mgr.get_active_profile_id() if auth_mgr else None
+        if not profile_id:
+            raise ValueError(
+                "No active profile set. Call set_active_profile or set_context first."
+            )
 
         # Determine export type from ID
         try:
@@ -521,7 +601,8 @@ Note: Requires HTTP transport (not stdio).
     )
     async def get_download_url_tool(
         ctx: Context,
-        file_path: str,
+        file_path: Optional[str] = None,
+        filename: Optional[str] = None,
     ) -> GetDownloadUrlResponse:
         """Generate the download URL for a file.
 
@@ -531,6 +612,14 @@ Note: Requires HTTP transport (not stdio).
         """
         from pathlib import Path
         from urllib.parse import quote
+
+        requested_path = file_path or filename
+        if not requested_path:
+            return GetDownloadUrlResponse(
+                success=False,
+                error="Missing required argument",
+                hint="Provide `file_path` (or legacy alias `filename`)",
+            )
 
         # Try to get HTTP request context
         try:
@@ -562,7 +651,7 @@ Note: Requires HTTP transport (not stdio).
         handler = get_download_handler()
         profile_dir = handler.base_dir / "profiles" / profile_id
         try:
-            full_path = safe_join_within(profile_dir, file_path)
+            full_path = safe_join_within(profile_dir, requested_path)
         except PathTraversalError:
             return GetDownloadUrlResponse(
                 success=False,
@@ -588,7 +677,7 @@ Note: Requires HTTP transport (not stdio).
 
         # URL-encode path segments
         encoded_path = "/".join(
-            quote(part, safe="") for part in Path(file_path).parts
+            quote(part, safe="") for part in Path(requested_path).parts
         )
 
         download_url = f"{base_url}/downloads/p/{profile_id}/{encoded_path}"
@@ -604,6 +693,141 @@ Note: Requires HTTP transport (not stdio).
                 "Authorization: Bearer <token>"
             ),
         )
+
+    @server.tool(
+        name="read_download",
+        description=(
+            "Read a profile-scoped downloaded file directly from server storage. "
+            "Use `list_downloads` to get a `file_path` first."
+        ),
+    )
+    async def read_download_tool(
+        ctx: Context,
+        file_path: str,
+        offset: int = 0,
+        length: int = 65536,
+        encoding: Optional[str] = "utf-8",
+    ) -> ReadDownloadResponse:
+        """Read part of a downloaded file for the active profile."""
+        import base64
+
+        from ..utils.export_download_handler import get_download_handler
+        from ..utils.paths import PathTraversalError, safe_join_within
+
+        if offset < 0:
+            return ReadDownloadResponse(
+                success=False,
+                error="Invalid offset",
+                hint="offset must be >= 0",
+            )
+        if length <= 0 or length > 1_000_000:
+            return ReadDownloadResponse(
+                success=False,
+                error="Invalid length",
+                hint="length must be between 1 and 1000000 bytes",
+            )
+
+        auth_mgr = get_auth_manager()
+        profile_id = auth_mgr.get_active_profile_id() if auth_mgr else None
+        if not profile_id:
+            return ReadDownloadResponse(
+                success=False,
+                error="No active profile",
+                hint="Set active profile before reading downloads",
+            )
+
+        handler = get_download_handler()
+        profile_dir = handler.base_dir / "profiles" / profile_id
+
+        try:
+            full_path = safe_join_within(profile_dir, file_path)
+        except PathTraversalError:
+            return ReadDownloadResponse(
+                success=False,
+                error="Invalid file path",
+                hint="Paths must be relative and stay within the active profile's directory",
+            )
+
+        if not full_path.exists() or not full_path.is_file():
+            return ReadDownloadResponse(
+                success=False,
+                error="File not found",
+                hint="Use list_downloads to see available files",
+            )
+
+        size_bytes = full_path.stat().st_size
+        if offset >= size_bytes:
+            return ReadDownloadResponse(
+                success=False,
+                error="Offset out of range",
+                hint=f"File size is {size_bytes} bytes",
+            )
+
+        with open(full_path, "rb") as f:
+            f.seek(offset)
+            data = f.read(length)
+
+        bytes_read = len(data)
+        truncated = (offset + bytes_read) < size_bytes
+
+        if encoding:
+            try:
+                content = data.decode(encoding)
+                return ReadDownloadResponse(
+                    success=True,
+                    file_path=file_path,
+                    profile_id=profile_id,
+                    offset=offset,
+                    bytes_read=bytes_read,
+                    size_bytes=size_bytes,
+                    truncated=truncated,
+                    encoding=encoding,
+                    content=content,
+                )
+            except UnicodeDecodeError:
+                return ReadDownloadResponse(
+                    success=True,
+                    file_path=file_path,
+                    profile_id=profile_id,
+                    offset=offset,
+                    bytes_read=bytes_read,
+                    size_bytes=size_bytes,
+                    truncated=truncated,
+                    encoding=None,
+                    content_base64=base64.b64encode(data).decode("ascii"),
+                    hint="Could not decode bytes with requested encoding; returning base64",
+                )
+
+        return ReadDownloadResponse(
+            success=True,
+            file_path=file_path,
+            profile_id=profile_id,
+            offset=offset,
+            bytes_read=bytes_read,
+            size_bytes=size_bytes,
+            truncated=truncated,
+            encoding=None,
+            content_base64=base64.b64encode(data).decode("ascii"),
+        )
+
+
+async def register_report_catalog_tools(server: FastMCP):
+    """Register report field catalog tools."""
+
+    @server.tool(
+        name="list_report_fields",
+        description=(
+            "List valid report fields by report operation. "
+            "Call with no args to list supported operations."
+        ),
+    )
+    async def list_report_fields_tool(
+        ctx: Context,
+        operation: Optional[str] = None,
+    ) -> ListReportFieldsResponse:
+        """Return curated report field catalogs."""
+        result = report_fields.get_report_fields_catalog(operation=operation)
+        return ListReportFieldsResponse(**result)
 
 
 async def register_sampling_tools(server: FastMCP):
@@ -887,6 +1111,7 @@ async def register_all_builtin_tools(
     await register_region_tools(server)
     # Routing tools removed - override functionality was redundant
     await register_download_tools(server)
+    await register_report_catalog_tools(server)
     await register_sampling_tools(server)
     # Cache & diagnostic tools removed - not core operations
 

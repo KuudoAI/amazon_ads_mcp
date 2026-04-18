@@ -151,6 +151,38 @@ ASYNC_OPERATION_HINTS: Dict[str, Tuple[str, Optional[str]]] = {
         "requestId immediately. Use getAssetsBatchRegister to check status.",
         "getAssetsBatchRegister",
     ),
+    # AdsAPI v1 Reporting — the v1 endpoint uses a different ID space AND
+    # a different field-name namespace than legacy v2/v3 reporting. These
+    # hints prevent LLMs from guessing profileId-as-advertiserAccountId
+    # (yields 401) or sponsoredProducts.* field names (yields 400 unknown).
+    "AdsApiv1CreateReport": (
+        "This is the AdsAPI v1 report creation endpoint (asynchronous). "
+        "IMPORTANT:\n"
+        "• `accessRequestedAccounts[].advertiserAccountId` must be the "
+        "`amzn1.ads-account.g.*` account ID — NOT a legacy numeric profile "
+        "ID. Use `allv1_AdsApiv1QueryAdvertiserAccount` to resolve a "
+        "profileId to its advertiserAccountId first.\n"
+        "• Field names vary by endpoint and can reject guessed values. "
+        "Use `list_report_fields` with "
+        "`operation='allv1_AdsApiv1CreateReport'` for the validated "
+        "field catalog before constructing `query.fields`.\n"
+        "• `query.fields` must contain exactly one time dimension (e.g. "
+        "`date.value`), at least one level-of-detail dimension (e.g. "
+        "`campaign.id`), and at least one metric (e.g. `metric.clicks`).\n"
+        "• To filter on ad product use `adProduct.value` "
+        "(not `sponsoredProducts.adProduct`).\n"
+        "Returns a reportId; poll with `allv1_AdsApiv1RetrieveReport`. "
+        "Typical completion: 1-20 minutes.",
+        "AdsApiv1RetrieveReport",
+    ),
+    "AdsApiv1RetrieveReport": (
+        "Returns the current status of an AdsAPI v1 report (PENDING, "
+        "PROCESSING, COMPLETED, FAILED). If not yet complete, tell the user "
+        "and suggest checking back shortly rather than polling in a loop. "
+        "When COMPLETED, the response includes a download URL. Use "
+        "`download_export` to persist the file to profile-scoped storage.",
+        None,
+    ),
 }
 
 
