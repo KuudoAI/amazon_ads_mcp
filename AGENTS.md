@@ -124,6 +124,88 @@ When modifying Amazon Ads functionality, changes typically affect:
 - **Authentication** (OAuth flows, token management)
 - **File Downloads** (HTTP download routes for exports and reports)
 
+## Report Fields Catalog (`report_fields` Tool)
+
+The `report_fields` tool provides bounded, opt-in access to the packaged
+Ads API v1 field catalog (117 dimensions + 700 metrics with compatibility
+graph). It closes the v1 field-discovery failure loop: v1 OpenAPI doesn't
+enumerate `query.fields`, so LLMs used to guess and hit HTTP 400s.
+
+`list_report_fields` stays as the curated-baseline tool (unchanged).
+
+### Usage
+
+Discover fields:
+```
+report_fields(mode="query", category="metric", search="click", limit=25)
+report_fields(mode="query", compatible_with=["campaign.id"])
+report_fields(mode="query", fields=["metric.clicks"])   # detail lookup
+```
+
+Pre-flight a field list before `AdsApiv1CreateReport`:
+```
+report_fields(mode="validate",
+              operation="allv1_AdsApiv1CreateReport",
+              validate_fields=["metric.clicks", "campaign.id"])
+# → unknown_fields, missing_required, incompatible_pairs, suggested_replacements
+```
+
+`category="filter"` and `category="time"` are accepted but return empty
+results in this release — use `list_report_fields(operation=...)` for
+filter/time baselines on other report APIs.
+
+### Environment variables
+
+| Variable                         | Default | Purpose                                                                 |
+|----------------------------------|---------|-------------------------------------------------------------------------|
+| `ENABLE_REPORT_FIELDS_TOOL`      | `true`  | Master toggle for the `report_fields` tool and the associated async hint |
+| `LIST_REPORT_FIELDS_MAX_BYTES`   | `16384` | Hard byte cap on query/detail responses (serializer boundary)            |
+| `LIST_REPORT_FIELDS_STALE_DAYS`  | `90`    | Threshold for `stale_warning` on catalog freshness                       |
+| `AMAZON_ADS_DEBUG_TOOLS`         | `false` | When `true`, exposes the internal `_report_fields_debug` tool            |
+| `ALLOW_CATALOG_COUNT_DROP`       | `false` | CI override for catalog-refresh minimum-content floors                   |
+
+### Test invocation
+
+```
+uv run pytest -m "not slow"   # fast suite (default local)
+uv run pytest -m slow         # wheel-content + smoke (CI only)
+```
+
+The `slow` marker is registered in `pyproject.toml` but the global
+`addopts = "-v"` is untouched — slow-test filtering is invocation-level.
+
+### Refresh workflow
+
+When `.build/adsv1_specs/` is updated, regenerate the packaged catalog:
+
+```bash
+# Regenerate + validate + enforce production floors:
+uv run python -m amazon_ads_mcp.build.refresh_v1_catalog \
+    --source .build/adsv1_specs \
+    --dest src/amazon_ads_mcp/resources/adsv1 \
+    --validate --production-floors
+
+# Commit the regenerated artifacts:
+git add src/amazon_ads_mcp/resources/adsv1/
+git commit -m "chore: refresh v1 catalog"
+```
+
+The CI `catalog-drift` job runs `refresh_v1_catalog --check` on every PR,
+so a missed refresh after editing the source fails fast with a clear
+drift message. `catalog-idempotency` guards determinism; `catalog-negative`
+guards the failure paths; `wheel-smoke` proves the files ship in the wheel.
+
+Behavioral guarantees locked by tests:
+
+- Loader opens only four named files under `resources/adsv1/`; strays
+  and `.tmp` files are never enumerated.
+- `catalog_meta.json` is the commit signal — SHA-256 of on-disk
+  `dimensions.json` and `metrics.json` must match the manifest, in
+  either direction of runtime/catalog version mismatch → fail closed.
+- `report_fields(mode="query")` responses are sorted ascending by
+  `field_id`; byte cap enforced at the serializer boundary clips
+  descriptions but never drops fields.
+
 ## File Downloads (HTTP Data Plane)
 
 The MCP server provides HTTP endpoints for downloading exported files. This separates the control plane (MCP tools) from the data plane (HTTP file serving).
