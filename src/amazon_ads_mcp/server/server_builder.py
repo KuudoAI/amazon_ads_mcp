@@ -89,6 +89,13 @@ class ServerBuilder:
         # Mount resource servers
         await self._mount_resource_servers()
 
+        # Sidecar transforms (arg_aliases etc.) must run BEFORE tool schema
+        # dispatch. The legacy sidecar_loader.attach_transforms_from_sidecars
+        # hook was no-op on current FastMCP (transform_tool removed); the
+        # middleware below restores those semantics for every spec under
+        # the resources directory we just mounted.
+        await self._register_sidecar_middleware()
+
         # Progressive disclosure: disable mounted tools by default
         # Skipped when code mode is active (tools must stay visible for CodeMode catalog)
         if not code_mode:
@@ -301,6 +308,48 @@ class ServerBuilder:
                 write=10.0,  # Write timeout for request
                 pool=10.0,  # Pool timeout
             ),
+        )
+
+    async def _register_sidecar_middleware(self) -> None:
+        """Install the sidecar transform middleware if any rules exist.
+
+        NOTE on resolution order (intentionally different from
+        ``_mount_resource_servers``): the production build under ``dist/``
+        regenerates ``*.transform.json`` from scratch via
+        ``.build/scripts/process_openapi_specs.py:generate_transform_sidecar``,
+        which drops manually-authored ``input_transform`` blocks
+        (including ``arg_aliases``). That's a build-pipeline bug tracked
+        separately; meanwhile we prefer the SOURCE tree under
+        ``openapi/resources/`` for transform rules so the authoring
+        workflow (hand-editing input_transform) actually takes effect
+        at runtime, regardless of which tree supplied the specs.
+        """
+        from pathlib import Path as _Path
+
+        from .sidecar_middleware import SidecarTransformMiddleware
+
+        # Try sources in order of transform-rule fidelity.
+        source_resources = _Path("openapi/resources")
+        dist_resources = _Path("dist/openapi/resources")
+        packaged_resources = _Path(__file__).resolve().parent.parent / "resources"
+
+        for candidate in (source_resources, dist_resources, packaged_resources):
+            if not candidate.exists():
+                continue
+            middleware = SidecarTransformMiddleware(candidate)
+            stats = middleware.stats()
+            if stats["compiled_transforms"] > 0:
+                self.server.add_middleware(middleware)
+                logger.info(
+                    "SidecarTransformMiddleware: installed from %s (%d tools covered)",
+                    candidate,
+                    stats["tools_with_transforms"],
+                )
+                return
+
+        logger.info(
+            "SidecarTransformMiddleware: no input transforms compiled in any "
+            "resources dir; skipping"
         )
 
     async def _mount_resource_servers(self):
