@@ -1,0 +1,2364 @@
+[
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The delivery status of the ad like enabled, paused, archived, etc.",
+    "display_name": "Ad delivery status",
+    "field_id": "ad.deliveryStatus",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "ad.id"
+    ],
+    "short_description": "The delivery status of the ad like enabled, paused, archived, etc.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_ad_0a4e07ec.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "adCreativeStatus",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "User defined ID that can be assigned to an ad for tracking purposes or for integration with external systems.",
+    "display_name": "Ad external ID",
+    "field_id": "ad.externalId",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "ad.id"
+    ],
+    "short_description": "User defined ID that can be assigned to an ad for tracking purposes or for integration with external systems.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_ad_0a4e07ec.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "creativeExternalId",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The format of the ad like video, image, etc.",
+    "display_name": "Ad format",
+    "field_id": "ad.format",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "ad.id"
+    ],
+    "short_description": "The format of the ad like video, image, etc.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_ad_0a4e07ec.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "creativeType",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The unique ID associated with the ad.",
+    "display_name": "Ad ID (Primary Key)",
+    "field_id": "ad.id",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The unique ID associated with the ad.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_ad_0a4e07ec.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "creativeId",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The primary language used in the ad.",
+    "display_name": "Ad language",
+    "field_id": "ad.language",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "ad.id"
+    ],
+    "short_description": "The primary language used in the ad.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_ad_0a4e07ec.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "creativeLanguage",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The user-defined name for the ad used to populate an ad slot.",
+    "display_name": "Ad name",
+    "field_id": "ad.name",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "ad.id"
+    ],
+    "short_description": "The user-defined name for the ad used to populate an ad slot.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_ad_0a4e07ec.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "creativeName",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The dimensions of the ad in pixels.",
+    "display_name": "Ad size",
+    "field_id": "ad.size",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "ad.id"
+    ],
+    "short_description": "The dimensions of the ad in pixels.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_ad_0a4e07ec.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "creativeSize",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The ad break where the ad slot was served.",
+    "display_name": "Ad break ID (Primary Key)",
+    "field_id": "adBreak.id",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The ad break where the ad slot was served.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_supply_ad-break_413986e4.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": null,
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The automated or manual approach to control how much to bid for ad placements within an ad group.",
+    "display_name": "Ad group bid strategy",
+    "field_id": "adGroup.bidStrategy",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "adGroup.id"
+    ],
+    "short_description": "The automated or manual approach to control how much to bid for ad placements within an ad group.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_ad-group_df8f89ae.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": null,
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The total budget allocated for the ad group.",
+    "display_name": "Ad group budget amount",
+    "field_id": "adGroup.budgetAmount",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "adGroup.id",
+      "budgetCurrency.value"
+    ],
+    "short_description": "The total budget allocated for the ad group.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_ad-group_df8f89ae.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": null,
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The comments added to an ad group",
+    "display_name": "Ad group comments",
+    "field_id": "adGroup.comments",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "adGroup.id"
+    ],
+    "short_description": "The comments added to an ad group",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_ad-group_df8f89ae.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "lineItemComments",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The basis for charging advertising costs at an ad group level like CPC and CPM.",
+    "display_name": "Ad group cost type",
+    "field_id": "adGroup.costType",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "adGroup.id"
+    ],
+    "short_description": "The basis for charging advertising costs at an ad group level like CPC and CPM.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_ad-group_df8f89ae.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "lineItemCostType",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The status of the ad group like delivering, inactive, ended, etc.",
+    "display_name": "Ad group delivery status",
+    "field_id": "adGroup.deliveryStatus",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "adGroup.id"
+    ],
+    "short_description": "The status of the ad group like delivering, inactive, ended, etc.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_ad-group_df8f89ae.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "lineItemStatus",
+    "v3_name_sponsored_ads": "adStatus"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "DATE_TIME",
+    "description": "The date when the ad group is scheduled to stop displaying ads.",
+    "display_name": "Ad group end date",
+    "field_id": "adGroup.endDate",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "adGroup.id"
+    ],
+    "short_description": "The date when the ad group is scheduled to stop displaying ads.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_ad-group_df8f89ae.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "lineItemEndDate",
+    "v3_name_sponsored_ads": "adGroupEndDate"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The user-defined ID that can be assigned to an ad group for tracking purposes or for integration with external systems.",
+    "display_name": "Ad group external ID",
+    "field_id": "adGroup.externalId",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "adGroup.id"
+    ],
+    "short_description": "The user-defined ID that can be assigned to an ad group for tracking purposes or for integration with external systems.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_ad-group_df8f89ae.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "lineItemExternalId",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The unique ID associated with the ad group.",
+    "display_name": "Ad group ID (Primary Key)",
+    "field_id": "adGroup.id",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The unique ID associated with the ad group.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_ad-group_df8f89ae.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "lineItemId",
+    "v3_name_sponsored_ads": "adGroupId"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The setting that determines the language of the supply content the ad appears on.",
+    "display_name": "Ad group language targeting",
+    "field_id": "adGroup.languageTargeting",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "adGroup.id"
+    ],
+    "short_description": "The setting that determines the language of the supply content the ad appears on.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_ad-group_df8f89ae.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "lineItemlanguageTargeting",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The name of an ad group that can have creatives, budgets, targeting, and other settings.",
+    "display_name": "Ad group name",
+    "field_id": "adGroup.name",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "adGroup.id"
+    ],
+    "short_description": "The name of an ad group that can have creatives, budgets, targeting, and other settings.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_ad-group_df8f89ae.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "lineItemName",
+    "v3_name_sponsored_ads": "adGroupName"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The unique ID associated with the ad group imported from Amazon's order management system (OMS).",
+    "display_name": "Ad group OMS ID",
+    "field_id": "adGroup.omsId",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "adGroup.id"
+    ],
+    "short_description": "The unique ID associated with the ad group imported from Amazon's order management system (OMS).",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_ad-group_df8f89ae.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "lineItemOmsId",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "DATE_TIME",
+    "description": "The date when the ad group is scheduled to start displaying ads.",
+    "display_name": "Ad group start date",
+    "field_id": "adGroup.startDate",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "adGroup.id"
+    ],
+    "short_description": "The date when the ad group is scheduled to start displaying ads.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_ad-group_df8f89ae.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "lineItemStartDate",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The setting that determines the features and ad formats available to an ad group like display, video, audio, etc.",
+    "display_name": "Ad group type",
+    "field_id": "adGroup.type",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "adGroup.id"
+    ],
+    "short_description": "The setting that determines the features and ad formats available to an ad group like display, video, audio, etc.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_ad-group_df8f89ae.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "lineItemType",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The Amazon ad product like Sponsored Products, Sponsored Brands, or Amazon DSP",
+    "display_name": "Ad product (Primary Key)",
+    "field_id": "adProduct.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The Amazon ad product like Sponsored Products, Sponsored Brands, or Amazon DSP",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_ad-product_47b614b5.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": null,
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The unique ID associated with the ad slot of live event ads.",
+    "display_name": "Ad slot ID (Primary Key)",
+    "field_id": "adSlot.id",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The unique ID associated with the ad slot of live event ads.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_supply_ad-slot_fe83cedd.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": null,
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The product advertised within the ad slot of a live event ad.",
+    "display_name": "Ad slot type",
+    "field_id": "adSlot.type",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "adSlot.id"
+    ],
+    "short_description": "The product advertised within the ad slot of a live event ad.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_supply_ad-slot_fe83cedd.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": null,
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The unique identifier of the product featured in the ad.",
+    "display_name": "Advertised product ID (Primary Key)",
+    "field_id": "advertisedProduct.id",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The unique identifier of the product featured in the ad.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_product_advertised-product_562ec033.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "featuredAsin",
+    "v3_name_sponsored_ads": "advertisedAsin"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The marketplace where the advertised product is sold.",
+    "display_name": "Advertised product marketplace",
+    "field_id": "advertisedProduct.marketplace",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "advertisedProduct.id"
+    ],
+    "short_description": "The marketplace where the advertised product is sold.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_product_advertised-product_562ec033.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "marketplace",
+    "v3_name_sponsored_ads": "marketplace"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The SKU (stock keeping unit) assigned to the product featured in the ad.",
+    "display_name": "Advertised product SKU",
+    "field_id": "advertisedProduct.sku",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "advertisedProduct.id"
+    ],
+    "short_description": "The SKU (stock keeping unit) assigned to the product featured in the ad.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_product_advertised-product_562ec033.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "advertisedSku",
+    "v3_name_sponsored_ads": "advertisedSku"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The entity that the advertiser account is associated with.",
+    "display_name": "Entity ID",
+    "field_id": "advertiserAccount.entityId",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "advertiserAccount.id"
+    ],
+    "short_description": "The entity that the advertiser account is associated with.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_advertiser-account_630fe40e.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "entityId",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The unique ID associated with the advertiser account.",
+    "display_name": "Advertiser account ID (Primary Key)",
+    "field_id": "advertiserAccount.id",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The unique ID associated with the advertiser account.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_advertiser-account_630fe40e.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "advertiserId",
+    "v3_name_sponsored_ads": "advertiserId"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The manager accounts that the advertiser account is associated with.",
+    "display_name": "Manager accounts",
+    "field_id": "advertiserAccount.managerAccounts",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "advertiserAccount.id"
+    ],
+    "short_description": "The manager accounts that the advertiser account is associated with.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_advertiser-account_630fe40e.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "managerAccountId",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The unique ID associated with the advertiser account.",
+    "display_name": "Advertiser account name",
+    "field_id": "advertiserAccount.name",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "advertiserAccount.id"
+    ],
+    "short_description": "The unique ID associated with the advertiser account.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_advertiser-account_630fe40e.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "advertiserName",
+    "v3_name_sponsored_ads": "advertiserName"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The time zone used by the advertiser for reporting and ad serving purposes.",
+    "display_name": "Advertiser time zone",
+    "field_id": "advertiserAccount.timeZone",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "advertiserAccount.id"
+    ],
+    "short_description": "The time zone used by the advertiser for reporting and ad serving purposes.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_advertiser-account_630fe40e.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "advertiserTimeZone",
+    "v3_name_sponsored_ads": "advertiserTimeZone"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "A segment class like behavioral or user agent.",
+    "display_name": "Audience segment class code",
+    "field_id": "audienceSegment.classCode",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "audienceSegment.id"
+    ],
+    "short_description": "A segment class like behavioral or user agent.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_audience_audience-segment_48732df4.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "segmentClassCode",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The current state of the audience segment like targeted or not targeted.",
+    "display_name": "Audience segment current targeting status",
+    "field_id": "audienceSegment.currentTargetingStatus",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "audienceSegment.id"
+    ],
+    "short_description": "The current state of the audience segment like targeted or not targeted.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_audience_audience-segment_48732df4.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": null,
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The ID assigned to a specific group of users with shared characteristics or behaviors.",
+    "display_name": "Audience segment ID (Primary Key)",
+    "field_id": "audienceSegment.id",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The ID assigned to a specific group of users with shared characteristics or behaviors.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_audience_audience-segment_48732df4.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "segmentId",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The country where the audience segment is defined.",
+    "display_name": "Audience segment marketplace",
+    "field_id": "audienceSegment.marketplace",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "audienceSegment.id"
+    ],
+    "short_description": "The country where the audience segment is defined.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_audience_audience-segment_48732df4.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "segmentMarketplaceId",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The name of an audience segment.",
+    "display_name": "Audience segment name",
+    "field_id": "audienceSegment.name",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "audienceSegment.id"
+    ],
+    "short_description": "The name of an audience segment.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_audience_audience-segment_48732df4.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "Segment",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The type of audience segment like remarketing.",
+    "display_name": "Audience segment type",
+    "field_id": "audienceSegment.type",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "audienceSegment.id"
+    ],
+    "short_description": "The type of audience segment like remarketing.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_audience_audience-segment_48732df4.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "segmentType",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The targeting status of the audience segment when the impression was delivered.",
+    "display_name": "Audience segment targeting status (Primary Key)",
+    "field_id": "audienceSegmentTargetingStatus.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The targeting status of the audience segment when the impression was delivered.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_audience_audience-segment-targeting-status_bffae145.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "segmentStatus",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The browser used by the customer to view the ad.",
+    "display_name": "Browser name (Primary Key)",
+    "field_id": "browserName.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The browser used by the customer to view the ad.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_technology_browser-name_fb80b6ac.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "browserName",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The version of the browser used by the customer to view the ad.",
+    "display_name": "Browser version (Primary Key)",
+    "field_id": "browserVersion.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The version of the browser used by the customer to view the ad.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_technology_browser-version_078a7f07.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "browserVersion",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The currency in which the advertising spend was made.",
+    "display_name": "Budget currency (Primary Key)",
+    "field_id": "budgetCurrency.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The currency in which the advertising spend was made.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_currency_budget-currency_9ad92352.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "orderCurrency",
+    "v3_name_sponsored_ads": "campaignBudgetCurrencyCode"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The bid strategy for the campaign like front loaded or evenly spread.",
+    "display_name": "Campaign bid strategy",
+    "field_id": "campaign.bidStrategy",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "campaign.id"
+    ],
+    "short_description": "The bid strategy for the campaign like front loaded or evenly spread.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_campaign_7c6d2b95.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": null,
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "LONG",
+    "description": "The total budget allocated for the campaign.",
+    "display_name": "Campaign budget amount",
+    "field_id": "campaign.budgetAmount",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "budgetCurrency.value",
+      "campaign.id"
+    ],
+    "short_description": "The total budget allocated for the campaign.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_campaign_7c6d2b95.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "orderBudget",
+    "v3_name_sponsored_ads": "campaignBudget"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The way spending is structured for a campaign like \"daily\" indicating the spending limit per day or \"total\" indicating the entire campaign duration.",
+    "display_name": "Campaign budget type",
+    "field_id": "campaign.budgetType",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "campaign.id"
+    ],
+    "short_description": "The way spending is structured for a campaign like \"daily\" indicating the spending limit per day or \"total\" indicating the entire campaign duration.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_campaign_7c6d2b95.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": null,
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The way you pay for your ads like CPC and CPM.",
+    "display_name": "Campaign cost type",
+    "field_id": "campaign.costType",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "campaign.id"
+    ],
+    "short_description": "The way you pay for your ads like CPC and CPM.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_campaign_7c6d2b95.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": null,
+    "v3_name_sponsored_ads": "costType"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The country in which the campaign is delivering.",
+    "display_name": "Campaign country",
+    "field_id": "campaign.country",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "campaign.id"
+    ],
+    "short_description": "The country in which the campaign is delivering.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_campaign_7c6d2b95.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "country",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The three-letter currency code like USD, EUR, GBP, etc.",
+    "display_name": "Campaign currency code",
+    "field_id": "campaign.currencyCode",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "campaign.id"
+    ],
+    "short_description": "The three-letter currency code like USD, EUR, GBP, etc.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_campaign_7c6d2b95.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "orderCurrency",
+    "v3_name_sponsored_ads": "campaignBudgetCurrencyCode"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The status of the campaign like delivering, inactive, ended, etc.",
+    "display_name": "Campaign delivery status",
+    "field_id": "campaign.deliveryStatus",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "campaign.id"
+    ],
+    "short_description": "The status of the campaign like delivering, inactive, ended, etc.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_campaign_7c6d2b95.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": null,
+    "v3_name_sponsored_ads": "campaignStatus"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "DATE_TIME",
+    "description": "The date when the campaign is scheduled to stop running and serving ads.",
+    "display_name": "Campaign end date",
+    "field_id": "campaign.endDate",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "campaign.id"
+    ],
+    "short_description": "The date when the campaign is scheduled to stop running and serving ads.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_campaign_7c6d2b95.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "orderEndDate",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": null,
+    "display_name": "Global Campaign ID",
+    "field_id": "campaign.globalCampaignId",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "campaign.id"
+    ],
+    "short_description": "",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_campaign_7c6d2b95.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": null,
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The unique ID associated with the campaign.",
+    "display_name": "Campaign ID (Primary Key)",
+    "field_id": "campaign.id",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The unique ID associated with the campaign.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_campaign_7c6d2b95.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "orderId",
+    "v3_name_sponsored_ads": "campaignId"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The name of the campaign used to organize ad groups, apply a budget, and various other settings.",
+    "display_name": "Campaign name",
+    "field_id": "campaign.name",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "campaign.id"
+    ],
+    "short_description": "The name of the campaign used to organize ad groups, apply a budget, and various other settings.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_campaign_7c6d2b95.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "order",
+    "v3_name_sponsored_ads": "campaignName"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The unique ID associated with the campaign imported from Amazon's order management system (OMS).",
+    "display_name": "Campaign OMS proposal ID",
+    "field_id": "campaign.omsId",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "campaign.id"
+    ],
+    "short_description": "The unique ID associated with the campaign imported from Amazon's order management system (OMS).",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_campaign_7c6d2b95.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "proposalId",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The ID assigned to a campaign for tracking purposes. Campaign PO number or external ID is optional.",
+    "display_name": "Campaign PO number",
+    "field_id": "campaign.purchaseOrderNumber",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "campaign.id"
+    ],
+    "short_description": "The ID assigned to a campaign for tracking purposes. Campaign PO number or external ID is optional.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_campaign_7c6d2b95.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "PO Number",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "LONG",
+    "description": "The modified campaign budget based on a rule.",
+    "display_name": "Campaign rule amount",
+    "field_id": "campaign.ruleAmount",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "campaign.id"
+    ],
+    "short_description": "The modified campaign budget based on a rule.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_campaign_7c6d2b95.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": null,
+    "v3_name_sponsored_ads": "campaignRuleBasedBudgetAmount"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "DATE_TIME",
+    "description": "The date when the campaign is scheduled to start running and serving ads.",
+    "display_name": "Campaign start date",
+    "field_id": "campaign.startDate",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "campaign.id"
+    ],
+    "short_description": "The date when the campaign is scheduled to start running and serving ads.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_campaign_7c6d2b95.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "orderStartDate",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The city where the ad was displayed.",
+    "display_name": "City (Primary Key)",
+    "field_id": "city.name",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The city where the ad was displayed.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_geography_city_77e0b801.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "City",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The name of content creator on whose channel an ad is shown.",
+    "display_name": "Content creator name (Primary Key)",
+    "field_id": "contentCreator.name",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The name of content creator on whose channel an ad is shown.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_supply_content-creator_5e913ba0.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "creatorName",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The genre of the video or audio.",
+    "display_name": "Content genre (Primary Key)",
+    "field_id": "contentGenre.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The genre of the video or audio.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_supply_content-genre_24358813.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "contentGenre",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The rating of the video or audio like content suitable for teens and older audiences.",
+    "display_name": "Content rating (Primary Key)",
+    "field_id": "contentRating.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The rating of the video or audio like content suitable for teens and older audiences.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_supply_content-rating_bc67782b.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "contentRating",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The name of the video or audio.",
+    "display_name": "Content title (Primary Key)",
+    "field_id": "contentTitle.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The name of the video or audio.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_supply_content-title_397a2d8f.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "contentTitle",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The type of the video or audio like movie, tv show, game, etc.",
+    "display_name": "Content type (Primary Key)",
+    "field_id": "contentType.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The type of the video or audio like movie, tv show, game, etc.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_supply_content-type_e678e022.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "contentType",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The currency selected by the customer to view metrics.",
+    "display_name": "Converted currency (Primary Key)",
+    "field_id": "convertedCurrency.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The currency selected by the customer to view metrics.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_currency_converted-currency_96f93e21.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": null,
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The brand of the product attributed to the ad.",
+    "display_name": "Converted product brand",
+    "field_id": "convertedProduct.brand",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "convertedProduct.id"
+    ],
+    "short_description": "The brand of the product attributed to the ad.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_product_converted-product_7090eae8.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "brandName",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The top-level category of the product attributed to the ad.",
+    "display_name": "Converted product category",
+    "field_id": "convertedProduct.category",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "convertedProduct.id"
+    ],
+    "short_description": "The top-level category of the product attributed to the ad.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_product_converted-product_7090eae8.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "productCategory",
+    "v3_name_sponsored_ads": "productCategory"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The unique identifier of the product attributed to the ad.",
+    "display_name": "Converted product ID (Primary Key)",
+    "field_id": "convertedProduct.id",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "convertedProductMarketplace.value"
+    ],
+    "short_description": "The unique identifier of the product attributed to the ad.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_product_converted-product_7090eae8.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "convertedAsin",
+    "v3_name_sponsored_ads": "purchasedAsin"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The display name of the product attributed to the ad.",
+    "display_name": "Converted product name",
+    "field_id": "convertedProduct.name",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "convertedProduct.id"
+    ],
+    "short_description": "The display name of the product attributed to the ad.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_product_converted-product_7090eae8.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "convertedProductName",
+    "v3_name_sponsored_ads": "productName"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The parent product identifier of the attributed product, used to group related product variations (if applicable).",
+    "display_name": "Converted product parent ID",
+    "field_id": "convertedProduct.parentProductId",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "convertedProduct.id"
+    ],
+    "short_description": "The parent product identifier of the attributed product, used to group related product variations (if applicable).",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_product_converted-product_7090eae8.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "parentAsin",
+    "v3_name_sponsored_ads": "parentAsin"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The product classification assigned to the attributed product for accounting and reporting purposes. Contains product categories.",
+    "display_name": "Converted product group",
+    "field_id": "convertedProduct.productGroup",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "convertedProduct.id"
+    ],
+    "short_description": "The product classification assigned to the attributed product for accounting and reporting purposes. Contains product categories.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_product_converted-product_7090eae8.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "productGroup",
+    "v3_name_sponsored_ads": "productGroup"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The product subcategory of the product attributed to the ad.",
+    "display_name": "Converted product subcategory",
+    "field_id": "convertedProduct.subcategory",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "convertedProduct.id"
+    ],
+    "short_description": "The product subcategory of the product attributed to the ad.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_product_converted-product_7090eae8.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "productSubcategory",
+    "v3_name_sponsored_ads": "productSubcategory"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The marketplace where the conversion event for the attributed product occurred.",
+    "display_name": "Converted product marketplace (Primary Key)",
+    "field_id": "convertedProductMarketplace.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The marketplace where the conversion event for the attributed product occurred.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_product_converted-product-marketplace_ec0ebfda.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "marketplace",
+    "v3_name_sponsored_ads": "marketplace"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The ISO code of the country where the ad was displayed.",
+    "display_name": "Country code",
+    "field_id": "country.code",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "country.name"
+    ],
+    "short_description": "The ISO code of the country where the ad was displayed.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_geography_country_3bd6cc79.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "countryCode",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The country where the ad was displayed.",
+    "display_name": "Country (Primary Key)",
+    "field_id": "country.name",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The country where the ad was displayed.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_geography_country_3bd6cc79.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "Country",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "DATE",
+    "description": "The date included in the report.",
+    "display_name": "Date (Primary Key)",
+    "field_id": "date.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The date included in the report.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_time_date_0e0cd442.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "Date",
+    "v3_name_sponsored_ads": "Date"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "DATE_RANGE",
+    "description": "The date range associated with the report.",
+    "display_name": "Date range (Primary Key)",
+    "field_id": "dateRange.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The date range associated with the report.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_time_date-range_a9c37ee4.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": null,
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "LONG",
+    "description": "The day of the month associated with the report.",
+    "display_name": "Day of Month (Primary Key)",
+    "field_id": "day.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The day of the month associated with the report.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_time_day-of-month_0c9babb3.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "Day",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The unique ID associated with the deal.",
+    "display_name": "Deal ID (Primary Key)",
+    "field_id": "deal.id",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The unique ID associated with the deal.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_supply_deal_cd022e1c.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "dealId",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The name of the deal.",
+    "display_name": "Deal name",
+    "field_id": "deal.name",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "deal.id"
+    ],
+    "short_description": "The name of the deal.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_supply_deal_cd022e1c.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "deal",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The type of deal such as Programmatic guaranteed, Private auction, Preferred deal etc",
+    "display_name": "Deal type",
+    "field_id": "deal.type",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "deal.id"
+    ],
+    "short_description": "The type of deal such as Programmatic guaranteed, Private auction, Preferred deal etc",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_supply_deal_cd022e1c.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "dealType",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The device used by the customer to view the ad.",
+    "display_name": "Device type (Primary Key)",
+    "field_id": "deviceType.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The device used by the customer to view the ad.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_technology_device-type_d0ee0fa4.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "deviceType",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The unique ID assigned to a DMA®.",
+    "display_name": "DMA® code (Primary Key)",
+    "field_id": "dma.id",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The unique ID assigned to a DMA®.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_geography_dma_f95adde9.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "dma",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The DMA® where the ad was displayed. DMA® regions are created and defined by Nielsen.",
+    "display_name": "DMA®",
+    "field_id": "dma.name",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "dma.id"
+    ],
+    "short_description": "The DMA® where the ad was displayed. DMA® regions are created and defined by Nielsen.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_geography_dma_f95adde9.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "dmaName",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The environment used by the customer to view the ad like web or app.",
+    "display_name": "Environment (Primary Key)",
+    "field_id": "environment.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The environment used by the customer to view the ad like web or app.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_technology_environment_7d09cb52.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "Environment",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The unique ID associated with the live event.",
+    "display_name": "Event ID (Primary Key)",
+    "field_id": "event.id",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The unique ID associated with the live event.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_supply_live-event_b64f6efe.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": null,
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The inventory type of the live event.",
+    "display_name": "Event inventory type",
+    "field_id": "event.inventoryType",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "event.id"
+    ],
+    "short_description": "The inventory type of the live event.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_supply_live-event_b64f6efe.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": null,
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The name of the live event.",
+    "display_name": "Event name",
+    "field_id": "event.name",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "event.id"
+    ],
+    "short_description": "The name of the live event.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_supply_live-event_b64f6efe.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": null,
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The property where the live event occurred.",
+    "display_name": "Event property",
+    "field_id": "event.property",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "event.id"
+    ],
+    "short_description": "The property where the live event occurred.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_supply_live-event_b64f6efe.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": null,
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "LONG",
+    "description": "The total budget for the flight.",
+    "display_name": "Flight budget",
+    "field_id": "flight.budget",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "budgetCurrency.value",
+      "flight.id"
+    ],
+    "short_description": "The total budget for the flight.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_flight_304fd69c.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "flightBudget",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "DATE_TIME",
+    "description": "The date when the flight is scheduled to stop running.",
+    "display_name": "Flight end date",
+    "field_id": "flight.endDate",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "flight.id"
+    ],
+    "short_description": "The date when the flight is scheduled to stop running.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_flight_304fd69c.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "flightEndDate",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The unique ID associated with a specific campaign flight to track and manage campaign delivery.",
+    "display_name": "Flight ID (Primary Key)",
+    "field_id": "flight.id",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The unique ID associated with a specific campaign flight to track and manage campaign delivery.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_flight_304fd69c.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "flightId",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The name of the campaign flight.",
+    "display_name": "Flight name",
+    "field_id": "flight.name",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "flight.id"
+    ],
+    "short_description": "The name of the campaign flight.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_flight_304fd69c.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "flightName",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "DATE_TIME",
+    "description": "The date when the flight is scheduled to start running.",
+    "display_name": "Flight start date",
+    "field_id": "flight.startDate",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "flight.id"
+    ],
+    "short_description": "The date when the flight is scheduled to start running.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_flight_304fd69c.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "flightStartDate",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The unique ID associated with the frequency group. A frequency group helps advertisers set caps on the number of times a unique user is exposed to an ads across multiple orders.",
+    "display_name": "Frequency group ID (Primary Key)",
+    "field_id": "frequencyGroup.id",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The unique ID associated with the frequency group. A frequency group helps advertisers set caps on the number of times a unique user is exposed to an ads across",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_targeting_frequency-group_4d3631dc.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "frequencyGroupId",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The user-defined name of the frequency group. A frequency group helps advertisers set caps on the number of times a unique user is exposed to an ad across multiple orders.",
+    "display_name": "Frequency group name",
+    "field_id": "frequencyGroup.name",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "frequencyGroup.id"
+    ],
+    "short_description": "The user-defined name of the frequency group. A frequency group helps advertisers set caps on the number of times a unique user is exposed to an ad across multi",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_targeting_frequency-group_4d3631dc.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "frequencyGroupName",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The level at which the frequency cap is created, such as- advertiser or manager account",
+    "display_name": "Frequency group type",
+    "field_id": "frequencyGroup.type",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "frequencyGroup.id"
+    ],
+    "short_description": "The level at which the frequency cap is created, such as- advertiser or manager account",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_targeting_frequency-group_4d3631dc.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "frequencyGroupType",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "LONG",
+    "description": "The hour of the day associated with the report.",
+    "display_name": "Hour (Primary Key)",
+    "field_id": "hour.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The hour of the day associated with the report.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_time_hour_80a7b388.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "hourOfDay",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The ID associated with the insertion order. An insertion order is a contractual agreement between an advertiser and Amazon Ads.",
+    "display_name": "Insertion Order ID (Primary Key)",
+    "field_id": "insertionOrder.id",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The ID associated with the insertion order. An insertion order is a contractual agreement between an advertiser and Amazon Ads.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_insertion-order_a77776a8.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": null,
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The product page where the ad appeared",
+    "display_name": "Matched target (Primary Key)",
+    "field_id": "matchedTarget.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The product page where the ad appeared",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_targeting_matched-target_74cc851a.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": null,
+    "v3_name_sponsored_ads": "matchedTargetAsin"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "LONG",
+    "description": "The month of the year associated with the report.",
+    "display_name": "Month (Primary Key)",
+    "field_id": "month.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The month of the year associated with the report.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_time_month_776f7aa8.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "Month",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The operating system used by the customer to view the ad.",
+    "display_name": "Operating system (Primary Key)",
+    "field_id": "operatingSystem.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The operating system used by the customer to view the ad.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_technology_operating-system_7ec2858d.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "operatingSystem",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The name of the placement on which the campaign was run.",
+    "display_name": "Placement Name (Primary Key)",
+    "field_id": "placement.name",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "siteApp.value"
+    ],
+    "short_description": "The name of the placement on which the campaign was run.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_supply_placement_904f80d4.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "placement",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The dimensions of the placement in pixels.",
+    "display_name": "Placement size",
+    "field_id": "placement.size",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "placement.name"
+    ],
+    "short_description": "The dimensions of the placement in pixels.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_supply_placement_904f80d4.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "placementSize",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The classification of ad placements into categories like top of search, gateway page, etc.",
+    "display_name": "Placement classification (Primary Key)",
+    "field_id": "placementClassification.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The classification of ad placements into categories like top of search, gateway page, etc.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_supply_placement-classification_0c7b8492.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "placementClassification",
+    "v3_name_sponsored_ads": "placementClassification"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The name of the portfolio.",
+    "display_name": "Portfolio name",
+    "field_id": "portfolio.name",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "portfolio.portfolioId"
+    ],
+    "short_description": "The name of the portfolio.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_portfolio_8b707798.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "portfolio",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The unique ID associated with a portfolio.",
+    "display_name": "Portfolio ID (Primary Key)",
+    "field_id": "portfolio.portfolioId",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The unique ID associated with a portfolio.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_level-of-detail_portfolio_8b707798.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "portfolioId",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The postal code where the ad was displayed.",
+    "display_name": "Postal code (Primary Key)",
+    "field_id": "postalCode.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The postal code where the ad was displayed.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_geography_postal-code_bb74a304.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "postalCode",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "Indicates whether the product was directly promoted in the campaign or attributed based on relevance to promoted products (halo).",
+    "display_name": "Product relevance (Primary Key)",
+    "field_id": "productRelevance.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "Indicates whether the product was directly promoted in the campaign or attributed based on relevance to promoted products (halo).",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_product_product-relevance_441ed828.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": null,
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The state or region where the ad was displayed.",
+    "display_name": "Region (Primary Key)",
+    "field_id": "region.name",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The state or region where the ad was displayed.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_geography_region_b5c4aa0f.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "Region",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The search term used by the customer.",
+    "display_name": "Search term (Primary Key)",
+    "field_id": "searchTerm.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The search term used by the customer.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_targeting_search-term_88be97ff.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": null,
+    "v3_name_sponsored_ads": "searchTerm"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The app or websites where the campaign was run.",
+    "display_name": "Site or app (Primary Key)",
+    "field_id": "siteApp.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The app or websites where the campaign was run.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_supply_site-or-app_32cf56d1.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "Site",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The inventory the campaign ran on like real-time bidding exchanges or Amazon-owned sites.",
+    "display_name": "Supply source (Primary Key)",
+    "field_id": "supplySource.name",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The inventory the campaign ran on like real-time bidding exchanges or Amazon-owned sites.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_supply_supply-source_11a943a7.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "supplySource",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The type of matching for keywords used in a bid.",
+    "display_name": "Target match type",
+    "field_id": "target.matchType",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [
+      "target.value"
+    ],
+    "short_description": "The type of matching for keywords used in a bid.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_targeting_target_e8a5da06.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": null,
+    "v3_name_sponsored_ads": "keywordType (SP), matchType"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The keyword, product or category you choose to reach shoppers.",
+    "display_name": "Target value (Primary Key)",
+    "field_id": "target.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The keyword, product or category you choose to reach shoppers.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_targeting_target_e8a5da06.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "targetingMethod",
+    "v3_name_sponsored_ads": "targeting"
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "STRING",
+    "description": "The time zone based on the advertiser selected time zone mode for report generation.",
+    "display_name": "Time zone (Primary Key)",
+    "field_id": "timeZone.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The time zone based on the advertiser selected time zone mode for report generation.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_report-configuration_time-zone_9c0101d8.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": null,
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "LONG",
+    "description": "The week of the year associated with the report.",
+    "display_name": "Week (Primary Key)",
+    "field_id": "week.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The week of the year associated with the report.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_time_week_f23afb3d.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "Week",
+    "v3_name_sponsored_ads": null
+  },
+  {
+    "category": "dimension",
+    "compatible_dimensions": [],
+    "complementary_fields": [],
+    "data_type": "LONG",
+    "description": "The year associated with the report.",
+    "display_name": "Year (Primary Key)",
+    "field_id": "year.value",
+    "incompatible_dimensions": [],
+    "provenance": "documented",
+    "required_fields": [],
+    "short_description": "The year associated with the report.",
+    "source": {
+      "md_file": "advertising.amazon.com_API_docs_en-us_guides_reporting_ads-v1_dimensions_time_year_76e4599e.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    },
+    "v3_name_dsp": "Year",
+    "v3_name_sponsored_ads": null
+  }
+]

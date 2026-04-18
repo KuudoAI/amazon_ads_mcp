@@ -1,0 +1,36 @@
+[
+  {
+    "field_id": "metric.clicks",
+    "display_name": "Clicks",
+    "data_type": "INTEGER",
+    "description": "Total clicks delivered during the period.",
+    "required_fields": [],
+    "complementary_fields": [],
+    "compatible_dimensions": [],
+    "incompatible_dimensions": [],
+    "v3_name_dsp": "clicks",
+    "v3_name_sponsored_ads": "clicks",
+    "page_title": "Clicks",
+    "source": {
+      "md_file": "clicks.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    }
+  },
+  {
+    "field_id": "metric.impressions",
+    "display_name": "Impressions",
+    "data_type": "INTEGER",
+    "description": "Total impressions.",
+    "required_fields": [],
+    "complementary_fields": [],
+    "compatible_dimensions": [],
+    "incompatible_dimensions": [],
+    "v3_name_dsp": "impressions",
+    "v3_name_sponsored_ads": "impressions",
+    "page_title": "Impressions",
+    "source": {
+      "md_file": "impressions.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    }
+  }
+]

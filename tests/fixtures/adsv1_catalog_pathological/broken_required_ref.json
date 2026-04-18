@@ -1,0 +1,12 @@
+{
+  "dimensions": [
+    {
+      "field_id": "campaign.id",
+      "display_name": "Campaign id",
+      "data_type": "STRING",
+      "required_fields": ["nonexistent.field"],
+      "source": {"md_file": "c.md", "parsed_at": "2026-01-01T00:00:00Z"}
+    }
+  ],
+  "metrics": []
+}

@@ -1,0 +1,15 @@
+{
+  "generated_at": "2026-04-18T17:20:49Z",
+  "generator_version": "0.2.30",
+  "output_files_sha256": {
+    "dimensions.json": "72c5ec85d836752bfe3300a38ac5e18870df6e46ad5e3b284f649425308b471f",
+    "metrics.json": "e30cd7c6641ea62f7b66002e6afa6feaefbaa85b145cb3aeccab363c165623a4"
+  },
+  "parsed_at": "2026-04-18T17:20:49Z",
+  "schema_version": 1,
+  "source_commit": "d2c451e5584087802bc52ab1de1b1d19725212e0",
+  "source_files_sha256": {
+    "amazon_ads_v1_dimensions.json": "bc91034c961d799db8e09baff18fec27fbf861d8a68744f06813fea3d6ef20d6",
+    "amazon_ads_v1_metrics.json": "8d8d62be074b0d58acb3c618d6fc488690f2e5e2132baf7290798d803de235b4"
+  }
+}

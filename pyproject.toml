@@ -39,6 +39,25 @@ from = "src"
 path = "src/amazon_ads_mcp/resources/*.json"
 format = "wheel"
 
+# Packaged v1 report-fields catalog (see adsv1.md §4.12).
+# The non-recursive glob above does NOT recurse into adsv1/, so these four
+# explicit entries are required. Match the "wheel"-string format convention.
+[[tool.poetry.include]]
+path = "src/amazon_ads_mcp/resources/adsv1/dimensions.json"
+format = "wheel"
+
+[[tool.poetry.include]]
+path = "src/amazon_ads_mcp/resources/adsv1/metrics.json"
+format = "wheel"
+
+[[tool.poetry.include]]
+path = "src/amazon_ads_mcp/resources/adsv1/index.json"
+format = "wheel"
+
+[[tool.poetry.include]]
+path = "src/amazon_ads_mcp/resources/adsv1/catalog_meta.json"
+format = "wheel"
+
 [tool.black]
 line-length = 79
 target-version = [ "py310",]
@@ -82,6 +101,9 @@ asyncio_mode = "auto"
 [tool.pytest.ini_options]
 testpaths = [ "tests",]
 addopts = "-v"
+markers = [
+    "slow: long-running tests (wheel builds, subprocess installs) — filtered out of local dev via '-m \"not slow\"' and run only in CI.",
+]
 
 [tool.coverage.run]
 source = [ "src/amazon_ads_mcp",]

@@ -1,0 +1,3273 @@
+{
+  "fields": {
+    "ad.deliveryStatus": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "ad.externalId": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "ad.format": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "ad.id": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "ad.language": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "ad.name": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "ad.size": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "adBreak.id": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "adGroup.bidStrategy": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "adGroup.budgetAmount": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "adGroup.comments": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "adGroup.costType": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "adGroup.deliveryStatus": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "adGroup.endDate": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "adGroup.externalId": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "adGroup.id": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "adGroup.languageTargeting": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "adGroup.name": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "adGroup.omsId": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "adGroup.startDate": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "adGroup.type": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "adProduct.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "adSlot.id": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "adSlot.type": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "advertisedProduct.id": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "advertisedProduct.marketplace": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "advertisedProduct.sku": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "advertiserAccount.entityId": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "advertiserAccount.id": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "advertiserAccount.managerAccounts": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "advertiserAccount.name": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "advertiserAccount.timeZone": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "audienceSegment.classCode": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "audienceSegment.currentTargetingStatus": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "audienceSegment.id": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "audienceSegment.marketplace": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "audienceSegment.name": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "audienceSegment.type": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "audienceSegmentTargetingStatus.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "browserName.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "browserVersion.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "budgetCurrency.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "campaign.bidStrategy": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "campaign.budgetAmount": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "campaign.budgetType": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "campaign.costType": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "campaign.country": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "campaign.currencyCode": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "campaign.deliveryStatus": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "campaign.endDate": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "campaign.globalCampaignId": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "campaign.id": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "campaign.name": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "campaign.omsId": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "campaign.purchaseOrderNumber": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "campaign.ruleAmount": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "campaign.startDate": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "city.name": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "contentCreator.name": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "contentGenre.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "contentRating.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "contentTitle.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "contentType.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "convertedCurrency.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "convertedProduct.brand": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "convertedProduct.category": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "convertedProduct.id": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "convertedProduct.name": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "convertedProduct.parentProductId": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "convertedProduct.productGroup": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "convertedProduct.subcategory": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "convertedProductMarketplace.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "country.code": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "country.name": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "date.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "dateRange.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "day.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "deal.id": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "deal.name": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "deal.type": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "deviceType.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "dma.id": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "dma.name": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "environment.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "event.id": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "event.inventoryType": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "event.name": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "event.property": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "flight.budget": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "flight.endDate": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "flight.id": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "flight.name": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "flight.startDate": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "frequencyGroup.id": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "frequencyGroup.name": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "frequencyGroup.type": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "hour.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "insertionOrder.id": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "matchedTarget.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "metric.5secondViewRateVideoAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.5secondViewsVideoAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.adGroupDeliveryRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.addToCart": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.addToCartFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.addToCartFromClicksHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.addToCartFromClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.addToCartFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.addToCartFromViewsHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.addToCartFromViewsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.addToCartHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.addToCartPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.addToCartRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.addToCartRatePromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.addToList": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.addToListFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.addToListFromClicksHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.addToListFromClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.addToListFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.addToListFromViewsHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.addToListFromViewsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.addToListHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.addToListPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.addToListRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.addToListRatePromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.addToWatchlist": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.addToWatchlistFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.addToWatchlistFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.addToWatchlistRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.agencyFees": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.agencyFeesConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.alexaSkillEnable": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.alexaSkillEnableFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.alexaSkillEnableFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.alexaSkillEnableRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.alexaSkillInvocationRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.alexaSkillInvocations": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.alexaSkillInvocationsFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.alexaSkillInvocationsFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsCostPerPurchase": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsCostPerPurchaseFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsCostPerPurchaseFromClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsCostPerPurchasePromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsPurchaseFromClickRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsPurchaseFromClickRatePromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsPurchaseRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsPurchaseRateOverClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsPurchaseRateOverClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsPurchaseRatePromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsPurchases": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsPurchasesFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsPurchasesFromClicksHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsPurchasesFromClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsPurchasesFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsPurchasesFromViewsHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsPurchasesFromViewsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsPurchasesHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsPurchasesPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsReturnPerThousandImpressions": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsReturnPerThousandImpressionsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsRoas": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsRoasFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsRoasFromClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsRoasFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsRoasFromViewsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsRoasPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsSales": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsSalesConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsSalesFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsSalesFromClicksConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsSalesFromClicksHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsSalesFromClicksHaloConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsSalesFromClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsSalesFromClicksPromotedConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsSalesFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsSalesFromViewsConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsSalesFromViewsHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsSalesFromViewsHaloConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsSalesFromViewsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsSalesFromViewsPromotedConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsSalesHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsSalesHaloConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsSalesPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsSalesPromotedConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsUnitsSold": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsUnitsSoldFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsUnitsSoldFromClicksHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsUnitsSoldFromClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsUnitsSoldFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsUnitsSoldFromViewsHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsUnitsSoldFromViewsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsUnitsSoldHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.allViewsUnitsSoldPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.amazonAudienceFees": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.amazonAudienceFeesConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.amazonConsoleFees": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.amazonConsoleFeesConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.appSubscriptionSignUpRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.appSubscriptionSignUps": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.appSubscriptionSignUpsFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.appSubscriptionSignUpsFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.appstoreFirstOpenRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.appstoreFirstOpens": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.appstoreFirstOpensFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.appstoreFirstOpensFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.appstoreFirstSessionHours": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.appstoreFirstSessionHoursFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.appstoreFirstSessionHoursFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.appstoreOpenRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.appstoreOpens": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.appstoreOpensFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.appstoreOpensFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.appstoreRepeatOpenRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.appstoreRepeatOpens": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.appstoreRepeatOpensFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.appstoreRepeatOpensFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.appstoreRepeatSessionHours": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.appstoreRepeatSessionHoursFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.appstoreRepeatSessionHoursFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.appstoreUsageHours": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.appstoreUsageHoursFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.appstoreUsageHoursFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.averageHouseholdImpressionFrequency": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.averageUserImpressionFrequency": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.brandStorePageViewRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.brandStorePageViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.brandStorePageViewsFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.brandStorePageViewsFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.brandedSearchRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.brandedSearches": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.brandedSearchesFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.brandedSearchesFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.campaignDeliveryRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.clicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.combinedCostPerPurchase": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.combinedCostPerPurchaseFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.combinedPurchaseRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.combinedPurchases": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.combinedPurchasesFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.combinedPurchasesFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.combinedReturnPerThousandImpressions": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.combinedRoas": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.combinedRoasFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.combinedRoasReconciled": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.combinedSales": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.combinedSalesConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.combinedSalesFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.combinedSalesFromClicksConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.combinedUnitsSold": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.combinedUnitsSoldFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.completeListensAudioAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.completeViewsVideoAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.completionRateAudioAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.completionRateVideoAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerAddToCart": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerAddToCartPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerAddToList": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerAddToListPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerAddToWatchlist": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerAlexaSkillEnable": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerAlexaSkillInvocation": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerAppSubscriptionSignUp": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerAppstoreFirstOpen": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerAppstoreFirstSessionHour": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerAppstoreOpen": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerAppstoreRepeatOpen": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerAppstoreRepeatSessionHour": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerAppstoreUsageHour": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerBrandStorePageView": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerBrandedSearch": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerCompletedListenAudioAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerCompletedViewVideoAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerDetailPageView": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerDetailPageViewFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerDetailPageViewFromClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerDetailPageViewPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerDownloadedVideoPlay": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerFreeTrialAppSubscriptionSignUp": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerFreeTrialSubscriptionSignUp": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerNewToBrandAddToCart": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerNewToBrandAddToCartPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerNewToBrandDetailPageView": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerNewToBrandDetailPageViewPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerNewToBrandPurchase": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerNewToBrandPurchaseFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerNewToBrandPurchasePromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerPaidAppSubscriptionSignUp": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerPaidSubscriptionSignUp": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerProductReviewPageVisit": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerProductReviewPageVisitPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerPurchase": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerPurchaseFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerPurchaseFromClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerPurchasePromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerRental": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerSubscribeAndSaveSubscription": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerSubscribeAndSaveSubscriptionPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerSubscriptionSignUp": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerTrailerPlay": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.costPerVideoStreamPlay": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.cpc": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.cpcConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.cpm": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.ctr": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.currentFlightBudgetAtRisk": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.currentFlightBudgetAtRiskConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.currentFlightDeliveryRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.currentFlightPreviousDaySpend": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.currentFlightPreviousDaySpendConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.currentFlightProjectedSpend": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.currentFlightProjectedSpendConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.currentFlightRequiredDailySpend": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.currentFlightRequiredDailySpendConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.currentFlightSpendBudget": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.currentFlightSpendBudgetConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.currentFlightTotalBudget": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.currentFlightTotalBudgetConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.detailPageViewFromClickRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.detailPageViewFromClickRatePromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.detailPageViewRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.detailPageViewRatePromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.detailPageViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.detailPageViewsFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.detailPageViewsFromClicksHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.detailPageViewsFromClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.detailPageViewsFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.detailPageViewsFromViewsHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.detailPageViewsFromViewsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.detailPageViewsHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.detailPageViewsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.downloadedVideoPlayRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.downloadedVideoPlays": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.downloadedVideoPlaysFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.downloadedVideoPlaysFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleEditionNormalizedRoyalties": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleEditionNormalizedRoyaltiesConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleEditionNormalizedRoyaltiesFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleEditionNormalizedRoyaltiesFromClicksConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleEditionNormalizedRoyaltiesFromClicksHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleEditionNormalizedRoyaltiesFromClicksHaloConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleEditionNormalizedRoyaltiesFromClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleEditionNormalizedRoyaltiesFromClicksPromotedConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleEditionNormalizedRoyaltiesFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleEditionNormalizedRoyaltiesFromViewsConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleEditionNormalizedRoyaltiesFromViewsHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleEditionNormalizedRoyaltiesFromViewsHaloConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleEditionNormalizedRoyaltiesFromViewsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleEditionNormalizedRoyaltiesFromViewsPromotedConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleEditionNormalizedRoyaltiesHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleEditionNormalizedRoyaltiesHaloConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleEditionNormalizedRoyaltiesPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleEditionNormalizedRoyaltiesPromotedConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleUnlimitedRoyalties": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleUnlimitedRoyaltiesConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleUnlimitedRoyaltiesFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleUnlimitedRoyaltiesFromClicksConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleUnlimitedRoyaltiesFromClicksHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleUnlimitedRoyaltiesFromClicksHaloConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleUnlimitedRoyaltiesFromClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleUnlimitedRoyaltiesFromClicksPromotedConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleUnlimitedRoyaltiesFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleUnlimitedRoyaltiesFromViewsConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleUnlimitedRoyaltiesFromViewsHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleUnlimitedRoyaltiesFromViewsHaloConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleUnlimitedRoyaltiesFromViewsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleUnlimitedRoyaltiesFromViewsPromotedConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleUnlimitedRoyaltiesHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleUnlimitedRoyaltiesHaloConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleUnlimitedRoyaltiesPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.estimatedKindleUnlimitedRoyaltiesPromotedConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.exclusiveUserReachRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.firstQuartileAudioAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.firstQuartileVideoAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.freeTrialAppSubscriptionSignUpRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.freeTrialAppSubscriptionSignUps": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.freeTrialAppSubscriptionSignUpsFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.freeTrialAppSubscriptionSignUpsFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.freeTrialSubscriptionSignUpRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.freeTrialSubscriptionSignUps": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.freeTrialSubscriptionSignUpsFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.freeTrialSubscriptionSignUpsFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.grossClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.householdFrequency1": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.householdFrequency10Plus": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.householdFrequency2": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.householdFrequency3": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.householdFrequency4": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.householdFrequency5": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.householdFrequency6": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.householdFrequency7": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.householdFrequency8": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.householdFrequency9": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.householdReach": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.impressionShare": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.impressionShareRank": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.impressions": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.impressionsAudioAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.impressionsVideoAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.interactiveImpressions": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.invalidClickRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.invalidClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.invalidImpressionRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.invalidImpressions": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.kindleEditionNormalizedPagesRead": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.kindleEditionNormalizedPagesReadFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.kindleEditionNormalizedPagesReadFromClicksHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.kindleEditionNormalizedPagesReadFromClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.kindleEditionNormalizedPagesReadFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.kindleEditionNormalizedPagesReadFromViewsHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.kindleEditionNormalizedPagesReadFromViewsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.kindleEditionNormalizedPagesReadHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.kindleEditionNormalizedPagesReadPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.kindleUnlimitedQualifiedBorrows": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.kindleUnlimitedQualifiedBorrowsFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.kindleUnlimitedQualifiedBorrowsFromClicksHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.kindleUnlimitedQualifiedBorrowsFromClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.kindleUnlimitedQualifiedBorrowsFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.kindleUnlimitedQualifiedBorrowsFromViewsHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.kindleUnlimitedQualifiedBorrowsFromViewsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.kindleUnlimitedQualifiedBorrowsHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.kindleUnlimitedQualifiedBorrowsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.longTermRoas": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.longTermSales": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.longTermSalesConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.mainImdbAdClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.mainImdbAdImpressions": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.measurableImpressions": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.measurableRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.mediaSpendCpm": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.midpointAudioAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.midpointVideoAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.mutesAudioAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.mutesVideoAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandAddToCart": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandAddToCartFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandAddToCartFromClicksHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandAddToCartFromClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandAddToCartFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandAddToCartFromViewsHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandAddToCartFromViewsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandAddToCartHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandAddToCartPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandAddToCartRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandAddToCartRatePromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandDetailPageViewRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandDetailPageViewRatePromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandDetailPageViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandDetailPageViewsFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandDetailPageViewsFromClicksHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandDetailPageViewsFromClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandDetailPageViewsFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandDetailPageViewsFromViewsHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandDetailPageViewsFromViewsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandDetailPageViewsHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandDetailPageViewsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandPurchaseFromClickRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandPurchaseRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandPurchaseRatePromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandPurchases": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandPurchasesFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandPurchasesFromClicksHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandPurchasesFromClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandPurchasesFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandPurchasesFromViewsHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandPurchasesFromViewsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandPurchasesHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandPurchasesPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandReturnPerThousandImpressions": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandReturnPerThousandImpressionsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandRoas": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandRoasFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandRoasFromClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandRoasFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandRoasFromViewsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandRoasPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandRoasPromotedReconciled": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandRoasReconciled": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandSales": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandSalesConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandSalesFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandSalesFromClicksConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandSalesFromClicksHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandSalesFromClicksHaloConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandSalesFromClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandSalesFromClicksPromotedConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandSalesFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandSalesFromViewsConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandSalesFromViewsHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandSalesFromViewsHaloConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandSalesFromViewsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandSalesFromViewsPromotedConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandSalesHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandSalesHaloConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandSalesPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandSalesPromotedConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandUnitsSold": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandUnitsSoldFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandUnitsSoldFromClicksHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandUnitsSoldFromClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandUnitsSoldFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandUnitsSoldFromViewsConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandUnitsSoldFromViewsHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandUnitsSoldFromViewsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandUnitsSoldHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newToBrandUnitsSoldPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newtoBrandPurchaseRateOverClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.newtoBrandPurchaseRateOverClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.notificationClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.notificationOpens": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonAddToShoppingCart": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonAddToShoppingCartFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonAddToShoppingCartFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonAddToShoppingCartRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonAddToShoppingCartValueAverage": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonAddToShoppingCartValueSum": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonApplicationRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonApplications": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonApplicationsFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonApplicationsFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonApplicationsValueAverage": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonApplicationsValueSum": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonCheckoutRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonCheckouts": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonCheckoutsFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonCheckoutsFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonCheckoutsValueAverage": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonCheckoutsValueSum": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonContactRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonContacts": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonContactsFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonContactsFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonContactsValueAverage": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonContactsValueSum": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonConversionRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonConversions": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonConversionsFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonConversionsFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonConversionsOptimized": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonConversionsValueSumOptimized": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonCostPerAddToShoppingCart": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonCostPerApplication": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonCostPerCheckout": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonCostPerContact": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonCostPerConversion": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonCostPerInstall": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonCostPerLead": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonCostPerOther": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonCostPerPageView": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonCostPerPurchase": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonCostPerPurchaseFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonCostPerSearch": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonCostPerSignUp": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonCostPerSubscribe": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonInstallRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonInstalls": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonInstallsFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonInstallsFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonInstallsValueAverage": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonInstallsValueSum": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonLeadRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonLeads": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonLeadsFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonLeadsFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonLeadsValueAverage": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonLeadsValueSum": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonOther": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonOtherFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonOtherFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonOtherRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonOtherValueAverage": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonOtherValueSum": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonPageViewRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonPageViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonPageViewsFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonPageViewsFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonPageViewsValueAverage": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonPageViewsValueSum": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonPurchaseRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonPurchases": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonPurchasesFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonPurchasesFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonReturnPerThousandImpressions": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonRoas": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonRoasFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonRoasFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonRoasReconciled": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonSales": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonSalesConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonSalesFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonSalesFromClicksConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonSalesFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonSalesFromViewsConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonSalesOptimized": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonSalesOptimizedConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonSearchRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonSearches": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonSearchesFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonSearchesFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonSearchesValueAverage": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonSearchesValueSum": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonSignUpRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonSignUps": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonSignUpsFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonSignUpsFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonSignUpsValueAverage": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonSignUpsValueSum": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonSubscribe": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonSubscribeFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonSubscribeFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonSubscribeRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonSubscribeValueAverage": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonSubscribeValueSum": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonUnitsSold": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonUnitsSoldFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.offAmazonUnitsSoldFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.omnichannelMetricFees": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.omnichannelMetricFeesConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.paidAppSubscriptionSignUpRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.paidAppSubscriptionSignUps": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.paidAppSubscriptionSignUpsFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.paidAppSubscriptionSignUpsFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.paidSubscriptionSignUpRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.paidSubscriptionSignUps": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.paidSubscriptionSignUpsFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.paidSubscriptionSignUpsFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.pausesAudioAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.pausesVideoAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.percentOfPurchasesNewToBrand": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.percentOfPurchasesNewToBrandHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.percentOfPurchasesNewToBrandPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.percentOfSalesNewToBrand": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.percentOfSalesNewToBrandConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.percentOfSalesNewToBrandHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.percentOfSalesNewToBrandPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.percentOfSalesNewToBrandPromotedConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.playsAudioAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.productReviewPageVisitRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.productReviewPageVisitRatePromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.productReviewPageVisits": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.productReviewPageVisitsFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.productReviewPageVisitsFromClicksHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.productReviewPageVisitsFromClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.productReviewPageVisitsFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.productReviewPageVisitsFromViewsHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.productReviewPageVisitsFromViewsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.productReviewPageVisitsHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.productReviewPageVisitsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.progressAudioAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.purchaseFromClickRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.purchaseFromClickRatePromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.purchaseRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.purchaseRateOverClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.purchaseRateOverClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.purchaseRatePromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.purchases": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.purchasesFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.purchasesFromClicksHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.purchasesFromClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.purchasesFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.purchasesFromViewsHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.purchasesFromViewsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.purchasesHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.purchasesPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.rentalRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.rentals": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.rentalsFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.rentalsFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.replaysVideoAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.resumesAudioAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.resumesVideoAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.returnPerThousandImpressions": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.returnPerThousandImpressionsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.rewardCost": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.rewardCostConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.rewardGrants": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.rewindsAudioAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.roas": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.roasFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.roasFromClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.roasFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.roasFromViewsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.roasPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.roasPromotedReconciled": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.roasReconciled": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.sales": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.salesConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.salesFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.salesFromClicksConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.salesFromClicksHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.salesFromClicksHaloConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.salesFromClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.salesFromClicksPromotedConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.salesFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.salesFromViewsConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.salesFromViewsHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.salesFromViewsHaloConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.salesFromViewsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.salesFromViewsPromotedConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.salesHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.salesHaloConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.salesPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.salesPromotedConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.skipsAudioAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.skipsBackVideoAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.skipsForwardVideoAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.startsAudioAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.startsVideoAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.subscribeAndSaveSubscriptionRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.subscribeAndSaveSubscriptionRatePromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.subscribeAndSaveSubscriptions": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.subscribeAndSaveSubscriptionsFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.subscribeAndSaveSubscriptionsFromClicksHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.subscribeAndSaveSubscriptionsFromClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.subscribeAndSaveSubscriptionsFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.subscribeAndSaveSubscriptionsFromViewsHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.subscribeAndSaveSubscriptionsFromViewsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.subscribeAndSaveSubscriptionsHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.subscribeAndSaveSubscriptionsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.subscriptionSignUpRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.subscriptionSignUps": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.subscriptionSignUpsFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.subscriptionSignUpsFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.supplyCost": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.supplyCostConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFees": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesCm360": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesCm360Absorbed": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesCm360AbsorbedConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesCm360Converted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesComscore": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesComscoreAbsorbed": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesComscoreAbsorbedConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesComscoreConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesCpm1": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesCpm1Absorbed": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesCpm1AbsorbedConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesCpm1Converted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesCpm2": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesCpm2Absorbed": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesCpm2AbsorbedConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesCpm2Converted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesCpm3": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesCpm3Absorbed": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesCpm3AbsorbedConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesCpm3Converted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesDoubleVerify": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesDoubleVerifyAbsorbed": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesDoubleVerifyAbsorbedConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesDoubleVerifyConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesIas": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesIasAbsorbed": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesIasAbsorbedConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyFeesIasConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyPrebidFees": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdPartyPrebidFeesConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdQuartileAudioAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.thirdQuartileVideoAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.topOfSearchImpressionShare": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.totalCost": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.totalCostConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.totalCostReconciled": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.totalCostReconciledConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.totalFees": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.totalFeesConverted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.trailerPlayRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.trailerPlays": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.trailerPlaysFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.trailerPlaysFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.unitsSold": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.unitsSoldFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.unitsSoldFromClicksHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.unitsSoldFromClicksPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.unitsSoldFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.unitsSoldFromViewsHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.unitsSoldFromViewsPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.unitsSoldHalo": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.unitsSoldPromoted": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.unmutesAudioAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.unmutesVideoAd": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.userFrequency1": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.userFrequency10Plus": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.userFrequency2": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.userFrequency3": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.userFrequency4": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.userFrequency5": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.userFrequency6": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.userFrequency7": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.userFrequency8": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.userFrequency9": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.userReach": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.vcpm": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.vctr": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.videoStreamPlayRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.videoStreamPlays": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.videoStreamPlaysFromClicks": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.videoStreamPlaysFromViews": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.viewableDistribution": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.viewableImpressions": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "metric.viewableRate": {
+      "category": "metric",
+      "file": "metrics"
+    },
+    "month.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "operatingSystem.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "placement.name": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "placement.size": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "placementClassification.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "portfolio.name": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "portfolio.portfolioId": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "postalCode.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "productRelevance.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "region.name": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "searchTerm.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "siteApp.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "supplySource.name": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "target.matchType": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "target.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "timeZone.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "week.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    },
+    "year.value": {
+      "category": "dimension",
+      "file": "dimensions"
+    }
+  },
+  "schema_version": 1
+}

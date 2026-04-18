@@ -1,0 +1,18 @@
+{
+  "dimensions": [
+    {
+      "field_id": "shared.id",
+      "display_name": "Shared",
+      "data_type": "STRING",
+      "source": {"md_file": "a.md", "parsed_at": "2026-01-01T00:00:00Z"}
+    }
+  ],
+  "metrics": [
+    {
+      "field_id": "shared.id",
+      "display_name": "Shared Metric",
+      "data_type": "INTEGER",
+      "source": {"md_file": "b.md", "parsed_at": "2026-01-01T00:00:00Z"}
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "dimensions": [
+    {
+      "field_id": "metric\u200b.clicks",
+      "display_name": "Clicks",
+      "data_type": "INTEGER",
+      "source": {"md_file": "c.md", "parsed_at": "2026-01-01T00:00:00Z"}
+    }
+  ],
+  "metrics": []
+}

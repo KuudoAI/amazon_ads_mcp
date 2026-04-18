@@ -1,0 +1,31 @@
+{
+  "dimensions": [
+    {
+      "field_id": "campaign.id",
+      "display_name": "Campaign id",
+      "data_type": "STRING",
+      "required_fields": [],
+      "complementary_fields": [],
+      "compatible_dimensions": ["campaign.name"],
+      "incompatible_dimensions": [],
+      "source": {"md_file": "campaign-id.md", "parsed_at": "2026-01-01T00:00:00Z"}
+    },
+    {
+      "field_id": "campaign.name",
+      "display_name": "Campaign name",
+      "data_type": "STRING",
+      "required_fields": ["campaign.id"],
+      "complementary_fields": [],
+      "source": {"md_file": "campaign-name.md", "parsed_at": "2026-01-01T00:00:00Z"}
+    }
+  ],
+  "metrics": [
+    {
+      "field_id": "metric.clicks",
+      "display_name": "Clicks",
+      "data_type": "INTEGER",
+      "required_fields": [],
+      "source": {"md_file": "clicks.md", "parsed_at": "2026-01-01T00:00:00Z"}
+    }
+  ]
+}
