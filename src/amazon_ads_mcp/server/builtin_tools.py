@@ -812,7 +812,13 @@ Note: Requires HTTP transport (not stdio).
 
 
 async def register_report_catalog_tools(server: FastMCP):
-    """Register report field catalog tools."""
+    """Register report field catalog tools.
+
+    Always registers ``list_report_fields`` (baseline, unchanged since the
+    regression fence in adsv1.md §E.1). Conditionally registers
+    ``report_fields`` (v1 catalog query + validate) and the debug helper
+    ``_report_fields_debug`` based on env-gated settings.
+    """
 
     @server.tool(
         name="list_report_fields",
@@ -828,6 +834,89 @@ async def register_report_catalog_tools(server: FastMCP):
         """Return curated report field catalogs."""
         result = report_fields.get_report_fields_catalog(operation=operation)
         return ListReportFieldsResponse(**result)
+
+    if settings.enable_report_fields_tool:
+        # Imports are local so disabling the tool doesn't pay the handler
+        # import cost at server startup.
+        from ..models.builtin_responses import (  # noqa: F401
+            QueryReportFieldsResponse,
+            ValidateReportFieldsResponse,
+        )
+        from ..tools.report_fields_v1_handler import (
+            ReportFieldsToolError,
+            handle as report_fields_handle,
+        )
+
+        @server.tool(
+            name="report_fields",
+            description=(
+                "Query or validate Ads API v1 report fields against the "
+                "packaged v1 catalog. Use mode='query' to discover fields "
+                "(category, search, compatible_with, requires, fields "
+                "detail lookup with pagination) or mode='validate' to "
+                "pre-flight a field list before AdsApiv1CreateReport. "
+                "See list_report_fields for the minimal baseline and "
+                "other report APIs (rp_*, br_*, mmm_*)."
+            ),
+        )
+        async def report_fields_tool(
+            ctx: Context,
+            mode: str,
+            operation: str = "allv1_AdsApiv1CreateReport",
+            category: Optional[str] = None,
+            search: Optional[str] = None,
+            compatible_with: Optional[list] = None,
+            requires: Optional[list] = None,
+            fields: Optional[list] = None,
+            include_v3_mapping: bool = False,
+            limit: int = 25,
+            offset: int = 0,
+            validate_fields: Optional[list] = None,
+        ):
+            """Dispatch to the query/validate handler."""
+            try:
+                return report_fields_handle(
+                    mode=mode,
+                    operation=operation,
+                    category=category,
+                    search=search,
+                    compatible_with=compatible_with,
+                    requires=requires,
+                    fields=fields,
+                    include_v3_mapping=include_v3_mapping,
+                    limit=limit,
+                    offset=offset,
+                    validate_fields=validate_fields,
+                )
+            except ReportFieldsToolError as exc:
+                raise ValueError(str(exc)) from exc
+
+    if settings.amazon_ads_debug_tools:
+        from ..tools import report_fields_v1_catalog as _rf_catalog
+
+        @server.tool(
+            name="_report_fields_debug",
+            description=(
+                "Internal: return loaded catalog schema_version, parsed_at, "
+                "entry counts, and source_commit. Hidden unless "
+                "AMAZON_ADS_DEBUG_TOOLS=true."
+            ),
+        )
+        async def _report_fields_debug_tool(ctx: Context) -> dict:
+            try:
+                meta = _rf_catalog.get_catalog_meta()
+                dims = _rf_catalog.get_dimensions()
+                metrics = _rf_catalog.get_metrics()
+                return {
+                    "success": True,
+                    "schema_version": meta.get("schema_version"),
+                    "parsed_at": meta.get("parsed_at"),
+                    "source_commit": meta.get("source_commit"),
+                    "dimensions": len(dims),
+                    "metrics": len(metrics),
+                }
+            except Exception as exc:
+                return {"success": False, "error": str(exc)}
 
 
 async def register_sampling_tools(server: FastMCP):

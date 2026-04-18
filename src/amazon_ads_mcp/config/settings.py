@@ -234,6 +234,29 @@ class Settings(BaseSettings):
         description="Enable response caching for safe read-only tools",
     )
 
+    # report_fields Tool (adsv1.md §E.2). Defaults ON; set to false to hide
+    # the packaged v1-catalog tool and fall back to list_report_fields only.
+    enable_report_fields_tool: bool = Field(
+        True,
+        alias="ENABLE_REPORT_FIELDS_TOOL",
+        description=(
+            "Enable the report_fields tool (packaged v1 catalog query/"
+            "validate). When disabled, list_report_fields still registers "
+            "and the AdsApiv1CreateReport async hint falls back to the "
+            "pre-PR guidance."
+        ),
+    )
+
+    # Debug Tools Exposure (hidden by default; on-demand for support).
+    amazon_ads_debug_tools: bool = Field(
+        False,
+        alias="AMAZON_ADS_DEBUG_TOOLS",
+        description=(
+            "Expose internal debug tools such as _report_fields_debug. "
+            "Leave disabled in production."
+        ),
+    )
+
     # File Download Configuration
     download_auth_token: Optional[str] = Field(
         None,
