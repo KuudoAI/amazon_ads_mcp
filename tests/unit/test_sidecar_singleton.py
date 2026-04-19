@@ -24,6 +24,7 @@ from amazon_ads_mcp.server.sidecar_middleware import (
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RESOURCES_DIR = REPO_ROOT / "openapi" / "resources"
+OVERLAYS_DIR = REPO_ROOT / "openapi" / "overlays"
 
 
 @pytest.fixture(autouse=True)
@@ -45,7 +46,7 @@ async def test_no_middleware_installed_returns_args_unchanged():
 
 @pytest.mark.asyncio
 async def test_installed_middleware_rewrites_alias_for_sandbox_path():
-    middleware = SidecarTransformMiddleware(RESOURCES_DIR)
+    middleware = SidecarTransformMiddleware(RESOURCES_DIR, overlays_dir=OVERLAYS_DIR)
     set_active_middleware(middleware)
 
     result = await apply_sidecar_input_transforms(
@@ -61,7 +62,7 @@ async def test_installed_middleware_rewrites_alias_for_sandbox_path():
 
 @pytest.mark.asyncio
 async def test_unknown_tool_name_passes_through_unmodified():
-    middleware = SidecarTransformMiddleware(RESOURCES_DIR)
+    middleware = SidecarTransformMiddleware(RESOURCES_DIR, overlays_dir=OVERLAYS_DIR)
     set_active_middleware(middleware)
 
     payload = {"irrelevant": "data"}
@@ -73,7 +74,7 @@ async def test_unknown_tool_name_passes_through_unmodified():
 async def test_middleware_rewrite_args_helper_is_symmetric():
     """The standalone helper and the middleware method must agree — both
     surfaces must rewrite identically."""
-    middleware = SidecarTransformMiddleware(RESOURCES_DIR)
+    middleware = SidecarTransformMiddleware(RESOURCES_DIR, overlays_dir=OVERLAYS_DIR)
     set_active_middleware(middleware)
 
     via_helper = await apply_sidecar_input_transforms(

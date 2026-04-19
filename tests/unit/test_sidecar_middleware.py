@@ -19,6 +19,19 @@ from amazon_ads_mcp.server.sidecar_middleware import SidecarTransformMiddleware
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RESOURCES_DIR = REPO_ROOT / "openapi" / "resources"
+OVERLAYS_DIR = REPO_ROOT / "openapi" / "overlays"
+
+
+def _middleware() -> SidecarTransformMiddleware:
+    """Construct middleware with both base + overlay sources.
+
+    The base transform files under openapi/resources/ are gitignored and
+    may or may not be present in a fresh checkout. Overlays under
+    openapi/overlays/ are source-controlled and always present — they're
+    the authoritative source for alias rules (survive the private
+    .build/ regen).
+    """
+    return SidecarTransformMiddleware(RESOURCES_DIR, overlays_dir=OVERLAYS_DIR)
 
 
 def _make_context(tool_name: str, arguments: dict[str, Any]) -> SimpleNamespace:
@@ -41,7 +54,7 @@ async def _call_next_capture(captured: list) -> Callable[..., Awaitable[Any]]:
 
 @pytest.mark.asyncio
 async def test_alias_rewrites_report_id_to_report_ids_list():
-    middleware = SidecarTransformMiddleware(RESOURCES_DIR)
+    middleware = _middleware()
     ctx = _make_context(
         "allv1_AdsApiv1RetrieveReport",
         {"reportId": "singular-abc-123"},
@@ -65,7 +78,7 @@ async def test_alias_rewrites_report_id_to_report_ids_list():
 
 @pytest.mark.asyncio
 async def test_alias_does_not_overwrite_existing_plural_form():
-    middleware = SidecarTransformMiddleware(RESOURCES_DIR)
+    middleware = _middleware()
     ctx = _make_context(
         "allv1_AdsApiv1RetrieveReport",
         {"reportIds": ["plural-stays"]},
@@ -83,7 +96,7 @@ async def test_alias_does_not_overwrite_existing_plural_form():
 
 @pytest.mark.asyncio
 async def test_tool_without_rule_passes_through():
-    middleware = SidecarTransformMiddleware(RESOURCES_DIR)
+    middleware = _middleware()
     ctx = _make_context("nonexistent_tool", {"a": 1, "b": 2})
 
     captured: list[dict] = []
@@ -98,7 +111,7 @@ async def test_tool_without_rule_passes_through():
 
 @pytest.mark.asyncio
 async def test_middleware_stats_count_loaded_rules():
-    middleware = SidecarTransformMiddleware(RESOURCES_DIR)
+    middleware = _middleware()
     stats = middleware.stats()
     # We know at least the reportId alias rule loaded.
     assert stats["compiled_transforms"] >= 1
@@ -118,23 +131,32 @@ async def test_missing_resources_dir_yields_empty_middleware(tmp_path):
 @pytest.mark.parametrize(
     "tool_name,singular_key,plural_key",
     [
-        # Original RetrieveReport alias (both All + Beta specs).
+        # Prefixed form (MCP protocol path).
         ("allv1_AdsApiv1RetrieveReport", "reportId", "reportIds"),
         ("beta_AdsApiv1RetrieveReport", "reportId", "reportIds"),
-        # Same plural-of-one shape, discovered via minItems/maxItems sweep.
         ("allv1_AdsApiv1DeleteReport", "reportId", "reportIds"),
         ("beta_AdsApiv1DeleteReport", "reportId", "reportIds"),
         ("allv1_DSPRetrieveCommitmentSpend", "commitmentId", "commitmentIds"),
+        # Un-prefixed form (Code Mode sandbox path — observed in the
+        # production traceback at fastmcp/experimental/transforms/
+        # code_mode.py:134 where MontySandbox dispatches via
+        # operationId directly, not the MCP-prefixed name).
+        ("AdsApiv1RetrieveReport", "reportId", "reportIds"),
+        ("AdsApiv1DeleteReport", "reportId", "reportIds"),
+        ("DSPRetrieveCommitmentSpend", "commitmentId", "commitmentIds"),
     ],
 )
-async def test_singular_aliases_across_plural_of_one_endpoints(
+async def test_singular_aliases_rewrite_on_both_prefixed_and_unprefixed(
     tool_name, singular_key, plural_key
 ):
-    """Every endpoint whose requestBody is a plural-array-of-one (minItems=1,
-    maxItems=1) should accept the natural singular via an arg_aliases rule.
-    This catches regressions where the rule gets accidentally dropped
-    during transform-file edits."""
-    middleware = SidecarTransformMiddleware(RESOURCES_DIR)
+    """Alias must fire on BOTH surfaces:
+      * MCP protocol path → prefixed name (e.g. ``allv1_AdsApiv1RetrieveReport``)
+      * Code Mode sandbox → un-prefixed operationId (``AdsApiv1RetrieveReport``)
+
+    Earlier versions registered under the prefixed form only; the sandbox
+    path silently missed the rewrite. Production symptom: HTTP 400 from
+    Amazon because the call reached the API without ``reportIds``."""
+    middleware = _middleware()
     rewritten = await middleware.rewrite_args(tool_name, {singular_key: "abc"})
     assert rewritten.get(plural_key) == ["abc"], (
         f"{tool_name}: singular {singular_key!r} did not rewrite to "

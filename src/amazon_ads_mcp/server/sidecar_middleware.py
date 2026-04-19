@@ -88,38 +88,94 @@ class SidecarTransformMiddleware(Middleware):
     dict lookup plus whichever transforms match.
     """
 
-    def __init__(self, resources_dir: Path) -> None:
+    def __init__(
+        self,
+        resources_dir: Path,
+        overlays_dir: Optional[Path] = None,
+    ) -> None:
         self._input_transforms: Dict[str, List[InputTransform]] = {}
         self._loaded_rules = 0
         self._loaded_transforms = 0
+        self._loaded_overlays = 0
+        self._prefix_map: Dict[str, str] = {}
+
         self._load(resources_dir)
+        # Overlays carry hand-authored alias / input_transform rules that
+        # MUST survive the private .build/ regen of the primary transform
+        # files. They're source-controlled under openapi/overlays/ and
+        # loaded on top of whatever the transform files provided.
+        if overlays_dir is not None:
+            self._load_overlays(overlays_dir)
+
         logger.info(
-            "SidecarTransformMiddleware: loaded %d rules, compiled %d input transforms",
+            "SidecarTransformMiddleware: loaded %d base rules, %d overlays, "
+            "%d compiled input transforms (%d tool names covered)",
             self._loaded_rules,
+            self._loaded_overlays,
             self._loaded_transforms,
+            len(self._input_transforms),
         )
 
     # ---------- load ------------------------------------------------------
 
-    def _load(self, resources_dir: Path) -> None:
-        if not resources_dir.exists():
-            return
-        # Load packages.json namespace→prefix mapping (used by the actual
-        # FastMCP mount path). Without this, middleware keys won't match
-        # the real tool names (e.g. AdsAPIv1All → allv1).
-        prefix_map: Dict[str, str] = {}
+    def _load_prefix_map(self, resources_dir: Path) -> Dict[str, str]:
+        """Load packages.json namespace→prefix mapping.
+
+        The mount path (``_mount_resource_servers``) uses this to compute
+        real tool names (e.g. AdsAPIv1All → ``allv1_*``). The middleware
+        must use the same map or its keys won't match the tools in the
+        server.
+        """
         for candidate in (
             resources_dir / "packages.json",
             resources_dir.parent / "packages.json",
+            Path("openapi/resources/packages.json"),
+            Path("dist/openapi/resources/packages.json"),
             Path("openapi/packages.json"),
         ):
             try:
                 if candidate.exists():
                     pkg = _json_load(candidate)
-                    prefix_map = dict(pkg.get("prefixes") or {})
-                    break
+                    return dict(pkg.get("prefixes") or {})
             except Exception:
                 continue
+        return {}
+
+    def _register_rule(
+        self,
+        rule: Dict[str, Any],
+        manifest: Dict[str, Any],
+        namespace: str,
+        executor: DeclarativeTransformExecutor,
+    ) -> bool:
+        """Compile a single rule and register it under prefixed +
+        un-prefixed tool names. Returns True when a transform was compiled."""
+        tool_name = _resolve_tool_name_for_rule(
+            rule, manifest, namespace, self._prefix_map
+        )
+        if not tool_name:
+            return False
+        input_tx = executor.create_input_transform(rule)
+        if input_tx is None:
+            return False
+        # Register under the prefixed name (MCP protocol path uses
+        # namespaced names like `allv1_AdsApiv1RetrieveReport`) AND the
+        # bare operationId (Code Mode's sandbox dispatches with the
+        # un-prefixed operationId — observed in production tracebacks).
+        # arg_aliases is additive+idempotent: double registration is safe
+        # because the rewrite only writes the target key if absent.
+        keys = [tool_name]
+        op_id = (rule.get("match") or {}).get("operationId")
+        if isinstance(op_id, str) and op_id and op_id != tool_name:
+            keys.append(op_id)
+        for key in keys:
+            self._input_transforms.setdefault(key, []).append(input_tx)
+        return True
+
+    def _load(self, resources_dir: Path) -> None:
+        if not resources_dir.exists():
+            return
+        self._prefix_map = self._load_prefix_map(resources_dir)
 
         for transform_path in sorted(resources_dir.glob("*.transform.json")):
             spec_path = transform_path.with_suffix("").with_suffix(".json")
@@ -140,16 +196,67 @@ class SidecarTransformMiddleware(Middleware):
 
             for rule in transform.get("tools", []) or []:
                 self._loaded_rules += 1
-                tool_name = _resolve_tool_name_for_rule(
-                    rule, manifest, namespace, prefix_map
+                if self._register_rule(rule, manifest, namespace, executor):
+                    self._loaded_transforms += 1
+
+    # ---------- overlays --------------------------------------------------
+
+    def _load_overlays(self, overlays_dir: Path) -> None:
+        """Merge hand-authored overlay rules on top of base rules.
+
+        Overlay file format (see openapi/overlays/README.md):
+            {
+              "namespace": "AdsAPIv1All",
+              "tool_overlays": [
+                {"match": {...}, "input_transform": {...}},
+                ...
+              ]
+            }
+
+        Overlay rules are treated exactly like regular transform rules —
+        they're compiled through the same DeclarativeTransformExecutor,
+        registered under the same prefixed + un-prefixed keys, and
+        appended to whatever transforms the base rules produced.
+        """
+        if not overlays_dir.exists():
+            return
+        # Ensure prefix map is available even when no resources_dir rules loaded.
+        if not self._prefix_map:
+            self._prefix_map = self._load_prefix_map(overlays_dir)
+
+        for overlay_path in sorted(overlays_dir.glob("*.json")):
+            # Skip README-style or non-overlay files.
+            try:
+                data = _json_load(overlay_path)
+            except Exception as exc:
+                logger.warning(
+                    "SidecarTransformMiddleware: failed to read overlay %s: %s",
+                    overlay_path.name,
+                    exc,
                 )
-                if not tool_name:
+                continue
+            if not isinstance(data, dict):
+                continue
+            overlays = data.get("tool_overlays")
+            if not isinstance(overlays, list):
+                continue
+
+            namespace = data.get("namespace") or overlay_path.stem
+            # The executor wants a rules payload with a top-level version; a
+            # minimal stub is fine because overlays don't use executor-level
+            # preset caching.
+            executor = DeclarativeTransformExecutor(
+                namespace=namespace,
+                rules={"version": "1.0", "tools": overlays},
+            )
+            manifest = {"namespace": namespace}
+
+            for rule in overlays:
+                if not isinstance(rule, dict):
                     continue
-                input_tx = executor.create_input_transform(rule)
-                if input_tx is None:
-                    continue
-                self._input_transforms.setdefault(tool_name, []).append(input_tx)
-                self._loaded_transforms += 1
+                self._loaded_overlays += 1
+                if self._register_rule(rule, manifest, namespace, executor):
+                    self._loaded_transforms += 1
 
     # ---------- shared rewrite helper -------------------------------------
 
@@ -185,6 +292,7 @@ class SidecarTransformMiddleware(Middleware):
     def stats(self) -> Dict[str, int]:
         return {
             "rules": self._loaded_rules,
+            "overlays": self._loaded_overlays,
             "compiled_transforms": self._loaded_transforms,
             "tools_with_transforms": len(self._input_transforms),
         }
