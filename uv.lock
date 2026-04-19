@@ -16,7 +16,7 @@ wheels = [
 
 [[package]]
 name = "amazon-ads-mcp"
-version = "0.2.30"
+version = "0.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "cryptography" },
