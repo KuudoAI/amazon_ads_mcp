@@ -18,8 +18,9 @@ yaml = pytest.importorskip("yaml")  # PyYAML ships with the project already.
 CI_PATH = Path(__file__).resolve().parents[2] / ".github" / "workflows" / "ci.yml"
 
 REQUIRED_JOBS = {
-    "catalog-drift",
-    "catalog-idempotency",
+    # catalog-drift and catalog-idempotency intentionally excluded —
+    # they consume private source specs under .build/adsv1_specs/ and
+    # are run by maintainers locally, not in public CI.
     "catalog-negative",
     "wheel-smoke",
 }

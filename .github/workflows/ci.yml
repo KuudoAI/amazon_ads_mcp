@@ -49,55 +49,13 @@ jobs:
           uv run pytest -q -m "not slow"
 
   # ----- report_fields catalog gates (adsv1.md §F.1) --------------------
-
-  catalog-drift:
-    name: report_fields catalog drift check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-      - uses: astral-sh/setup-uv@v7
-        with:
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
-      - run: uv sync --frozen
-      - name: Catalog drift check
-        run: |
-          uv run python -m amazon_ads_mcp.build.refresh_v1_catalog \
-            --source .build/adsv1_specs \
-            --dest src/amazon_ads_mcp/resources/adsv1 \
-            --check
-
-  catalog-idempotency:
-    name: report_fields catalog idempotent refresh
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-      - uses: astral-sh/setup-uv@v7
-        with:
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
-      - run: uv sync --frozen
-      - name: First refresh
-        run: |
-          uv run python -m amazon_ads_mcp.build.refresh_v1_catalog \
-            --source .build/adsv1_specs \
-            --dest /tmp/pass1 \
-            --validate
-      - name: Second refresh
-        run: |
-          uv run python -m amazon_ads_mcp.build.refresh_v1_catalog \
-            --source .build/adsv1_specs \
-            --dest /tmp/pass2 \
-            --validate
-      - name: Diff
-        run: |
-          diff -r /tmp/pass1 /tmp/pass2
+  #
+  # Drift + idempotency jobs intentionally live OUTSIDE public CI: they
+  # require the source dimension/metric specs under .build/adsv1_specs/,
+  # which is a private input directory excluded from this repo. Run those
+  # checks locally before publishing a refreshed catalog. The negative-
+  # path gate below uses a public pathological fixture and remains in CI
+  # as the validator-of-validator.
 
   catalog-negative:
     name: report_fields refresh negative-path

@@ -6,6 +6,9 @@ __pycache__/
 *.egg
 *.egg-info/
 # dist/ folder contains OpenAPI resources needed for runtime - DO NOT IGNORE
+# .build/ is PRIVATE — source specs and regen tooling that must never
+# ship in the public repo. Catalog drift / idempotency checks consume
+# these inputs and are run locally by maintainers, not in public CI.
 .build/
 eggs/
 .eggs/
