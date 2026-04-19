@@ -1,8 +1,7 @@
 """Pins Issue 6 (bug_fix_plan.md §6) — reportId singular alias transform.
 
-The alias is declared in openapi/resources/AdsAPIv1All.transform.json:
-    match.operationId == "AdsApiv1RetrieveReport"
-    input_transform.arg_aliases = [{"from":"reportId","to":"reportIds","wrap":"list"}]
+The alias is declared in openapi/overlays/AdsAPIv1All.json (source-
+controlled, survives the private .build/ regen — see bug.md follow-up).
 
 This test verifies the create_input_transform pipeline applies that rule
 correctly: singular reportId="abc" is rewritten to reportIds=["abc"]
@@ -18,21 +17,22 @@ import pytest
 
 from amazon_ads_mcp.server.transform_executor import DeclarativeTransformExecutor
 
-TRANSFORM_PATH = (
+OVERLAY_PATH = (
     Path(__file__).resolve().parents[2]
     / "openapi"
-    / "resources"
-    / "AdsAPIv1All.transform.json"
+    / "overlays"
+    / "AdsAPIv1All.json"
 )
 
 
 def _find_rule(operation_id: str) -> dict:
-    """The transform file stores rules under the `tools` key."""
-    data = json.loads(TRANSFORM_PATH.read_text())
-    for rule in data.get("tools", []):
+    """Overlay file stores rules under the `tool_overlays` key (see
+    openapi/overlays/README.md for format)."""
+    data = json.loads(OVERLAY_PATH.read_text())
+    for rule in data.get("tool_overlays", []):
         if rule.get("match", {}).get("operationId") == operation_id:
             return rule
-    raise LookupError(f"no transform rule for operationId={operation_id!r}")
+    raise LookupError(f"no overlay rule for operationId={operation_id!r}")
 
 
 @pytest.mark.asyncio

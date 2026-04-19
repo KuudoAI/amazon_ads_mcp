@@ -136,14 +136,20 @@ async def test_missing_resources_dir_yields_empty_middleware(tmp_path):
         ("beta_AdsApiv1RetrieveReport", "reportId", "reportIds"),
         ("allv1_AdsApiv1DeleteReport", "reportId", "reportIds"),
         ("beta_AdsApiv1DeleteReport", "reportId", "reportIds"),
-        ("allv1_DSPRetrieveCommitmentSpend", "commitmentId", "commitmentIds"),
         # Un-prefixed form (Code Mode sandbox path — observed in the
         # production traceback at fastmcp/experimental/transforms/
         # code_mode.py:134 where MontySandbox dispatches via
         # operationId directly, not the MCP-prefixed name).
         ("AdsApiv1RetrieveReport", "reportId", "reportIds"),
         ("AdsApiv1DeleteReport", "reportId", "reportIds"),
-        ("DSPRetrieveCommitmentSpend", "commitmentId", "commitmentIds"),
+        # NOTE: DSPRetrieveCommitmentSpend is intentionally NOT tested
+        # here. Its request body is an array of OBJECTS
+        # ([{commitmentId, spendDimension}]), not scalars. A wrap:list
+        # alias leaves spendDimension floating at the top level and
+        # triggers Amazon's cryptic "Expected null" — worse than the
+        # "field required" the caller would otherwise see. Overlay rule
+        # for it is intentionally absent; see openapi/overlays/AdsAPIv1All.json
+        # for the rationale.
     ],
 )
 async def test_singular_aliases_rewrite_on_both_prefixed_and_unprefixed(
@@ -161,4 +167,32 @@ async def test_singular_aliases_rewrite_on_both_prefixed_and_unprefixed(
     assert rewritten.get(plural_key) == ["abc"], (
         f"{tool_name}: singular {singular_key!r} did not rewrite to "
         f"{plural_key!r}; got {rewritten!r}"
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "tool_name",
+    [
+        "allv1_DSPRetrieveCommitmentSpend",
+        "DSPRetrieveCommitmentSpend",
+    ],
+)
+async def test_dsp_commitment_spend_intentionally_not_aliased(tool_name):
+    """Guard against someone re-adding the DSPRetrieveCommitmentSpend
+    alias naively. Its body is ``commitmentIds: [{commitmentId,
+    spendDimension}]`` — array of OBJECTS. A ``wrap: list`` alias moves
+    commitmentId into the array but leaves spendDimension floating at
+    the top level, yielding Amazon's cryptic "Expected null" error.
+    Better UX is letting Amazon return the clear "field required"
+    instead. If this test starts passing with a non-empty rewrite,
+    check that whoever added the alias also scrubs spendDimension /
+    composes a full object — otherwise remove the rule."""
+    middleware = _middleware()
+    sample_in = {"commitmentId": "c-1", "spendDimension": "DAILY"}
+    rewritten = await middleware.rewrite_args(tool_name, sample_in)
+    assert "commitmentIds" not in rewritten, (
+        f"{tool_name}: an alias now rewrites commitmentId, but the DSP "
+        "shape is array-of-OBJECTS. Either scrub top-level keys after "
+        "the wrap, or revert the rule."
     )
