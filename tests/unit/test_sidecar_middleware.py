@@ -113,10 +113,15 @@ async def test_tool_without_rule_passes_through():
 async def test_middleware_stats_count_loaded_rules():
     middleware = _middleware()
     stats = middleware.stats()
-    # We know at least the reportId alias rule loaded.
+    # We know at least the reportId alias rule loaded — it lives in
+    # openapi/overlays/AdsAPIv1All.json (source-controlled, present on
+    # every checkout). Base resources under openapi/resources/ are
+    # gitignored and may be entirely absent on a fresh CI checkout, in
+    # which case `rules` is 0 and every compiled transform comes from
+    # an overlay. Sum both raw counters for the invariant.
     assert stats["compiled_transforms"] >= 1
     assert stats["tools_with_transforms"] >= 1
-    assert stats["rules"] >= stats["compiled_transforms"]
+    assert stats["rules"] + stats["overlays"] >= stats["compiled_transforms"]
 
 
 @pytest.mark.asyncio
