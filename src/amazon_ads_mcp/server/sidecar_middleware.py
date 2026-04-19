@@ -43,6 +43,14 @@ logger = logging.getLogger(__name__)
 #: Signature of a compiled input transform: args dict -> args dict.
 InputTransform = Callable[[Dict[str, Any]], Awaitable[Dict[str, Any]]]
 
+#: Process-wide singleton populated by ServerBuilder when the middleware is
+#: installed. Code Mode's sandboxed ``call_tool`` bypasses FastMCP's server
+#: middleware chain (it goes through external_functions injected by
+#: MontySandboxProvider), so the auth-bridging wrapper must look this up
+#: directly to apply the same input transforms. See
+#: ``apply_sidecar_input_transforms`` below.
+_ACTIVE_MIDDLEWARE: "Optional[SidecarTransformMiddleware]" = None
+
 
 def _resolve_tool_name_for_rule(
     rule: Dict[str, Any],
@@ -143,6 +151,35 @@ class SidecarTransformMiddleware(Middleware):
                 self._input_transforms.setdefault(tool_name, []).append(input_tx)
                 self._loaded_transforms += 1
 
+    # ---------- shared rewrite helper -------------------------------------
+
+    async def rewrite_args(
+        self, tool_name: str, args: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Apply compiled input transforms for *tool_name* to *args*.
+
+        Returns a new dict; does not mutate the caller's input. When no
+        transforms match, returns ``args`` unchanged. Safe for use by the
+        CodeMode sandbox bridge as well as the MCP middleware chain.
+        """
+        transforms = self._input_transforms.get(tool_name)
+        if not transforms:
+            return args
+        rewritten = dict(args or {})
+        for tx in transforms:
+            try:
+                next_args = await tx(rewritten)
+                if next_args is not None:
+                    rewritten = next_args
+            except Exception as exc:
+                logger.warning(
+                    "SidecarTransformMiddleware: transform for %s raised %s",
+                    tool_name,
+                    exc,
+                )
+                return args
+        return rewritten
+
     # ---------- stats (for debug builtins) --------------------------------
 
     def stats(self) -> Dict[str, int]:
@@ -169,24 +206,10 @@ class SidecarTransformMiddleware(Middleware):
             return await call_next(context)
 
         raw_args: Dict[str, Any] = dict(getattr(message, "arguments", None) or {})
-        rewritten = raw_args
-        for tx in transforms:
-            try:
-                rewritten = await tx(rewritten) or rewritten
-            except Exception as exc:
-                # A malformed rule must not break the call path — log and
-                # fall back to the raw args so behavior matches the
-                # transforms-disabled baseline.
-                logger.warning(
-                    "SidecarTransformMiddleware: input transform for %s raised %s",
-                    tool_name,
-                    exc,
-                )
-                rewritten = raw_args
-                break
+        rewritten = await self.rewrite_args(tool_name, raw_args)
 
         # Only mutate the payload if the rewrite actually changed anything.
-        if rewritten is not raw_args and rewritten != raw_args:
+        if rewritten != raw_args:
             try:
                 message.arguments = rewritten
             except Exception:
@@ -202,3 +225,30 @@ class SidecarTransformMiddleware(Middleware):
                     )
 
         return await call_next(context)
+
+
+def set_active_middleware(middleware: "Optional[SidecarTransformMiddleware]") -> None:
+    """Register the process-wide active middleware.
+
+    Called by ``ServerBuilder._register_sidecar_middleware`` so the
+    CodeMode sandbox bridge can reach the same compiled transforms
+    without a direct dependency on ``ServerBuilder``.
+    """
+    global _ACTIVE_MIDDLEWARE
+    _ACTIVE_MIDDLEWARE = middleware
+
+
+async def apply_sidecar_input_transforms(
+    tool_name: str, args: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Apply the process-wide sidecar input transforms if any are installed.
+
+    Used by the CodeMode sandbox bridge (see ``code_mode.py``) so that a
+    sandboxed ``await call_tool(...)`` goes through the same alias and
+    coercion pipeline as the top-level MCP call path. Returns ``args``
+    unchanged when no middleware is active — safe to call from anywhere.
+    """
+    mw = _ACTIVE_MIDDLEWARE
+    if mw is None:
+        return args
+    return await mw.rewrite_args(tool_name, args)

@@ -57,6 +57,9 @@ async def test_alias_rewrites_report_id_to_report_ids_list():
     assert result == "ok"
     assert captured, "call_next was never invoked"
     rewritten = captured[0]
+    # Canonical plural form must be populated; the executor's arg_aliases
+    # is additive (doesn't delete the original singular), which is safe —
+    # downstream HTTP clients ignore unknown params.
     assert rewritten.get("reportIds") == ["singular-abc-123"], rewritten
 
 

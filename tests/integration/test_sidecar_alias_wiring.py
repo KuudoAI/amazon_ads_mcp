@@ -108,6 +108,10 @@ async def test_alias_rewrite_fires_at_the_wire(mcp_server):
 
     assert observed, "capturing middleware was never invoked"
     assert observed["tool"] == "allv1_AdsApiv1RetrieveReport"
+    # Canonical form must be populated; arg_aliases is additive (doesn't
+    # delete the original singular). That's safe — HTTP clients ignore
+    # unknown params — and preserves backward compat with callers that
+    # might submit both forms.
     assert observed["arguments"].get("reportIds") == ["wire-abc-999"], (
         f"alias did not fire before downstream middleware saw the call. "
         f"observed={observed}"

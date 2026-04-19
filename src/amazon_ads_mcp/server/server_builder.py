@@ -326,7 +326,10 @@ class ServerBuilder:
         """
         from pathlib import Path as _Path
 
-        from .sidecar_middleware import SidecarTransformMiddleware
+        from .sidecar_middleware import (
+            SidecarTransformMiddleware,
+            set_active_middleware,
+        )
 
         # Try sources in order of transform-rule fidelity.
         source_resources = _Path("openapi/resources")
@@ -340,6 +343,10 @@ class ServerBuilder:
             stats = middleware.stats()
             if stats["compiled_transforms"] > 0:
                 self.server.add_middleware(middleware)
+                # Expose the same compiled transforms to the Code Mode
+                # sandbox bridge — its call_tool pathway skips the server
+                # middleware chain. See sidecar_middleware for details.
+                set_active_middleware(middleware)
                 logger.info(
                     "SidecarTransformMiddleware: installed from %s (%d tools covered)",
                     candidate,

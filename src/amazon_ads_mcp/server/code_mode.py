@@ -138,12 +138,22 @@ class AuthBridgingSandboxProvider:
             async def bridged_call_tool(name: str, params: dict[str, Any]) -> Any:
                 # Each nested call hydrates from parent MCP session and
                 # persists back to parent session after completion.
+                # Also applies sidecar input transforms (arg_aliases etc.)
+                # — the sandboxed call_tool path doesn't go through the
+                # server's middleware chain, so we run the same rewrite
+                # pipeline here so singular→plural aliases like reportId
+                # fire regardless of which call surface the LLM picked.
+                from .sidecar_middleware import apply_sidecar_input_transforms
+
                 async with call_lock:
                     await hydrate_auth_from_mcp_session(
                         parent_ctx, logger_instance=logger
                     )
                     try:
-                        return await original_call_tool(name, params)
+                        rewritten = await apply_sidecar_input_transforms(
+                            name, params or {}
+                        )
+                        return await original_call_tool(name, rewritten)
                     finally:
                         await persist_auth_to_mcp_session(
                             parent_ctx, logger_instance=logger
