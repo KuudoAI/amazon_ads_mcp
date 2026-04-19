@@ -1,0 +1,224 @@
+{
+  "labels": {
+    "Ad": [
+      "ad.deliveryStatus",
+      "ad.externalId",
+      "ad.format",
+      "ad.id",
+      "ad.language",
+      "ad.name",
+      "ad.size"
+    ],
+    "Ad break": [
+      "adBreak.id"
+    ],
+    "Ad group": [
+      "adGroup.bidStrategy",
+      "adGroup.budgetAmount",
+      "adGroup.comments",
+      "adGroup.costType",
+      "adGroup.deliveryStatus",
+      "adGroup.endDate",
+      "adGroup.externalId",
+      "adGroup.id",
+      "adGroup.languageTargeting",
+      "adGroup.name",
+      "adGroup.omsId",
+      "adGroup.startDate",
+      "adGroup.type"
+    ],
+    "Ad product": [
+      "adProduct.value"
+    ],
+    "Ad slot": [
+      "adSlot.id",
+      "adSlot.type"
+    ],
+    "Advertised product": [
+      "advertisedProduct.id",
+      "advertisedProduct.marketplace",
+      "advertisedProduct.sku"
+    ],
+    "Advertiser account": [
+      "advertiserAccount.entityId",
+      "advertiserAccount.id",
+      "advertiserAccount.managerAccounts",
+      "advertiserAccount.name",
+      "advertiserAccount.timeZone"
+    ],
+    "Audience segment": [
+      "audienceSegment.classCode",
+      "audienceSegment.currentTargetingStatus",
+      "audienceSegment.id",
+      "audienceSegment.marketplace",
+      "audienceSegment.name",
+      "audienceSegment.type"
+    ],
+    "Audience segment targeting status": [
+      "audienceSegmentTargetingStatus.value"
+    ],
+    "Browser name": [
+      "browserName.value"
+    ],
+    "Browser version": [
+      "browserVersion.value"
+    ],
+    "Budget currency": [
+      "budgetCurrency.value"
+    ],
+    "Campaign": [
+      "campaign.bidStrategy",
+      "campaign.budgetAmount",
+      "campaign.budgetType",
+      "campaign.costType",
+      "campaign.country",
+      "campaign.currencyCode",
+      "campaign.deliveryStatus",
+      "campaign.endDate",
+      "campaign.globalCampaignId",
+      "campaign.id",
+      "campaign.name",
+      "campaign.omsId",
+      "campaign.purchaseOrderNumber",
+      "campaign.ruleAmount",
+      "campaign.startDate"
+    ],
+    "City": [
+      "city.name"
+    ],
+    "Content creator name": [
+      "contentCreator.name"
+    ],
+    "Content genre": [
+      "contentGenre.value"
+    ],
+    "Content rating": [
+      "contentRating.value"
+    ],
+    "Content title": [
+      "contentTitle.value"
+    ],
+    "Content type": [
+      "contentType.value"
+    ],
+    "Converted currency": [
+      "convertedCurrency.value"
+    ],
+    "Converted product": [
+      "convertedProduct.brand",
+      "convertedProduct.category",
+      "convertedProduct.id",
+      "convertedProduct.name",
+      "convertedProduct.parentProductId",
+      "convertedProduct.productGroup",
+      "convertedProduct.subcategory"
+    ],
+    "Converted product marketplace": [
+      "convertedProductMarketplace.value"
+    ],
+    "Country": [
+      "country.code",
+      "country.name"
+    ],
+    "DMA® code": [
+      "dma.id",
+      "dma.name"
+    ],
+    "Date": [
+      "date.value"
+    ],
+    "Date range": [
+      "dateRange.value"
+    ],
+    "Day of Month": [
+      "day.value"
+    ],
+    "Deal": [
+      "deal.id",
+      "deal.name",
+      "deal.type"
+    ],
+    "Device type": [
+      "deviceType.value"
+    ],
+    "Environment": [
+      "environment.value"
+    ],
+    "Event": [
+      "event.id",
+      "event.inventoryType",
+      "event.name",
+      "event.property"
+    ],
+    "Flight": [
+      "flight.budget",
+      "flight.endDate",
+      "flight.id",
+      "flight.name",
+      "flight.startDate"
+    ],
+    "Frequency group": [
+      "frequencyGroup.id",
+      "frequencyGroup.name",
+      "frequencyGroup.type"
+    ],
+    "Hour": [
+      "hour.value"
+    ],
+    "Insertion Order": [
+      "insertionOrder.id"
+    ],
+    "Matched target": [
+      "matchedTarget.value"
+    ],
+    "Month": [
+      "month.value"
+    ],
+    "Operating system": [
+      "operatingSystem.value"
+    ],
+    "Placement Name": [
+      "placement.name",
+      "placement.size"
+    ],
+    "Placement classification": [
+      "placementClassification.value"
+    ],
+    "Portfolio": [
+      "portfolio.name",
+      "portfolio.portfolioId"
+    ],
+    "Postal code": [
+      "postalCode.value"
+    ],
+    "Product relevance": [
+      "productRelevance.value"
+    ],
+    "Region": [
+      "region.name"
+    ],
+    "Search term": [
+      "searchTerm.value"
+    ],
+    "Site or app": [
+      "siteApp.value"
+    ],
+    "Supply source": [
+      "supplySource.name"
+    ],
+    "Target value": [
+      "target.matchType",
+      "target.value"
+    ],
+    "Time zone": [
+      "timeZone.value"
+    ],
+    "Week": [
+      "week.value"
+    ],
+    "Year": [
+      "year.value"
+    ]
+  },
+  "schema_version": 1
+}

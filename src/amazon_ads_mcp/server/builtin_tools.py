@@ -27,14 +27,17 @@ from fastmcp.dependencies import Progress
 
 from ..auth.manager import get_auth_manager
 from ..config.settings import settings
+from ..middleware.auth_session_bridge import compute_session_state
 from ..models.builtin_responses import (
     ClearProfileResponse,
     DownloadedFile,
     DownloadExportResponse,
     EnableToolGroupResponse,
+    GetActiveIdentityResponse,
     GetDownloadUrlResponse,
     GetProfileResponse,
     GetRegionResponse,
+    GetSessionStateResponse,
     ListDownloadsResponse,
     ListReportFieldsResponse,
     ListRegionsResponse,
@@ -62,6 +65,263 @@ from ..tools.oauth import OAuthTools
 logger = logging.getLogger(__name__)
 
 
+_REQUEST_SCOPED_NOTE = (
+    "State is request-scoped on this transport; re-establish context "
+    "at the start of every block."
+)
+
+_TOKEN_SWAPPED_NOTE = (
+    "Tenant token rotated mid-session; previous tenant state was "
+    "cleared. Re-establish context for the new tenant."
+)
+
+
+def _state_note(state_reason: Optional[str]) -> Optional[str]:
+    """Translate a ``state_reason`` code into a human-readable hint."""
+    if state_reason == "no_mcp_session":
+        return _REQUEST_SCOPED_NOTE
+    if state_reason == "token_swapped":
+        return _TOKEN_SWAPPED_NOTE
+    return None
+
+
+async def _set_active_identity_impl(
+    ctx,
+    identity_id: str,
+):
+    """Module-level implementation of the ``set_active_identity`` tool.
+
+    Extracted so it is unit-testable without a running FastMCP server.
+    Populates the three state fields on the response so callers can
+    detect request-scoped transports and post-token-swap contexts.
+    """
+    from ..models import SetActiveIdentityRequest
+
+    req = SetActiveIdentityRequest(identity_id=identity_id)
+    response = await identity.set_active_identity(req)
+
+    session_present, state_scope, state_reason = compute_session_state(ctx)
+    response.session_present = session_present
+    response.state_scope = state_scope
+    response.state_reason = state_reason
+
+    note = _state_note(state_reason)
+    if note and not response.message:
+        response.message = note
+    return response
+
+
+async def _set_context_impl(
+    ctx,
+    identity_id: Optional[str] = None,
+    region: Optional[str] = None,
+    region_code: Optional[str] = None,
+    profile_id: Optional[str] = None,
+) -> SetContextResponse:
+    """Module-level implementation of the ``set_context`` tool.
+
+    Extracted so it is unit-testable without a running FastMCP server.
+    Always returns the three state fields so clients can decide
+    whether to re-issue ``set_context`` every block.
+    """
+    if not any([identity_id, region, region_code, profile_id]):
+        raise ValueError(
+            "set_context requires at least one of: "
+            "identity_id, region/region_code, profile_id"
+        )
+
+    session_present, state_scope, state_reason = compute_session_state(ctx)
+
+    if identity_id:
+        from ..models import SetActiveIdentityRequest
+
+        await identity.set_active_identity(
+            SetActiveIdentityRequest(identity_id=identity_id)
+        )
+
+    requested_region = region or region_code
+    if requested_region:
+        region_result = await region_module.set_region(requested_region)
+        if not region_result.get("success", False):
+            return SetContextResponse(
+                success=False,
+                identity_id=identity_id,
+                profile_id=profile_id,
+                region=requested_region,
+                error=region_result.get("error"),
+                message=region_result.get("message"),
+                session_present=session_present,
+                state_scope=state_scope,
+                state_reason=state_reason,
+            )
+
+    if profile_id:
+        await profile.set_active_profile(profile_id)
+
+    active_identity = await identity.get_active_identity()
+    active_region = await region_module.get_region()
+    active_profile = await profile.get_active_profile()
+
+    note = _state_note(state_reason)
+    message = "Context updated" + (f"; {note}" if note else "")
+
+    return SetContextResponse(
+        success=True,
+        identity_id=active_identity.id if active_identity else None,
+        region=active_region.get("region"),
+        profile_id=active_profile.get("profile_id"),
+        message=message,
+        session_present=session_present,
+        state_scope=state_scope,
+        state_reason=state_reason,
+    )
+
+
+async def _get_active_identity_impl(ctx) -> GetActiveIdentityResponse:
+    """Module-level implementation of the ``get_active_identity`` tool.
+
+    Wraps the raw active ``Identity`` (or ``None``) in a response model
+    that carries the three state fields so agents can use this as a
+    cheap session-scope probe.
+
+    Note: this is a small breaking change from the prior shape (the
+    tool used to return the raw ``Identity``). See
+    :class:`amazon_ads_mcp.models.builtin_responses.GetActiveIdentityResponse`
+    for the new shape.
+    """
+    active_identity = await identity.get_active_identity()
+    session_present, state_scope, state_reason = compute_session_state(ctx)
+
+    identity_payload = active_identity.model_dump() if active_identity else None
+    message = (
+        None
+        if active_identity
+        else "No active identity set; call set_active_identity or set_context."
+    )
+
+    return GetActiveIdentityResponse(
+        success=True,
+        identity=identity_payload,
+        message=message,
+        session_present=session_present,
+        state_scope=state_scope,
+        state_reason=state_reason,
+    )
+
+
+async def _get_active_profile_impl(ctx) -> GetProfileResponse:
+    """Module-level implementation of the ``get_active_profile`` tool.
+
+    Decorates the existing profile lookup with the three state fields
+    so it doubles as a state-scope probe.
+    """
+    result = await profile.get_active_profile()
+    session_present, state_scope, state_reason = compute_session_state(ctx)
+    return GetProfileResponse(
+        **result,
+        session_present=session_present,
+        state_scope=state_scope,
+        state_reason=state_reason,
+    )
+
+
+async def _get_routing_state_impl(ctx) -> RoutingStateResponse:
+    """Module-level implementation of the ``get_routing_state`` tool.
+
+    Decorates routing state with the three state fields so it doubles
+    as a state-scope probe.
+    """
+    from ..utils.http_client import get_routing_state as _get_routing_state
+    from ..utils.region_config import RegionConfig
+
+    result = _get_routing_state()
+
+    current_region = settings.amazon_ads_region or "na"
+    default_host = RegionConfig.get_api_host(current_region)
+    if settings.amazon_ads_sandbox_mode:
+        default_host = default_host.replace("advertising-api", "advertising-api-test")
+
+    session_present, state_scope, state_reason = compute_session_state(ctx)
+
+    return RoutingStateResponse(
+        region=result.get("region", current_region),
+        host=result.get("host", default_host),
+        headers=result.get("headers", {}),
+        sandbox=settings.amazon_ads_sandbox_mode,
+        session_present=session_present,
+        state_scope=state_scope,
+        state_reason=state_reason,
+    )
+
+
+async def _get_session_state_impl(ctx) -> GetSessionStateResponse:
+    """Read-only probe: return ``(session_present, state_scope, state_reason)``.
+
+    Performs no I/O, does not touch the auth manager, and does not
+    mutate any ContextVar. Designed to be called once per ``execute``
+    block as the cheapest possible state-scope probe.
+    """
+    session_present, state_scope, state_reason = compute_session_state(ctx)
+    return GetSessionStateResponse(
+        session_present=session_present,
+        state_scope=state_scope,
+        state_reason=state_reason,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Shared description fragments (state-scope contract — keep in sync with
+# code_mode.EXECUTE_DESCRIPTION and GetSessionStateResponse docstring).
+# ---------------------------------------------------------------------------
+
+_STATE_SCOPE_RULE = (
+    "Re-establish context before the next tool call iff "
+    "`state_scope == 'request'` or `state_reason` is not null."
+)
+
+_STATE_SCOPE_PROBE_HINT = (
+    "Probe the transport once per block via `get_session_state`; the "
+    "scope cannot change within a block, so one probe per block is "
+    "sufficient."
+)
+
+_STATE_REASON_VALUES = (
+    "`state_reason` is `null` on the happy path. When non-null it "
+    "takes one of:\n"
+    "- `\"no_mcp_session\"` — the transport has no long-lived MCP "
+    "session (e.g. stateless HTTP). `state_scope` will be `'request'`.\n"
+    "- `\"token_swapped\"` — the transport DOES support sessions, but "
+    "a different bearer/refresh token arrived mid-session and the "
+    "previous tenant's identity, credentials, and profile were "
+    "cleared. `state_scope` stays `'session'` but you must "
+    "re-establish context for the new tenant before the next call.\n"
+    "- `\"bridge_unavailable\"` — reserved; the session bridge ran "
+    "but could not persist state. Treat as `'request'`."
+)
+
+_TOKEN_SWAPPED_SUBTLETY = (
+    "Note: `token_swapped` is the rare edge case where `state_scope` "
+    "remains `'session'` but context was cleared mid-session — the "
+    "combined rule above handles this correctly, do not rely on "
+    "scope alone."
+)
+
+
+def _state_aware_description(action: str) -> str:
+    """Build a tool description for a stateful tool.
+
+    ``action`` is the one-line description of what the tool does.
+    The state-scope contract block is appended verbatim so every
+    tool surfaces the same rule and the same enumerated reasons.
+    """
+    return (
+        f"{action}\n\n"
+        f"{_STATE_SCOPE_RULE} {_STATE_SCOPE_PROBE_HINT}\n\n"
+        f"{_STATE_REASON_VALUES}\n\n"
+        f"{_TOKEN_SWAPPED_SUBTLETY}"
+    )
+
+
 async def register_identity_tools(server: FastMCP):
     """Register identity management tools.
 
@@ -70,29 +330,30 @@ async def register_identity_tools(server: FastMCP):
 
     @server.tool(
         name="set_active_identity",
-        description="Set the active identity for Amazon Ads API calls",
+        description=_state_aware_description(
+            "Set the active identity for Amazon Ads API calls."
+        ),
     )
     async def set_active_identity_tool(
         ctx: Context,
         identity_id: str,
-        persist: bool = False,
     ):
         """Set the active identity for API calls."""
-        from ..models import SetActiveIdentityRequest
-
-        req = SetActiveIdentityRequest(
-            identity_id=identity_id,
-            persist=persist,
-        )
-        return await identity.set_active_identity(req)
+        return await _set_active_identity_impl(ctx, identity_id)
 
     @server.tool(
         name="get_active_identity",
-        description="Get the currently active identity",
+        description=(
+            "Get the currently active identity. Doubles as a "
+            "session-scope probe: the response includes "
+            "`session_present`, `state_scope`, and `state_reason` so "
+            "agents can detect whether previously-set context "
+            "survived to this call."
+        ),
     )
-    async def get_active_identity_tool(ctx: Context):
-        """Get the currently active identity."""
-        return await identity.get_active_identity()
+    async def get_active_identity_tool(ctx: Context) -> GetActiveIdentityResponse:
+        """Get the currently active identity with state-scope metadata."""
+        return await _get_active_identity_impl(ctx)
 
     @server.tool(name="list_identities", description="List all available identities")
     async def list_identities_tool(ctx: Context) -> dict:
@@ -100,10 +361,28 @@ async def register_identity_tools(server: FastMCP):
         return await identity.list_identities()
 
     @server.tool(
-        name="set_context",
+        name="get_session_state",
         description=(
-            "Set active context in one call. Any subset is allowed: "
-            "`identity_id`, `region` (or legacy `region_code`), and `profile_id`."
+            "Read-only probe: returns `{session_present, state_scope, "
+            "state_reason}` for the current transport. No side "
+            "effects, no auth/network I/O — call this once at the "
+            "start of an `execute` block to learn how to manage "
+            "context.\n\n"
+            f"{_STATE_SCOPE_RULE} {_STATE_SCOPE_PROBE_HINT}\n\n"
+            f"{_STATE_REASON_VALUES}\n\n"
+            f"{_TOKEN_SWAPPED_SUBTLETY}"
+        ),
+    )
+    async def get_session_state_tool(ctx: Context) -> GetSessionStateResponse:
+        """Return the three state fields with no side effects."""
+        return await _get_session_state_impl(ctx)
+
+    @server.tool(
+        name="set_context",
+        description=_state_aware_description(
+            "Set active context (identity, region, and/or profile) in "
+            "one call. Any subset of `identity_id`, `region` (or "
+            "legacy `region_code`), and `profile_id` is allowed."
         ),
     )
     async def set_context_tool(
@@ -112,48 +391,14 @@ async def register_identity_tools(server: FastMCP):
         region: Optional[str] = None,
         region_code: Optional[str] = None,
         profile_id: Optional[str] = None,
-        persist: bool = False,
     ) -> SetContextResponse:
         """Set identity, region, and profile context in one call."""
-        if not any([identity_id, region, region_code, profile_id]):
-            raise ValueError(
-                "set_context requires at least one of: "
-                "identity_id, region/region_code, profile_id"
-            )
-
-        if identity_id:
-            from ..models import SetActiveIdentityRequest
-
-            await identity.set_active_identity(
-                SetActiveIdentityRequest(identity_id=identity_id, persist=persist)
-            )
-
-        requested_region = region or region_code
-        if requested_region:
-            region_result = await region_module.set_region(requested_region)
-            if not region_result.get("success", False):
-                return SetContextResponse(
-                    success=False,
-                    identity_id=identity_id,
-                    profile_id=profile_id,
-                    region=requested_region,
-                    error=region_result.get("error"),
-                    message=region_result.get("message"),
-                )
-
-        if profile_id:
-            await profile.set_active_profile(profile_id)
-
-        active_identity = await identity.get_active_identity()
-        active_region = await region_module.get_region()
-        active_profile = await profile.get_active_profile()
-
-        return SetContextResponse(
-            success=True,
-            identity_id=active_identity.id if active_identity else None,
-            region=active_region.get("region"),
-            profile_id=active_profile.get("profile_id"),
-            message="Context updated",
+        return await _set_context_impl(
+            ctx,
+            identity_id=identity_id,
+            region=region,
+            region_code=region_code,
+            profile_id=profile_id,
         )
 
 
@@ -165,7 +410,9 @@ async def register_profile_tools(server: FastMCP):
 
     @server.tool(
         name="set_active_profile",
-        description="Set the active profile ID for API calls",
+        description=_state_aware_description(
+            "Set the active profile ID for Amazon Ads API calls."
+        ),
     )
     async def set_active_profile_tool(
         ctx: Context, profile_id: str
@@ -176,14 +423,24 @@ async def register_profile_tools(server: FastMCP):
 
     @server.tool(
         name="get_active_profile",
-        description="Get the currently active profile ID",
+        description=(
+            "Get the currently active profile ID. Doubles as a "
+            "session-scope probe: the response includes "
+            "`session_present`, `state_scope`, and `state_reason` so "
+            "agents can detect whether previously-set context "
+            "survived to this call."
+        ),
     )
     async def get_active_profile_tool(ctx: Context) -> GetProfileResponse:
-        """Get the currently active profile ID."""
-        result = await profile.get_active_profile()
-        return GetProfileResponse(**result)
+        """Get the currently active profile ID with state-scope metadata."""
+        return await _get_active_profile_impl(ctx)
 
-    @server.tool(name="clear_active_profile", description="Clear the active profile ID")
+    @server.tool(
+        name="clear_active_profile",
+        description=_state_aware_description(
+            "Clear the active profile ID, falling back to the default."
+        ),
+    )
     async def clear_active_profile_tool(ctx: Context) -> ClearProfileResponse:
         """Clear the active profile ID."""
         result = await profile.clear_active_profile()
@@ -398,10 +655,10 @@ async def register_region_tools(server: FastMCP):
 
     @server.tool(
         name="set_region",
-        description=(
-            "Set the region for Amazon Ads API calls. "
-            "Pass `region` (preferred) or `region_code` (legacy alias). "
-            "Valid values: 'na', 'eu', 'fe'."
+        description=_state_aware_description(
+            "Set the region for Amazon Ads API calls. Pass `region` "
+            "(preferred) or `region_code` (legacy alias). Valid "
+            "values: 'na', 'eu', 'fe'."
         ),
     )
     async def set_region_tool(
@@ -433,30 +690,17 @@ async def register_region_tools(server: FastMCP):
 
     @server.tool(
         name="get_routing_state",
-        description="Get the current routing state including region, host, and headers",
+        description=(
+            "Get the current routing state (region, host, headers). "
+            "Doubles as a session-scope probe: the response includes "
+            "`session_present`, `state_scope`, and `state_reason` so "
+            "agents can detect whether previously-set context "
+            "survived to this call."
+        ),
     )
     async def get_routing_state_tool(ctx: Context) -> RoutingStateResponse:
-        """Get the complete routing state for debugging."""
-        from ..utils.http_client import get_routing_state
-        from ..utils.region_config import RegionConfig
-
-        result = get_routing_state()
-
-        # Provide defaults when no routing state has been established yet
-        # (e.g., on a fresh server before any requests)
-        current_region = settings.amazon_ads_region or "na"
-        default_host = RegionConfig.get_api_host(current_region)
-
-        # Apply sandbox host replacement (same pattern used in http_client.py)
-        if settings.amazon_ads_sandbox_mode:
-            default_host = default_host.replace("advertising-api", "advertising-api-test")
-
-        return RoutingStateResponse(
-            region=result.get("region", current_region),
-            host=result.get("host", default_host),
-            headers=result.get("headers", {}),
-            sandbox=settings.amazon_ads_sandbox_mode,
-        )
+        """Get routing state with state-scope metadata."""
+        return await _get_routing_state_impl(ctx)
 
 
 # Removed region_identity_tools - list_identities_by_region was just a convenience wrapper
@@ -812,7 +1056,13 @@ Note: Requires HTTP transport (not stdio).
 
 
 async def register_report_catalog_tools(server: FastMCP):
-    """Register report field catalog tools."""
+    """Register report field catalog tools.
+
+    Always registers ``list_report_fields`` (baseline, unchanged since the
+    regression fence in adsv1.md §E.1). Conditionally registers
+    ``report_fields`` (v1 catalog query + validate) and the debug helper
+    ``_report_fields_debug`` based on env-gated settings.
+    """
 
     @server.tool(
         name="list_report_fields",
@@ -828,6 +1078,122 @@ async def register_report_catalog_tools(server: FastMCP):
         """Return curated report field catalogs."""
         result = report_fields.get_report_fields_catalog(operation=operation)
         return ListReportFieldsResponse(**result)
+
+    if settings.enable_report_fields_tool:
+        # Imports are local so disabling the tool doesn't pay the handler
+        # import cost at server startup.
+        from ..models.builtin_responses import (  # noqa: F401
+            QueryReportFieldsResponse,
+            ValidateReportFieldsResponse,
+        )
+        from ..tools.report_fields_v1_handler import (
+            ReportFieldsToolError,
+            _apply_drop_to_payload,
+            handle as report_fields_handle,
+        )
+
+        @server.tool(
+            name="report_fields",
+            description=(
+                "Query or validate Ads API v1 report fields against the "
+                "packaged v1 catalog. Use mode='query' to discover fields "
+                "(category, search, compatible_with, requires, fields "
+                "detail lookup with pagination) or mode='validate' to "
+                "pre-flight a field list before AdsApiv1CreateReport. "
+                "See list_report_fields for the minimal baseline and "
+                "other report APIs (rp_*, br_*, mmm_*). "
+                "Response.stale_warning is a string when the catalog "
+                "parse timestamp is older than LIST_REPORT_FIELDS_STALE_DAYS "
+                "(default 90) and null otherwise. Set that env var lower in "
+                "staging/dev to surface stale-catalog warnings earlier. "
+                "Optional `drop=[<key>,...]` (query-mode only) strips named "
+                "top-level keys from every field record — useful for slimming "
+                "the payload when compatibility arrays aren't needed (e.g. "
+                "drop=['compatible_dimensions','incompatible_dimensions']). "
+                "Values are validated against the record-key allowlist; "
+                "typos and unknown keys raise INVALID_MODE_ARGS rather than "
+                "silently keeping bytes (the error message surfaces the full "
+                "list of droppable keys, so a bad call self-documents the "
+                "valid options). Passing drop in mode='validate' is also "
+                "rejected — validate carries no field records to shape."
+            ),
+        )
+        async def report_fields_tool(
+            ctx: Context,
+            mode: str,
+            operation: str = "allv1_AdsApiv1CreateReport",
+            category: Optional[str] = None,
+            search: Optional[str] = None,
+            compatible_with: Optional[list] = None,
+            requires: Optional[list] = None,
+            fields: Optional[list] = None,
+            include_v3_mapping: bool = False,
+            limit: int = 25,
+            offset: int = 0,
+            validate_fields: Optional[list] = None,
+            drop: Optional[list] = None,
+        ):
+            """Dispatch to the query/validate handler.
+
+            Serializes with exclude_none=True so optional fields the caller
+            hasn't requested (e.g. v3_name_dsp when include_v3_mapping=False)
+            drop from the wire payload rather than serializing as `null`.
+            Matches the byte-cap serializer's policy so wire-level and
+            byte-measured payload shapes agree.
+
+            When *drop* is provided, the handler factors it into byte-cap
+            measurement and the wrapper strips the named keys from each
+            field record after dump. Validate-mode payloads have no field
+            records and pass through unchanged.
+            """
+            try:
+                result = report_fields_handle(
+                    mode=mode,
+                    operation=operation,
+                    category=category,
+                    search=search,
+                    compatible_with=compatible_with,
+                    requires=requires,
+                    fields=fields,
+                    include_v3_mapping=include_v3_mapping,
+                    limit=limit,
+                    offset=offset,
+                    validate_fields=validate_fields,
+                    drop=drop,
+                )
+                payload = result.model_dump(exclude_none=True)
+                if drop:
+                    _apply_drop_to_payload(payload, set(drop))
+                return payload
+            except ReportFieldsToolError as exc:
+                raise ValueError(str(exc)) from exc
+
+    if settings.amazon_ads_debug_tools:
+        from ..tools import report_fields_v1_catalog as _rf_catalog
+
+        @server.tool(
+            name="_report_fields_debug",
+            description=(
+                "Internal: return loaded catalog schema_version, parsed_at, "
+                "entry counts, and source_commit. Hidden unless "
+                "AMAZON_ADS_DEBUG_TOOLS=true."
+            ),
+        )
+        async def _report_fields_debug_tool(ctx: Context) -> dict:
+            try:
+                meta = _rf_catalog.get_catalog_meta()
+                dims = _rf_catalog.get_dimensions()
+                metrics = _rf_catalog.get_metrics()
+                return {
+                    "success": True,
+                    "schema_version": meta.get("schema_version"),
+                    "parsed_at": meta.get("parsed_at"),
+                    "source_commit": meta.get("source_commit"),
+                    "dimensions": len(dims),
+                    "metrics": len(metrics),
+                }
+            except Exception as exc:
+                return {"success": False, "error": str(exc)}
 
 
 async def register_sampling_tools(server: FastMCP):

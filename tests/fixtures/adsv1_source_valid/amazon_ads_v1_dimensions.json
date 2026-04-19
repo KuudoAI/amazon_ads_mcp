@@ -1,0 +1,53 @@
+[
+  {
+    "field_id": "campaign.id",
+    "display_name": "Campaign ID (Primary Key)",
+    "data_type": "STRING",
+    "description": "The unique identifier assigned to a campaign.",
+    "required_fields": [],
+    "complementary_fields": [],
+    "compatible_dimensions": ["campaign.name"],
+    "incompatible_dimensions": [],
+    "v3_name_dsp": "campaignId",
+    "v3_name_sponsored_ads": "campaignId",
+    "page_title": "Campaign ID",
+    "source": {
+      "md_file": "campaign-id.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    }
+  },
+  {
+    "field_id": "campaign.name",
+    "display_name": "Campaign name",
+    "data_type": "STRING",
+    "description": "The display name of the campaign.",
+    "required_fields": ["campaign.id"],
+    "complementary_fields": [],
+    "compatible_dimensions": ["campaign.id"],
+    "incompatible_dimensions": [],
+    "v3_name_dsp": "campaign",
+    "v3_name_sponsored_ads": "campaignName",
+    "page_title": "Campaign name",
+    "source": {
+      "md_file": "campaign-name.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    }
+  },
+  {
+    "field_id": "date.value",
+    "display_name": "Date",
+    "data_type": "DATE",
+    "description": "Calendar date the event occurred on.",
+    "required_fields": [],
+    "complementary_fields": [],
+    "compatible_dimensions": [],
+    "incompatible_dimensions": [],
+    "v3_name_dsp": "date",
+    "v3_name_sponsored_ads": "date",
+    "page_title": "Date",
+    "source": {
+      "md_file": "date.md",
+      "parsed_at": "2026-04-18T17:20:49Z"
+    }
+  }
+]

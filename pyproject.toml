@@ -1,10 +1,10 @@
 [project]
 name = "amazon-ads-mcp"
-version = "0.2.30"
+version = "0.3.0"
 description = "Amazon Ads API MCP Server - Implementation for Amazon Advertising API"
 readme = "README.md"
 requires-python = ">=3.10,<4.0"
-dependencies = [ "fastmcp[tasks]>=3.1.0,<4", "python-dotenv>=1.2.1", "pydantic>=2.12.5", "pydantic-settings>=2.12.0", "httpx[http2]>=0.28.1", "pyjwt>=2.10.1", "cryptography>=41.0.0", "openai>=1.109.1", "PyYAML>=6.0.2", "tiktoken>=0.12.0", "jsonschema>=4.25.1",]
+dependencies = [ "fastmcp[tasks]>=3.2.4,<4", "python-dotenv>=1.2.1", "pydantic>=2.12.5", "pydantic-settings>=2.12.0", "httpx[http2]>=0.28.1", "pyjwt>=2.10.1", "cryptography>=41.0.0", "openai>=1.109.1", "PyYAML>=6.0.2", "tiktoken>=0.12.0", "jsonschema>=4.25.1",]
 [[project.authors]]
 name = "Amazon Ads API MCP SDK"
 
@@ -13,11 +13,11 @@ requires = [ "poetry-core",]
 build-backend = "poetry.core.masonry.api"
 
 [dependency-groups]
-dev = [ "black>=25.12,<27.0", "isort>=7,<9", "mypy>=1.19.1", "pytest>=9.0.2", "pytest-asyncio>=1.3.0", "pytest-cov>=7.0.0", "ruff>=0.14.10", "fastmcp[code-mode]>=3.1.0,<4",]
+dev = [ "black>=25.12,<27.0", "isort>=7,<9", "mypy>=1.19.1", "pytest>=9.0.2", "pytest-asyncio>=1.3.0", "pytest-cov>=7.0.0", "ruff>=0.14.10", "fastmcp[code-mode]>=3.2.4,<4",]
 
 [project.optional-dependencies]
 audit = [ "tiktoken>=0.7.0", "rich>=13.0",]
-code-mode = [ "fastmcp[code-mode]>=3.1.0,<4",]
+code-mode = [ "fastmcp[code-mode]>=3.2.4,<4",]
 
 [project.license]
 text = "MIT"
@@ -37,6 +37,29 @@ from = "src"
 
 [[tool.poetry.include]]
 path = "src/amazon_ads_mcp/resources/*.json"
+format = "wheel"
+
+# Packaged v1 report-fields catalog (see adsv1.md §4.12).
+# The non-recursive glob above does NOT recurse into adsv1/, so these four
+# explicit entries are required. Match the "wheel"-string format convention.
+[[tool.poetry.include]]
+path = "src/amazon_ads_mcp/resources/adsv1/dimensions.json"
+format = "wheel"
+
+[[tool.poetry.include]]
+path = "src/amazon_ads_mcp/resources/adsv1/metrics.json"
+format = "wheel"
+
+[[tool.poetry.include]]
+path = "src/amazon_ads_mcp/resources/adsv1/index.json"
+format = "wheel"
+
+[[tool.poetry.include]]
+path = "src/amazon_ads_mcp/resources/adsv1/catalog_meta.json"
+format = "wheel"
+
+[[tool.poetry.include]]
+path = "src/amazon_ads_mcp/resources/adsv1/dimension_label_index.json"
 format = "wheel"
 
 [tool.black]
@@ -82,6 +105,9 @@ asyncio_mode = "auto"
 [tool.pytest.ini_options]
 testpaths = [ "tests",]
 addopts = "-v"
+markers = [
+    "slow: long-running tests (wheel builds, subprocess installs) — filtered out of local dev via '-m \"not slow\"' and run only in CI.",
+]
 
 [tool.coverage.run]
 source = [ "src/amazon_ads_mcp",]
@@ -91,7 +117,7 @@ omit = [ "*/tests/*", "*/debug/*",]
 exclude_lines = [ "pragma: no cover", "def __repr__", "if self.debug:", "if settings.DEBUG", "raise AssertionError", "raise NotImplementedError", "if 0:", "if __name__ == .__main__.:", "class .*\\bProtocol\\):", "@(abc\\.)?abstractmethod",]
 
 [tool.poetry.dependencies.fastmcp]
-version = ">=3.0,<4"
+version = ">=3.2,<4"
 extras = [ "tasks",]
 
 [tool.poetry.group.dev.dependencies]

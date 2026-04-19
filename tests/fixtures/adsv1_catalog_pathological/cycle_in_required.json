@@ -1,0 +1,19 @@
+{
+  "dimensions": [
+    {
+      "field_id": "a.id",
+      "display_name": "A",
+      "data_type": "STRING",
+      "required_fields": ["b.id"],
+      "source": {"md_file": "a.md", "parsed_at": "2026-01-01T00:00:00Z"}
+    },
+    {
+      "field_id": "b.id",
+      "display_name": "B",
+      "data_type": "STRING",
+      "required_fields": ["a.id"],
+      "source": {"md_file": "b.md", "parsed_at": "2026-01-01T00:00:00Z"}
+    }
+  ],
+  "metrics": []
+}

@@ -42,8 +42,61 @@ jobs:
         run: |
           python -W error::SyntaxWarning -m compileall -q src tests
 
-      - name: Run tests
+      - name: Run tests (fast suite)
         env:
           MCP_TEST_COMPAT: "true"
         run: |
-          uv run pytest -q
+          uv run pytest -q -m "not slow"
+
+  # ----- report_fields catalog gates (adsv1.md §F.1) --------------------
+  #
+  # Drift + idempotency jobs intentionally live OUTSIDE public CI: they
+  # require the source dimension/metric specs under .build/adsv1_specs/,
+  # which is a private input directory excluded from this repo. Run those
+  # checks locally before publishing a refreshed catalog. The negative-
+  # path gate below uses a public pathological fixture and remains in CI
+  # as the validator-of-validator.
+
+  catalog-negative:
+    name: report_fields refresh negative-path
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - run: uv sync --frozen
+      - name: Assert refresh fails on pathological fixture
+        run: |
+          set +e
+          uv run python -m amazon_ads_mcp.build.refresh_v1_catalog \
+            --source tests/fixtures/adsv1_catalog_pathological \
+            --dest /tmp/negative \
+            --validate
+          rc=$?
+          if [ "$rc" = "0" ]; then
+            echo "expected non-zero exit on pathological source"
+            exit 1
+          fi
+          echo "negative-path exit code: $rc (ok)"
+
+  wheel-smoke:
+    name: report_fields wheel smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - run: uv sync --frozen
+      - name: Run slow-marker suite (wheel-content + smoke)
+        run: |
+          uv run pytest -q -m slow

@@ -144,7 +144,7 @@ async def switch_to_region_identity(
         # Switch to the selected identity
         from ..models import SetActiveIdentityRequest
 
-        request = SetActiveIdentityRequest(identity_id=selected["id"], persist=True)
+        request = SetActiveIdentityRequest(identity_id=selected["id"])
 
         from . import identity
 

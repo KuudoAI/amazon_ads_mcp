@@ -1,0 +1,17 @@
+{
+  "field_id": "metric.clicks",
+  "display_name": "Clicks",
+  "data_type": "INTEGER",
+  "description": "Number of clicks.",
+  "required_fields": [],
+  "complementary_fields": [],
+  "compatible_dimensions": [],
+  "incompatible_dimensions": [],
+  "v3_name_dsp": null,
+  "v3_name_sponsored_ads": "clicks",
+  "page_title": "Clicks",
+  "source": {
+    "md_file": "clicks.md",
+    "parsed_at": "2026-04-18T17:20:49Z"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "namespace": "AdsAPIv1All",
+  "description": "Hand-authored transform rules that survive .build/ regeneration. See openapi/overlays/README.md for format.",
+  "_comment_dsp_commitment_spend": "DSPRetrieveCommitmentSpend is intentionally NOT aliased. Its request body is commitmentIds: [{commitmentId, spendDimension}] — an array of OBJECTS, not scalars. A `wrap: list` alias would move commitmentId into the list but leave spendDimension floating at the top level, producing Amazon's cryptic 'Expected null' error. Better to 400 explicitly on 'field required' than on 'Expected null'. LLMs should use the canonical nested shape for object-array endpoints. Revisit if real usage shows this is worth an object-composing alias.",
+  "tool_overlays": [
+    {
+      "match": {"operationId": "AdsApiv1RetrieveReport"},
+      "input_transform": {
+        "arg_aliases": [
+          {"from": "reportId", "to": "reportIds", "wrap": "list"}
+        ]
+      }
+    },
+    {
+      "match": {"operationId": "AdsApiv1DeleteReport"},
+      "input_transform": {
+        "arg_aliases": [
+          {"from": "reportId", "to": "reportIds", "wrap": "list"}
+        ]
+      }
+    }
+  ]
+}

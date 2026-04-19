@@ -89,6 +89,13 @@ class ServerBuilder:
         # Mount resource servers
         await self._mount_resource_servers()
 
+        # Sidecar transforms (arg_aliases etc.) must run BEFORE tool schema
+        # dispatch. The legacy sidecar_loader.attach_transforms_from_sidecars
+        # hook was no-op on current FastMCP (transform_tool removed); the
+        # middleware below restores those semantics for every spec under
+        # the resources directory we just mounted.
+        await self._register_sidecar_middleware()
+
         # Progressive disclosure: disable mounted tools by default
         # Skipped when code mode is active (tools must stay visible for CodeMode catalog)
         if not code_mode:
@@ -301,6 +308,77 @@ class ServerBuilder:
                 write=10.0,  # Write timeout for request
                 pool=10.0,  # Pool timeout
             ),
+        )
+
+    async def _register_sidecar_middleware(self) -> None:
+        """Install the sidecar transform middleware.
+
+        Transform-rule sources (first match wins for base rules):
+          1. ``openapi/resources/``  — dev tree; may or may not be present
+          2. ``dist/openapi/resources/`` — production build output
+          3. ``src/amazon_ads_mcp/resources/`` — wheel fallback
+
+        The hand-authored overlay file under ``openapi/overlays/`` is
+        ALWAYS loaded on top (when present). Overlays carry alias rules
+        (arg_aliases) that must survive the private ``.build/`` regen of
+        the base transform files. They live outside ``openapi/resources/``
+        so the regen pipeline can't touch them.
+
+        Installation proceeds even when no base rules compiled — as long
+        as the overlay provides at least one transform. This is the
+        common path in production (base transforms are auto-generated
+        output_transform stubs; aliases live exclusively in overlays).
+        """
+        from pathlib import Path as _Path
+
+        from .sidecar_middleware import (
+            SidecarTransformMiddleware,
+            set_active_middleware,
+        )
+
+        source_resources = _Path("openapi/resources")
+        dist_resources = _Path("dist/openapi/resources")
+        packaged_resources = _Path(__file__).resolve().parent.parent / "resources"
+
+        resources_dir = next(
+            (c for c in (source_resources, dist_resources, packaged_resources)
+             if c.exists()),
+            None,
+        )
+        if resources_dir is None:
+            logger.info(
+                "SidecarTransformMiddleware: no resources dir; skipping"
+            )
+            return
+
+        overlays_dir = _Path("openapi/overlays")
+        if not overlays_dir.exists():
+            overlays_dir = None  # type: ignore[assignment]
+
+        middleware = SidecarTransformMiddleware(
+            resources_dir, overlays_dir=overlays_dir
+        )
+        stats = middleware.stats()
+        if stats["compiled_transforms"] == 0:
+            logger.info(
+                "SidecarTransformMiddleware: no input transforms compiled "
+                "(resources=%s overlays=%s); skipping",
+                resources_dir,
+                overlays_dir,
+            )
+            return
+
+        self.server.add_middleware(middleware)
+        # Expose the same compiled transforms to the Code Mode sandbox
+        # bridge — its call_tool pathway skips the server middleware
+        # chain. See sidecar_middleware for details.
+        set_active_middleware(middleware)
+        logger.info(
+            "SidecarTransformMiddleware: installed (resources=%s, overlays=%s, "
+            "%d tools covered)",
+            resources_dir,
+            overlays_dir,
+            stats["tools_with_transforms"],
         )
 
     async def _mount_resource_servers(self):

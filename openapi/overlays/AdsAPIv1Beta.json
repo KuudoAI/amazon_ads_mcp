@@ -1,0 +1,22 @@
+{
+  "namespace": "AdsAPIv1Beta",
+  "description": "Hand-authored transform rules that survive .build/ regeneration. See openapi/overlays/README.md for format.",
+  "tool_overlays": [
+    {
+      "match": {"operationId": "AdsApiv1RetrieveReport"},
+      "input_transform": {
+        "arg_aliases": [
+          {"from": "reportId", "to": "reportIds", "wrap": "list"}
+        ]
+      }
+    },
+    {
+      "match": {"operationId": "AdsApiv1DeleteReport"},
+      "input_transform": {
+        "arg_aliases": [
+          {"from": "reportId", "to": "reportIds", "wrap": "list"}
+        ]
+      }
+    }
+  ]
+}

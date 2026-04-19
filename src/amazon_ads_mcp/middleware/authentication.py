@@ -605,6 +605,7 @@ class RefreshTokenMiddleware(Middleware):
                     set_active_profiles,
                     set_last_seen_token_fingerprint,
                     set_refresh_token_override,
+                    set_state_reset_reason,
                     token_fingerprint,
                 )
 
@@ -619,6 +620,11 @@ class RefreshTokenMiddleware(Middleware):
                     set_active_identity(None)
                     set_active_credentials(None)
                     set_active_profiles(None)
+                    # Surface the reset reason to tool wrappers so the
+                    # ``state_reason`` response field tells agents to
+                    # re-establish context. Cleared in the finally
+                    # block below so it does not leak across requests.
+                    set_state_reset_reason("token_swapped")
 
                 set_last_seen_token_fingerprint(new_fp)
 
@@ -673,9 +679,15 @@ class RefreshTokenMiddleware(Middleware):
         try:
             return await call_next(context)
         finally:
-            from ..auth.session_state import set_refresh_token_override
+            from ..auth.session_state import (
+                set_refresh_token_override,
+                set_state_reset_reason,
+            )
 
             set_refresh_token_override(None)
+            # ``state_reset_reason`` is a per-request diagnostic; clear
+            # it so the next request starts with a clean slate.
+            set_state_reset_reason(None)
 
     async def _get_cached_or_convert_jwt(self, refresh_token: str) -> Optional[str]:
         """Get JWT from cache or convert refresh token to JWT.

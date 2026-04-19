@@ -124,6 +124,112 @@ When modifying Amazon Ads functionality, changes typically affect:
 - **Authentication** (OAuth flows, token management)
 - **File Downloads** (HTTP download routes for exports and reports)
 
+## Report Fields Catalog (`report_fields` Tool)
+
+The `report_fields` tool provides bounded, opt-in access to the packaged
+Ads API v1 field catalog (117 dimensions + 700 metrics with compatibility
+graph). It closes the v1 field-discovery failure loop: v1 OpenAPI doesn't
+enumerate `query.fields`, so LLMs used to guess and hit HTTP 400s.
+
+`list_report_fields` stays as the curated-baseline tool (unchanged).
+
+### Usage
+
+Discover fields:
+```
+report_fields(mode="query", category="metric", search="click", limit=25)
+report_fields(mode="query", compatible_with=["campaign.id"])
+report_fields(mode="query", fields=["metric.clicks"])   # detail lookup
+```
+
+Pre-flight a field list before `AdsApiv1CreateReport`:
+```
+report_fields(mode="validate",
+              operation="allv1_AdsApiv1CreateReport",
+              validate_fields=["metric.clicks", "campaign.id"])
+# → unknown_fields, missing_required, incompatible_pairs, suggested_replacements
+```
+
+Slim the response when compatibility arrays aren't needed
+(autocomplete, name-only enumeration, existence checks):
+```
+report_fields(mode="query", category="metric", search="cost", limit=20,
+              drop=["compatible_dimensions", "incompatible_dimensions"])
+```
+
+`drop` semantics:
+- Optional list of top-level keys to omit from every record in `fields[]`.
+- **Query-mode only**. Passing `drop` in `mode="validate"` raises
+  `INVALID_MODE_ARGS` — validate carries no field records to shape, so
+  the call is treated as a contract violation, not a silent no-op.
+- Values are validated against the `ReportFieldEntry` allowlist. Typos
+  (e.g. `"compatable_dimensions"`) raise `INVALID_MODE_ARGS` rather than
+  silently keeping the bytes the caller meant to strip. The error
+  message lists the allowed keys.
+- Required keys (e.g. `field_id`) are still removable — the allowlist
+  gates known vs unknown record keys, not required vs optional.
+- Top-level response metadata (`total_matching`, `parsed_at`,
+  `stale_warning`, …) is not a record key and cannot be dropped.
+- Default behavior (no `drop`) is byte-identical to the prior shape.
+- Byte-cap measurement factors `drop` in, so dropping populated arrays
+  can also avoid description clipping when the post-drop payload fits.
+
+`category="filter"` and `category="time"` are accepted but return empty
+results in this release — use `list_report_fields(operation=...)` for
+filter/time baselines on other report APIs.
+
+### Environment variables
+
+| Variable                         | Default | Purpose                                                                 |
+|----------------------------------|---------|-------------------------------------------------------------------------|
+| `ENABLE_REPORT_FIELDS_TOOL`      | `true`  | Master toggle for the `report_fields` tool and the associated async hint |
+| `LIST_REPORT_FIELDS_MAX_BYTES`   | `16384` | Hard byte cap on query/detail responses (serializer boundary)            |
+| `LIST_REPORT_FIELDS_STALE_DAYS`  | `90`    | Threshold for `stale_warning` on catalog freshness                       |
+| `AMAZON_ADS_DEBUG_TOOLS`         | `false` | When `true`, exposes the internal `_report_fields_debug` tool            |
+| `ALLOW_CATALOG_COUNT_DROP`       | `false` | CI override for catalog-refresh minimum-content floors                   |
+
+### Test invocation
+
+```
+uv run pytest -m "not slow"   # fast suite (default local)
+uv run pytest -m slow         # wheel-content + smoke (CI only)
+```
+
+The `slow` marker is registered in `pyproject.toml` but the global
+`addopts = "-v"` is untouched — slow-test filtering is invocation-level.
+
+### Refresh workflow
+
+When `.build/adsv1_specs/` is updated, regenerate the packaged catalog:
+
+```bash
+# Regenerate + validate + enforce production floors:
+uv run python -m amazon_ads_mcp.build.refresh_v1_catalog \
+    --source .build/adsv1_specs \
+    --dest src/amazon_ads_mcp/resources/adsv1 \
+    --validate --production-floors
+
+# Commit the regenerated artifacts:
+git add src/amazon_ads_mcp/resources/adsv1/
+git commit -m "chore: refresh v1 catalog"
+```
+
+The CI `catalog-drift` job runs `refresh_v1_catalog --check` on every PR,
+so a missed refresh after editing the source fails fast with a clear
+drift message. `catalog-idempotency` guards determinism; `catalog-negative`
+guards the failure paths; `wheel-smoke` proves the files ship in the wheel.
+
+Behavioral guarantees locked by tests:
+
+- Loader opens only four named files under `resources/adsv1/`; strays
+  and `.tmp` files are never enumerated.
+- `catalog_meta.json` is the commit signal — SHA-256 of on-disk
+  `dimensions.json` and `metrics.json` must match the manifest, in
+  either direction of runtime/catalog version mismatch → fail closed.
+- `report_fields(mode="query")` responses are sorted ascending by
+  `field_id`; byte cap enforced at the serializer boundary clips
+  descriptions but never drops fields.
+
 ## File Downloads (HTTP Data Plane)
 
 The MCP server provides HTTP endpoints for downloading exported files. This separates the control plane (MCP tools) from the data plane (HTTP file serving).
@@ -299,6 +405,36 @@ export CODE_MODE_MAX_MEMORY=50000000      # Sandbox memory (50MB)
 #   pip install "fastmcp[code-mode]>=3.1.0"
 # Set CODE_MODE=false to expose the full tool catalog directly instead.
 ```
+
+### Code Mode `execute` semantics
+
+The `execute` meta-tool runs LLM-generated Python in a Monty sandbox
+with a single external function in scope: `await call_tool(name, params)`.
+
+- **Errors are catchable.** Failures from `call_tool` are normalized to
+  `RuntimeError("<OriginalType>: <message>")` and surface inside the
+  sandbox so `try/except RuntimeError:` works as expected. The LLM can
+  probe N candidate tool names in a single `execute` block instead of
+  paying N round trips.
+- The dispatch loop (`MontyDispatchSandboxProvider` in
+  `src/amazon_ads_mcp/server/code_mode.py`) drives Monty via
+  `start()` + `resume()` rather than upstream `run_async()` so that
+  external-function exceptions actually reach the sandbox's surrounding
+  `try/except`. `run_async()` would bubble them out and abort the script.
+
+Sandbox guardrails (verified, documented in the `EXECUTE_DESCRIPTION`
+constant — keep aligned with reality):
+
+- No network (`urllib`, `requests`, `httpx`, `socket` blocked) — every
+  external interaction must go through `call_tool`.
+- No filesystem I/O (`open()`, `pathlib`, `os.*` blocked).
+- `print()` output may be discarded depending on the client path —
+  return data via the script's final expression instead.
+- `asyncio.sleep` is unavailable by design — chain `await call_tool`
+  calls (e.g. report-status polling) instead of sleeping.
+- `with` works for pure-Python context managers; not for `open(...)`.
+- `json.dumps(default=...)` may trip on Pydantic models; call
+  `model_dump()` first.
 
 ### Background Tasks Environment Variables
 

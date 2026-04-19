@@ -13,9 +13,9 @@ All models inherit from BaseModel with consistent patterns:
 - Typed fields for all response data
 """
 
-from typing import Any, Dict, List, Literal, Optional
+from typing import Annotated, Any, Dict, List, Literal, Optional, Tuple, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # ============================================================================
@@ -134,12 +134,24 @@ class GetProfileResponse(BaseModel):
     :param profile_id: Current active profile ID (None if not set)
     :param source: Where profile setting comes from (explicit/environment/default)
     :param message: Human-readable status message (when no profile set)
+    :param session_present: Whether the call ran inside an MCP session
+        that keeps auth state across subsequent tool calls. ``None``
+        when not computed.
+    :param state_scope: ``"session"`` when state will persist across
+        the next tool call, ``"request"`` when the caller must
+        re-establish context every call. ``None`` when not computed.
+    :param state_reason: Diagnostic explaining ``state_scope`` or
+        flagging that prior state was wiped. Known values:
+        ``"no_mcp_session"``, ``"token_swapped"``, ``"bridge_unavailable"``.
     """
 
     success: bool
     profile_id: Optional[str] = None
     source: Optional[str] = None
     message: Optional[str] = None
+    session_present: Optional[bool] = None
+    state_scope: Optional[str] = None
+    state_reason: Optional[str] = None
 
 
 class ClearProfileResponse(BaseModel):
@@ -166,11 +178,29 @@ class GetActiveIdentityResponse(BaseModel):
     :param success: Whether the operation succeeded
     :param identity: Active identity details (None if not set)
     :param message: Human-readable status message
+    :param session_present: Whether the call ran inside an MCP session
+        that keeps auth state across subsequent tool calls. ``None``
+        when not computed.
+    :param state_scope: ``"session"`` when state will persist across
+        the next tool call, ``"request"`` when the caller must
+        re-establish context every call. ``None`` when not computed.
+    :param state_reason: Diagnostic explaining ``state_scope`` or
+        flagging that prior state was wiped. Known values:
+        ``"no_mcp_session"``, ``"token_swapped"``, ``"bridge_unavailable"``.
+
+    Note on shape: prior versions of the ``get_active_identity`` tool
+    returned the bare ``Identity`` object. The tool now wraps it in
+    this response model so the three state fields can travel
+    alongside it. Existing callers that read ``identity.id`` directly
+    must read ``response["identity"]["id"]`` instead.
     """
 
     success: bool
     identity: Optional[Dict[str, Any]] = None
     message: Optional[str] = None
+    session_present: Optional[bool] = None
+    state_scope: Optional[str] = None
+    state_reason: Optional[str] = None
 
 
 class ProfileSelectorResponse(BaseModel):
@@ -377,7 +407,21 @@ class ReadDownloadResponse(BaseModel):
 
 
 class SetContextResponse(BaseModel):
-    """Response from set_context tool."""
+    """Response from ``set_context`` tool.
+
+    The three state fields tell agent clients how to manage context
+    persistence across tool calls:
+
+    * ``session_present`` — pure transport fact: did this call run
+      inside a long-lived MCP session?
+    * ``state_scope`` — directive: ``"session"`` means the transport
+      will keep auth state across the next tool call; ``"request"``
+      means the caller must re-issue ``set_context`` every block.
+    * ``state_reason`` — diagnostic explaining ``state_scope`` or
+      flagging that prior state was wiped despite a session being
+      present. Known values: ``"no_mcp_session"``, ``"token_swapped"``,
+      ``"bridge_unavailable"``. ``None`` on the happy path.
+    """
 
     success: bool
     identity_id: Optional[str] = None
@@ -385,6 +429,9 @@ class SetContextResponse(BaseModel):
     profile_id: Optional[str] = None
     message: Optional[str] = None
     error: Optional[str] = None
+    session_present: Optional[bool] = None
+    state_scope: Optional[str] = None
+    state_reason: Optional[str] = None
 
 
 class ListReportFieldsResponse(BaseModel):
@@ -468,6 +515,43 @@ class OAuthClearResponse(BaseModel):
 # ============================================================================
 
 
+class GetSessionStateResponse(BaseModel):
+    """Response from the dedicated ``get_session_state`` probe tool.
+
+    The probe carries exactly the three state fields and nothing else.
+    It is the documented entry point for an agent to learn the
+    transport's session scope at the start of a block:
+
+    * ``session_present`` — pure transport fact; ``True`` when the
+      transport keeps a long-lived MCP session.
+    * ``state_scope`` — caller directive: ``"session"`` means context
+      survives across tool calls in this block; ``"request"`` means
+      every call must re-establish context.
+    * ``state_reason`` — diagnostic. ``None`` on the happy path. When
+      non-null, takes one of:
+
+        - ``"no_mcp_session"`` — transport has no long-lived MCP
+          session (e.g. stateless HTTP). ``state_scope`` will be
+          ``"request"``.
+        - ``"token_swapped"`` — the transport DOES support sessions,
+          but a different bearer/refresh token arrived mid-session
+          and the previous tenant's identity, credentials, and
+          profile were cleared. ``state_scope`` stays ``"session"``
+          but the caller must re-establish context for the new
+          tenant before the next call.
+        - ``"bridge_unavailable"`` — reserved; the session bridge
+          ran but could not persist state. Treat as ``"request"``.
+
+    Decision rule for agents: re-establish context before the next
+    tool call iff ``state_scope == "request"`` or ``state_reason is
+    not null``.
+    """
+
+    session_present: bool
+    state_scope: str
+    state_reason: Optional[str] = None
+
+
 class RoutingStateResponse(BaseModel):
     """Response from get_routing_state tool.
 
@@ -475,12 +559,24 @@ class RoutingStateResponse(BaseModel):
     :param host: API host URL
     :param headers: Current routing headers
     :param sandbox: Whether sandbox mode is enabled
+    :param session_present: Whether the call ran inside an MCP session
+        that keeps auth/region state across subsequent tool calls.
+        ``None`` when not computed.
+    :param state_scope: ``"session"`` when routing state will persist
+        across the next tool call, ``"request"`` when the caller must
+        re-establish region every call. ``None`` when not computed.
+    :param state_reason: Diagnostic explaining ``state_scope``. Known
+        values: ``"no_mcp_session"``, ``"token_swapped"``,
+        ``"bridge_unavailable"``.
     """
 
     region: str
     host: str
     headers: Dict[str, str] = Field(default_factory=dict)
     sandbox: bool = False
+    session_present: Optional[bool] = None
+    state_scope: Optional[str] = None
+    state_reason: Optional[str] = None
 
 
 # ============================================================================
@@ -563,3 +659,99 @@ class EnableToolGroupResponse(BaseModel):
     tool_names: List[str] = Field(default_factory=list)
     message: Optional[str] = None
     error: Optional[str] = None
+
+
+# ============================================================================
+# report_fields Tool Responses (adsv1.md §4.5) — extra="forbid" scoped to these
+# models only; existing models above intentionally preserve their permissive
+# contracts.
+# ============================================================================
+
+
+class CatalogSourceMeta(BaseModel):
+    """Provenance pointer for a single v1 catalog record.
+
+    Returned only on detail lookups (`mode="query"`, `fields=[...]`).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    md_file: str
+    parsed_at: str  # ISO timestamp from the source parser
+
+
+class ReportFieldEntry(BaseModel):
+    """A single entry in the report_fields catalog query result."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    field_id: str
+    display_name: str
+    data_type: str
+    category: Literal["dimension", "metric", "filter", "time"]
+    provenance: Literal["empirical", "documented", "schema-derived"]
+    short_description: str  # always; clipped to <=160 chars upstream
+
+    # Detail-only:
+    description: Optional[str] = None
+
+    # Always-applicable (may be empty; always included in output):
+    required_fields: List[str] = Field(default_factory=list)
+    complementary_fields: List[str] = Field(default_factory=list)
+
+    # Compatibility graph — dropped via exclude_none when empty.
+    # Source-side (populated on metric records by Amazon; carries display labels):
+    compatible_dimensions: Optional[List[str]] = None
+    incompatible_dimensions: Optional[List[str]] = None
+    # Inverted index (built at refresh; attached to dimension records so the
+    # graph is queryable from either direction):
+    compatible_metrics: Optional[List[str]] = None
+    incompatible_metrics: Optional[List[str]] = None
+
+    # Optional cross-references — None when not requested or not applicable:
+    v3_name_dsp: Optional[str] = None
+    v3_name_sponsored_ads: Optional[str] = None
+
+    source: Optional[CatalogSourceMeta] = None  # detail lookup only
+
+
+class QueryReportFieldsResponse(BaseModel):
+    """Response for `report_fields(mode="query", ...)`."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    mode: Literal["query"]  # discriminator
+    success: bool
+    operation: str
+    catalog_schema_version: int
+    parsed_at: str  # ISO timestamp
+    stale_warning: Optional[str] = None
+    truncated: bool = False
+    truncated_reason: Optional[Literal["byte_cap", "limit", "field_filter"]] = None
+    total_matching: int
+    returned: int
+    offset: int
+    limit: int
+    fields: List[ReportFieldEntry] = Field(default_factory=list)
+
+
+class ValidateReportFieldsResponse(BaseModel):
+    """Response for `report_fields(mode="validate", ...)`."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    mode: Literal["validate"]  # discriminator
+    success: bool
+    operation: str
+    valid: bool
+    unknown_fields: List[str] = Field(default_factory=list)
+    missing_required: Dict[str, List[str]] = Field(default_factory=dict)
+    incompatible_pairs: List[Tuple[str, str]] = Field(default_factory=list)
+    suggested_replacements: Dict[str, List[str]] = Field(default_factory=dict)
+
+
+#: Discriminated union tagged on the `mode` field.
+ReportFieldsResponse = Annotated[
+    Union[QueryReportFieldsResponse, ValidateReportFieldsResponse],
+    Field(discriminator="mode"),
+]

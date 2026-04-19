@@ -152,27 +152,13 @@ ASYNC_OPERATION_HINTS: Dict[str, Tuple[str, Optional[str]]] = {
         "getAssetsBatchRegister",
     ),
     # AdsAPI v1 Reporting — the v1 endpoint uses a different ID space AND
-    # a different field-name namespace than legacy v2/v3 reporting. These
-    # hints prevent LLMs from guessing profileId-as-advertiserAccountId
-    # (yields 401) or sponsoredProducts.* field names (yields 400 unknown).
+    # a different field-name namespace than legacy v2/v3 reporting. The hint
+    # text for AdsApiv1CreateReport is **conditionally built** at read time
+    # based on settings.enable_report_fields_tool (see get_hint_text below).
+    # We keep a placeholder entry here so _maybe_enrich still matches the
+    # pattern; the placeholder text is never used directly.
     "AdsApiv1CreateReport": (
-        "This is the AdsAPI v1 report creation endpoint (asynchronous). "
-        "IMPORTANT:\n"
-        "• `accessRequestedAccounts[].advertiserAccountId` must be the "
-        "`amzn1.ads-account.g.*` account ID — NOT a legacy numeric profile "
-        "ID. Use `allv1_AdsApiv1QueryAdvertiserAccount` to resolve a "
-        "profileId to its advertiserAccountId first.\n"
-        "• Field names vary by endpoint and can reject guessed values. "
-        "Use `list_report_fields` with "
-        "`operation='allv1_AdsApiv1CreateReport'` for the validated "
-        "field catalog before constructing `query.fields`.\n"
-        "• `query.fields` must contain exactly one time dimension (e.g. "
-        "`date.value`), at least one level-of-detail dimension (e.g. "
-        "`campaign.id`), and at least one metric (e.g. `metric.clicks`).\n"
-        "• To filter on ad product use `adProduct.value` "
-        "(not `sponsoredProducts.adProduct`).\n"
-        "Returns a reportId; poll with `allv1_AdsApiv1RetrieveReport`. "
-        "Typical completion: 1-20 minutes.",
+        "_PLACEHOLDER_",
         "AdsApiv1RetrieveReport",
     ),
     "AdsApiv1RetrieveReport": (
@@ -184,6 +170,73 @@ ASYNC_OPERATION_HINTS: Dict[str, Tuple[str, Optional[str]]] = {
         None,
     ),
 }
+
+
+# ---------- conditional hint assembly ------------------------------------
+
+
+_ADS_V1_CREATE_BASELINE = (
+    "This is the AdsAPI v1 report creation endpoint (asynchronous). "
+    "IMPORTANT:\n"
+    "• `accessRequestedAccounts[].advertiserAccountId` must be the "
+    "`amzn1.ads-account.g.*` account ID — NOT a legacy numeric profile "
+    "ID. Use `allv1_AdsApiv1QueryAdvertiserAccount` to resolve a "
+    "profileId to its advertiserAccountId first.\n"
+    "• Field names vary by endpoint and can reject guessed values. "
+    "Use `list_report_fields` with "
+    "`operation='allv1_AdsApiv1CreateReport'` for the validated "
+    "field catalog before constructing `query.fields`.\n"
+    "• `query.fields` must contain exactly one time dimension (e.g. "
+    "`date.value`), at least one level-of-detail dimension (e.g. "
+    "`campaign.id`), and at least one metric (e.g. `metric.clicks`).\n"
+    "• To filter on ad product use `adProduct.value` "
+    "(not `sponsoredProducts.adProduct`).\n"
+    "Returns a reportId; poll with `allv1_AdsApiv1RetrieveReport`. "
+    "Typical completion: 1-20 minutes."
+)
+
+_ADS_V1_CREATE_REPORT_FIELDS = (
+    "This is the AdsAPI v1 report creation endpoint (asynchronous). "
+    "IMPORTANT:\n"
+    "• `accessRequestedAccounts[].advertiserAccountId` must be the "
+    "`amzn1.ads-account.g.*` account ID — NOT a legacy numeric profile "
+    "ID. Use `allv1_AdsApiv1QueryAdvertiserAccount` to resolve a "
+    "profileId to its advertiserAccountId first.\n"
+    "• BEFORE CreateReport, validate your field list with:\n"
+    '    report_fields(mode="validate", operation="allv1_AdsApiv1CreateReport",\n'
+    '                  validate_fields=["metric.clicks", "campaign.id"])\n'
+    "  Returns unknown_fields, missing_required, incompatible_pairs so you\n"
+    "  never submit a field that will 400.\n"
+    "• TO DISCOVER fields, use:\n"
+    '    report_fields(mode="query", category="metric", search="click")\n'
+    "  or `list_report_fields(operation='allv1_AdsApiv1CreateReport')` for\n"
+    "  the minimal empirical baseline.\n"
+    "• `query.fields` must contain exactly one time dimension (e.g. "
+    "`date.value`), at least one level-of-detail dimension (e.g. "
+    "`campaign.id`), and at least one metric (e.g. `metric.clicks`).\n"
+    "• To filter on ad product use `adProduct.value` "
+    "(not `sponsoredProducts.adProduct`).\n"
+    "Returns a reportId; poll with `allv1_AdsApiv1RetrieveReport`. "
+    "Typical completion: 1-20 minutes."
+)
+
+
+def get_hint_text(pattern: str) -> str:
+    """Return the rendered hint text for *pattern*, applying settings gates.
+
+    Only the AdsApiv1CreateReport hint varies at read time. All other
+    hints are returned verbatim from ASYNC_OPERATION_HINTS.
+    """
+    if pattern == "AdsApiv1CreateReport":
+        from ..config.settings import settings
+
+        return (
+            _ADS_V1_CREATE_REPORT_FIELDS
+            if settings.enable_report_fields_tool
+            else _ADS_V1_CREATE_BASELINE
+        )
+    text, _ = ASYNC_OPERATION_HINTS[pattern]
+    return text
 
 
 class AsyncHintsTransform(Transform):
@@ -220,12 +273,13 @@ class AsyncHintsTransform(Transform):
 
     def _maybe_enrich(self, tool: Tool) -> Tool:
         """Append async hint to tool description if it matches a known pattern."""
-        for pattern, (hint, _status_tool) in ASYNC_OPERATION_HINTS.items():
+        for pattern, (_placeholder, _status_tool) in ASYNC_OPERATION_HINTS.items():
             if tool.name.endswith(pattern):
                 current_desc = tool.description or ""
                 if "asynchronous" in current_desc.lower():
                     # Already has async guidance, skip
                     return tool
+                hint = get_hint_text(pattern)
                 enriched_desc = f"{current_desc}\n\n{hint}".strip()
                 self._enriched_count += 1
                 return tool.model_copy(update={"description": enriched_desc})

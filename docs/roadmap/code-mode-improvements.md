@@ -80,24 +80,15 @@ code_mode_search_detail: str = Field(
 
 Keep `"brief"` as default. Users with smaller catalogs or simpler schemas can opt into `"detailed"`.
 
-### 4. Custom execute_description with domain hints
+### 4. Custom execute_description with domain hints — **IMPLEMENTED**
 
-The `execute_description` parameter lets you inject domain-specific guidance into the execute tool's description. Keep it brief — this is not a place to duplicate AGENTS.md.
-
-**Update `code_mode.py`:**
-
-```python
-transform = CodeMode(
-    sandbox_provider=sandbox,
-    discovery_tools=discovery_tools,
-    execute_description=(
-        "Execute Python code in a sandbox. Use `await call_tool(name, params)` "
-        "to call tools and `return` the result. Tool responses are JSON. "
-        "Authentication and profile context are handled automatically — do not "
-        "pass auth headers. Set the active profile before making API calls."
-    ),
-)
-```
+Shipped with the catchable-errors change (§6 below). `code_mode.py` now
+defines an `EXECUTE_DESCRIPTION` constant and passes it to
+`CodeMode(execute_description=...)`. The wording covers `call_tool`'s
+catch behavior plus the verified Monty sandbox guardrails (no network,
+no FS I/O, `print()` may be discarded, `asyncio.sleep` unavailable by
+design, `try/except` semantics, `with`/`json.dumps` caveats, and the
+auth/region/profile contract).
 
 ### 5. Tag mutation contract (no change needed)
 
@@ -120,3 +111,40 @@ No code change needed. Documented here for clarity.
 - Start server with `CODE_MODE=true`, verify 4 meta-tools appear
 - Test `Search` returns capped results
 - Test sandbox limits with a deliberately expensive script
+
+## 6. Catchable `call_tool` errors — **IMPLEMENTED**
+
+**Problem (verified by repro):** the upstream
+`MontySandboxProvider.run_async()` path surfaces external-function
+exceptions as a host-side `MontyRuntimeError` and aborts the script
+*before* the in-sandbox `try/except` can catch. Effect: the LLM cannot
+defensively probe N candidate tool names in one `execute` block — every
+unknown name short-circuits the whole script and forces N round trips.
+
+**Fix:** `code_mode.py` ships `MontyDispatchSandboxProvider`, which
+drives Monty manually through `start()` + `FunctionSnapshot.resume(...)`.
+The dispatch loop:
+
+- For successful external calls: eagerly awaits the coroutine on the
+  host, then resumes the `FunctionSnapshot` with `future=...` and
+  immediately resolves the resulting `FutureSnapshot` with the value
+  — so the sandbox's `await call_tool(...)` sees a real awaitable.
+- For failing external calls: resumes the `FunctionSnapshot` directly
+  with `exception=...`. This is the *only* injection path that
+  propagates into the sandbox's surrounding `try/except` —
+  `FutureSnapshot` exception injection bypasses it (verified probe).
+- `AuthBridgingSandboxProvider` re-raises `original_call_tool` failures
+  as `RuntimeError("<OriginalType>: <message>")` so the LLM has a
+  single, builtin catch surface (`except RuntimeError:`).
+
+**Why no `call_tool_safe` was added:** the `try/except` story now works
+end-to-end with the standard `call_tool` surface. Adding a second
+sandbox function (`call_tool_safe(...) -> {ok, result|error}`) would
+double the API surface to solve a problem the dispatch fix already
+removes. Considered and explicitly rejected to keep `execute`'s scope
+to one external function.
+
+**Test coverage:** `tests/integration/test_code_mode_error_handling.py`
+- `test_unknown_tool_is_catchable_as_runtime_error`
+- `test_failing_tool_does_not_abort_subsequent_calls`
+- `test_probe_many_candidates_in_one_block`
