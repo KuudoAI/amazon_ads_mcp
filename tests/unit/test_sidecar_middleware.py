@@ -112,3 +112,31 @@ async def test_missing_resources_dir_yields_empty_middleware(tmp_path):
     middleware = SidecarTransformMiddleware(tmp_path / "does-not-exist")
     stats = middleware.stats()
     assert stats["compiled_transforms"] == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "tool_name,singular_key,plural_key",
+    [
+        # Original RetrieveReport alias (both All + Beta specs).
+        ("allv1_AdsApiv1RetrieveReport", "reportId", "reportIds"),
+        ("beta_AdsApiv1RetrieveReport", "reportId", "reportIds"),
+        # Same plural-of-one shape, discovered via minItems/maxItems sweep.
+        ("allv1_AdsApiv1DeleteReport", "reportId", "reportIds"),
+        ("beta_AdsApiv1DeleteReport", "reportId", "reportIds"),
+        ("allv1_DSPRetrieveCommitmentSpend", "commitmentId", "commitmentIds"),
+    ],
+)
+async def test_singular_aliases_across_plural_of_one_endpoints(
+    tool_name, singular_key, plural_key
+):
+    """Every endpoint whose requestBody is a plural-array-of-one (minItems=1,
+    maxItems=1) should accept the natural singular via an arg_aliases rule.
+    This catches regressions where the rule gets accidentally dropped
+    during transform-file edits."""
+    middleware = SidecarTransformMiddleware(RESOURCES_DIR)
+    rewritten = await middleware.rewrite_args(tool_name, {singular_key: "abc"})
+    assert rewritten.get(plural_key) == ["abc"], (
+        f"{tool_name}: singular {singular_key!r} did not rewrite to "
+        f"{plural_key!r}; got {rewritten!r}"
+    )

@@ -1,0 +1,817 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "AdsAPIv1All",
+  "tools": [
+    {
+      "match": {
+        "operationId": "ListBrandStoreEdition"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPListCommitment"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "CreateAccountCombinationInvitation"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "CreateAdAssociation"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "CreateAdExtension"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "CreateAdGroup"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "CreateAd"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "CreateAdvertiserAccount"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "CreateAdvertiserProductGroupEligibility"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "SBCreateAdvertisingDealTarget"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "SBCreateAdvertisingDeal"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "SBCreateBrandedKeywordsPricing"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "CreateCampaign"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPCreateCommitment"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "CreateEvent"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "CreateGeoLocation"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPAdsApiv1CreateInventoryGroup"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "SBCreateKeywordReservationValidation"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "CreateLinearTvIncrementalReachForecast"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "CreateLinearTvReachForecast"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "CreateLocationIndex"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "CreateManagerAccount"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "SBCreateRecommendation"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "AdsApiv1CreateReport"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPAdsApiv1CreateSupplierAdProductPrice"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPAdsApiv1CreateSupplierProposal"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPAdsApiv1CreateSupplierProposedDealForecast"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPAdsApiv1CreateSupplierProposedDeal"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "CreateTarget"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPListDealPlanningMetrics"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "DeleteAdAssociation"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "DeleteAdGroup"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "DeleteAd"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "SBDeleteAdvertisingDealTarget"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "SBDeleteAdvertisingDeal"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "DeleteCampaign"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "AdsApiv1DeleteReport"
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "reportId",
+            "to": "reportIds",
+            "wrap": "list"
+          }
+        ]
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "DeleteTarget"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "ListLocationIndex"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "QueryAccountCombinationInvitation"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "QueryAdAssociation"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "QueryAdExtension"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "QueryAdGroup"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "QueryAd"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "QueryAdvertiserAccount"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "QueryAdvertiserProductGroupEligibility"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "SBQueryAdvertisingDealTarget"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "SBQueryAdvertisingDeal"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "QueryBrandStoreEditionPublishVersion"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "QueryBrandStorePage"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "QueryBrandStore"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "QueryCampaign"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPQueryDealAvails"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPAdsApiv1QueryInventoryGroup"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "QueryLinearTvDaypart"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "QueryManagerAccount"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "AdsApiv1QueryPublisher"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "SBQueryRecommendationType"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "QuerySellingAccount"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPAdsApiv1QuerySupplierAdProduct"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPAdsApiv1QuerySupplierProposal"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPAdsApiv1QuerySupplierProposedDeal"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPAdsApiv1QuerySupplierPublisher"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPAdsApiv1QuerySupplierTargetItem"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPAdsApiv1QuerySupplier"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "QueryTarget"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPRetrieveCampaignForecast"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPRetrieveCommitmentSpend"
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "commitmentId",
+            "to": "commitmentIds",
+            "wrap": "list"
+          }
+        ]
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPRetrieveCommitment"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPAdsApiv1RetrieveInventoryGroup"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "RetrieveLocationIndex"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "AdsApiv1RetrieveReport"
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "reportId",
+            "to": "reportIds",
+            "wrap": "list"
+          }
+        ]
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "UpdateAccountCombinationInvitation"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "UpdateAdAssociation"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "UpdateAdExtension"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "UpdateAdGroup"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "UpdateAd"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "UpdateAdvertiserAccount"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "SBUpdateAdvertisingDeal"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "UpdateBrandStoreEditionPublishVersion"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "UpdateBrandStorePage"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "UpdateCampaign"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPUpdateCommitment"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPAdsApiv1UpdateInventoryGroup"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "UpdateLocationIndex"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "UpdateManagerAccount"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "UpdateTarget"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    }
+  ]
+}
