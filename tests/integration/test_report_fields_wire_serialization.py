@@ -122,3 +122,127 @@ async def test_detail_lookup_emits_description_and_source(mcp_server):
     assert "description" in entry
     assert "source" in entry
     assert entry["source"]["parsed_at"], "source.parsed_at must be populated"
+
+
+# ---------- drop parameter (wire-level) ------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_drop_omitted_listing_is_byte_identical_to_default(mcp_server):
+    """Regression fence: callers that don't pass drop see today's wire bytes.
+
+    Hits the FastMCP path explicitly because the drop is applied at the
+    tool wrapper after model_dump — mid-stack tests can't catch a wrapper
+    regression.
+    """
+    from fastmcp import Client
+
+    args = {"mode": "query", "category": "metric", "search": "click", "limit": 5}
+
+    async with Client(mcp_server) as client:
+        baseline = await client.call_tool("report_fields", args)
+        with_explicit_none = await client.call_tool(
+            "report_fields", {**args, "drop": None}
+        )
+        with_empty = await client.call_tool("report_fields", {**args, "drop": []})
+
+    assert baseline.content[0].text == with_explicit_none.content[0].text
+    assert baseline.content[0].text == with_empty.content[0].text
+
+
+@pytest.mark.asyncio
+async def test_drop_compat_arrays_strips_keys_on_wire(mcp_server):
+    """Dropped keys are absent from the wire JSON for every record."""
+    from fastmcp import Client
+
+    args = {
+        "mode": "query",
+        "category": "metric",
+        "search": "click",
+        "limit": 5,
+        "drop": ["compatible_dimensions", "incompatible_dimensions"],
+    }
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool("report_fields", args)
+        data = json.loads(result.content[0].text)
+
+    assert data["fields"], "expected at least one record"
+    for entry in data["fields"]:
+        assert "compatible_dimensions" not in entry, entry
+        assert "incompatible_dimensions" not in entry, entry
+
+
+@pytest.mark.asyncio
+async def test_drop_yields_smaller_wire_payload_than_default(mcp_server):
+    """End-to-end byte-savings check on the FastMCP transport path."""
+    from fastmcp import Client
+
+    base_args = {
+        "mode": "query",
+        "category": "metric",
+        "search": "click",
+        "limit": 10,
+    }
+    drop_args = {
+        **base_args,
+        "drop": ["compatible_dimensions", "incompatible_dimensions"],
+    }
+
+    async with Client(mcp_server) as client:
+        baseline = await client.call_tool("report_fields", base_args)
+        with_drop = await client.call_tool("report_fields", drop_args)
+
+    # We can't pin an exact byte target without controlling the catalog,
+    # but dropping populated arrays must reduce the wire payload.
+    assert len(with_drop.content[0].text) < len(baseline.content[0].text)
+
+
+@pytest.mark.asyncio
+async def test_drop_in_validate_mode_raises_tool_error_on_wire(mcp_server):
+    """Validate + drop is a contract violation surfaced as a tool error.
+
+    The wrapper translates ReportFieldsToolError into a ValueError /
+    fastmcp tool error. End-to-end check that the strict-by-default
+    contract is enforced on the FastMCP transport, not just at the
+    handler boundary.
+    """
+    from fastmcp import Client
+    from fastmcp.exceptions import ToolError
+
+    async with Client(mcp_server) as client:
+        with pytest.raises(ToolError):
+            await client.call_tool(
+                "report_fields",
+                {
+                    "mode": "validate",
+                    "validate_fields": ["metric.clicks"],
+                    "drop": ["compatible_dimensions"],
+                },
+            )
+
+
+@pytest.mark.asyncio
+async def test_drop_unknown_key_raises_tool_error_on_wire(mcp_server):
+    """Negative test: unknown drop key surfaces a deterministic tool error.
+
+    Hits the FastMCP path so the wrapper's exception translation is
+    exercised — silent ignore here would have hidden caller typos and
+    weakened the byte-savings contract.
+    """
+    from fastmcp import Client
+    from fastmcp.exceptions import ToolError
+
+    async with Client(mcp_server) as client:
+        with pytest.raises(ToolError):
+            await client.call_tool(
+                "report_fields",
+                {
+                    "mode": "query",
+                    "category": "metric",
+                    "search": "click",
+                    "limit": 5,
+                    # Misspelled — strict validator must reject.
+                    "drop": ["compatable_dimensions"],
+                },
+            )

@@ -134,12 +134,24 @@ class GetProfileResponse(BaseModel):
     :param profile_id: Current active profile ID (None if not set)
     :param source: Where profile setting comes from (explicit/environment/default)
     :param message: Human-readable status message (when no profile set)
+    :param session_present: Whether the call ran inside an MCP session
+        that keeps auth state across subsequent tool calls. ``None``
+        when not computed.
+    :param state_scope: ``"session"`` when state will persist across
+        the next tool call, ``"request"`` when the caller must
+        re-establish context every call. ``None`` when not computed.
+    :param state_reason: Diagnostic explaining ``state_scope`` or
+        flagging that prior state was wiped. Known values:
+        ``"no_mcp_session"``, ``"token_swapped"``, ``"bridge_unavailable"``.
     """
 
     success: bool
     profile_id: Optional[str] = None
     source: Optional[str] = None
     message: Optional[str] = None
+    session_present: Optional[bool] = None
+    state_scope: Optional[str] = None
+    state_reason: Optional[str] = None
 
 
 class ClearProfileResponse(BaseModel):
@@ -166,11 +178,29 @@ class GetActiveIdentityResponse(BaseModel):
     :param success: Whether the operation succeeded
     :param identity: Active identity details (None if not set)
     :param message: Human-readable status message
+    :param session_present: Whether the call ran inside an MCP session
+        that keeps auth state across subsequent tool calls. ``None``
+        when not computed.
+    :param state_scope: ``"session"`` when state will persist across
+        the next tool call, ``"request"`` when the caller must
+        re-establish context every call. ``None`` when not computed.
+    :param state_reason: Diagnostic explaining ``state_scope`` or
+        flagging that prior state was wiped. Known values:
+        ``"no_mcp_session"``, ``"token_swapped"``, ``"bridge_unavailable"``.
+
+    Note on shape: prior versions of the ``get_active_identity`` tool
+    returned the bare ``Identity`` object. The tool now wraps it in
+    this response model so the three state fields can travel
+    alongside it. Existing callers that read ``identity.id`` directly
+    must read ``response["identity"]["id"]`` instead.
     """
 
     success: bool
     identity: Optional[Dict[str, Any]] = None
     message: Optional[str] = None
+    session_present: Optional[bool] = None
+    state_scope: Optional[str] = None
+    state_reason: Optional[str] = None
 
 
 class ProfileSelectorResponse(BaseModel):
@@ -377,7 +407,21 @@ class ReadDownloadResponse(BaseModel):
 
 
 class SetContextResponse(BaseModel):
-    """Response from set_context tool."""
+    """Response from ``set_context`` tool.
+
+    The three state fields tell agent clients how to manage context
+    persistence across tool calls:
+
+    * ``session_present`` — pure transport fact: did this call run
+      inside a long-lived MCP session?
+    * ``state_scope`` — directive: ``"session"`` means the transport
+      will keep auth state across the next tool call; ``"request"``
+      means the caller must re-issue ``set_context`` every block.
+    * ``state_reason`` — diagnostic explaining ``state_scope`` or
+      flagging that prior state was wiped despite a session being
+      present. Known values: ``"no_mcp_session"``, ``"token_swapped"``,
+      ``"bridge_unavailable"``. ``None`` on the happy path.
+    """
 
     success: bool
     identity_id: Optional[str] = None
@@ -385,6 +429,9 @@ class SetContextResponse(BaseModel):
     profile_id: Optional[str] = None
     message: Optional[str] = None
     error: Optional[str] = None
+    session_present: Optional[bool] = None
+    state_scope: Optional[str] = None
+    state_reason: Optional[str] = None
 
 
 class ListReportFieldsResponse(BaseModel):
@@ -468,6 +515,43 @@ class OAuthClearResponse(BaseModel):
 # ============================================================================
 
 
+class GetSessionStateResponse(BaseModel):
+    """Response from the dedicated ``get_session_state`` probe tool.
+
+    The probe carries exactly the three state fields and nothing else.
+    It is the documented entry point for an agent to learn the
+    transport's session scope at the start of a block:
+
+    * ``session_present`` — pure transport fact; ``True`` when the
+      transport keeps a long-lived MCP session.
+    * ``state_scope`` — caller directive: ``"session"`` means context
+      survives across tool calls in this block; ``"request"`` means
+      every call must re-establish context.
+    * ``state_reason`` — diagnostic. ``None`` on the happy path. When
+      non-null, takes one of:
+
+        - ``"no_mcp_session"`` — transport has no long-lived MCP
+          session (e.g. stateless HTTP). ``state_scope`` will be
+          ``"request"``.
+        - ``"token_swapped"`` — the transport DOES support sessions,
+          but a different bearer/refresh token arrived mid-session
+          and the previous tenant's identity, credentials, and
+          profile were cleared. ``state_scope`` stays ``"session"``
+          but the caller must re-establish context for the new
+          tenant before the next call.
+        - ``"bridge_unavailable"`` — reserved; the session bridge
+          ran but could not persist state. Treat as ``"request"``.
+
+    Decision rule for agents: re-establish context before the next
+    tool call iff ``state_scope == "request"`` or ``state_reason is
+    not null``.
+    """
+
+    session_present: bool
+    state_scope: str
+    state_reason: Optional[str] = None
+
+
 class RoutingStateResponse(BaseModel):
     """Response from get_routing_state tool.
 
@@ -475,12 +559,24 @@ class RoutingStateResponse(BaseModel):
     :param host: API host URL
     :param headers: Current routing headers
     :param sandbox: Whether sandbox mode is enabled
+    :param session_present: Whether the call ran inside an MCP session
+        that keeps auth/region state across subsequent tool calls.
+        ``None`` when not computed.
+    :param state_scope: ``"session"`` when routing state will persist
+        across the next tool call, ``"request"`` when the caller must
+        re-establish region every call. ``None`` when not computed.
+    :param state_reason: Diagnostic explaining ``state_scope``. Known
+        values: ``"no_mcp_session"``, ``"token_swapped"``,
+        ``"bridge_unavailable"``.
     """
 
     region: str
     host: str
     headers: Dict[str, str] = Field(default_factory=dict)
     sandbox: bool = False
+    session_present: Optional[bool] = None
+    state_scope: Optional[str] = None
+    state_reason: Optional[str] = None
 
 
 # ============================================================================

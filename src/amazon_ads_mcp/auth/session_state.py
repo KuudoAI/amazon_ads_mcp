@@ -52,6 +52,16 @@ _last_seen_token_fingerprint_var: ContextVar[Optional[str]] = ContextVar(
     "last_seen_token_fingerprint", default=None
 )
 
+# Per-request: explains why tenant state was just cleared (or why
+# state would not be session-sticky). Read by tool wrappers via
+# ``compute_session_state`` to populate the ``state_reason`` field
+# on responses. Set by ``RefreshTokenMiddleware`` on token swap and
+# cleared in its ``finally`` block so it does not leak across
+# requests.
+_state_reset_reason_var: ContextVar[Optional[str]] = ContextVar(
+    "state_reset_reason", default=None
+)
+
 # ---------------------------------------------------------------------------
 # Accessors — identity
 # ---------------------------------------------------------------------------
@@ -152,6 +162,30 @@ def set_last_seen_token_fingerprint(fingerprint: Optional[str]) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Accessors — state reset reason (per-request diagnostic for tool responses)
+# ---------------------------------------------------------------------------
+
+
+def get_state_reset_reason() -> Optional[str]:
+    """Return the reason tenant state was just cleared, if any.
+
+    Set by ``RefreshTokenMiddleware`` when it detects a mid-session
+    token swap (value: ``"token_swapped"``) and cleared in the
+    middleware's ``finally`` block. Tool wrappers read this via
+    :func:`amazon_ads_mcp.middleware.auth_session_bridge.compute_session_state`
+    to populate the ``state_reason`` response field so agent clients
+    know they must re-establish context even though the transport
+    is session-capable.
+    """
+    return _state_reset_reason_var.get()
+
+
+def set_state_reset_reason(reason: Optional[str]) -> None:
+    """Set (or clear) the per-request state reset reason."""
+    _state_reset_reason_var.set(reason)
+
+
+# ---------------------------------------------------------------------------
 # Bulk reset — used in middleware cleanup and test fixtures
 # ---------------------------------------------------------------------------
 
@@ -171,6 +205,7 @@ def reset_session_state() -> None:
     _active_credentials_var.set(None)
     _active_profiles_var.set(None)
     _refresh_token_override_var.set(None)
+    _state_reset_reason_var.set(None)
 
 
 def reset_all_session_state() -> None:

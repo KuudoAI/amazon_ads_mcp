@@ -46,6 +46,8 @@ _MAX_VALIDATE_FIELDS = 200
 _MAX_COMPATIBLE_WITH = 50
 _MAX_REQUIRES = 50
 _MAX_SEARCH_LEN = 200
+#: Cap for ``drop`` — far larger than any sensible field-record key set.
+_MAX_DROP = 20
 
 #: Byte-cap defaults (§4.6). Env overrides read at call time.
 _DEFAULT_MAX_BYTES = 16_384
@@ -92,6 +94,18 @@ class ReportFieldsInput(BaseModel):
     # --- validate-mode args ---
     validate_fields: Optional[List[str]] = None
 
+    # --- response-shaping args ---
+    # ``drop`` names top-level keys to omit from every field record in the
+    # response. Query-mode only: validate-mode responses carry no field
+    # records, so ``drop`` there is a contract violation rather than a
+    # silent no-op (§D.1 — surface caller mistakes, don't hide them).
+    # Values are checked against the ReportFieldEntry allowlist so typos
+    # like ``"compatable_dimensions"`` raise INVALID_MODE_ARGS instead of
+    # silently keeping the bytes the caller meant to drop. Required keys
+    # (e.g. ``field_id``) are still removable — the allowlist gates known
+    # vs unknown, not required vs optional.
+    drop: Optional[List[str]] = None
+
 
 # ---------- dispatch + cross-mode validation ----------------------------
 
@@ -105,6 +119,34 @@ _QUERY_ONLY_ARGS = {
     "include_v3_mapping",
 }
 _VALIDATE_ONLY_ARGS = {"validate_fields"}
+
+#: Allowlist of keys that may appear in ``drop``. Derived from the
+#: response-record model so adding a field to ReportFieldEntry
+#: automatically widens the allowlist; renames are caught by callers
+#: hardcoding the old name (loud failure, not silent waste of bytes).
+#:
+#: Design choice — the allowlist gates *known* vs *unknown* record keys,
+#: NOT *required* vs *optional*. That means callers can strip
+#: ``field_id`` and other Pydantic-required keys, and the response will
+#: come back with malformed records by Pydantic standards.
+#:
+#: This is intentional. The alternative — refusing to drop required
+#: keys — would require:
+#:   1. Coupling the drop validator to Pydantic ``is_required``, a
+#:      separate concern with its own change-management story.
+#:   2. Per-key opinion on which keys are "safe" to drop, baking server
+#:      taste into a parameter that exists precisely to give callers
+#:      mechanical control over their payload shape.
+#:   3. Breaking the legitimate "I want display names only for an
+#:      autocomplete UI" use case where ``drop=["field_id", ...]`` is
+#:      exactly the right call.
+#:
+#: The contract: "if it's a record key, you may strip it; if you strip
+#: a required key, you own the malformed-shape downside." If usage
+#: telemetry shows callers regularly stripping required keys by
+#: accident, the right response is to add a separate ``view`` parameter
+#: (named tiers) on top of ``drop`` rather than narrow the allowlist.
+_DROP_ALLOWED_KEYS: frozenset[str] = frozenset(ReportFieldEntry.model_fields.keys())
 
 
 def _any_query_arg_set(inp: ReportFieldsInput) -> bool:
@@ -136,10 +178,26 @@ def _check_mode_args(inp: ReportFieldsInput) -> None:
                 ReportFieldsErrorCode.INVALID_MODE_ARGS,
                 "query-mode args are not valid in mode='validate'",
             )
+        if inp.drop:
+            raise ReportFieldsToolError(
+                ReportFieldsErrorCode.INVALID_MODE_ARGS,
+                "drop is a query-mode-only response-shaping arg; "
+                "mode='validate' returns no field records to shape",
+            )
         if not _any_validate_arg_set(inp):
             raise ReportFieldsToolError(
                 ReportFieldsErrorCode.INVALID_MODE_ARGS,
                 "mode='validate' requires validate_fields",
+            )
+
+    if inp.drop:
+        unknown = sorted(set(inp.drop) - _DROP_ALLOWED_KEYS)
+        if unknown:
+            allowed = ", ".join(sorted(_DROP_ALLOWED_KEYS))
+            raise ReportFieldsToolError(
+                ReportFieldsErrorCode.INVALID_MODE_ARGS,
+                f"drop contains unknown record key(s): {unknown}. "
+                f"Allowed: [{allowed}]",
             )
 
 
@@ -149,6 +207,7 @@ def _check_input_caps(inp: ReportFieldsInput) -> None:
         ("validate_fields", inp.validate_fields, _MAX_VALIDATE_FIELDS),
         ("compatible_with", inp.compatible_with, _MAX_COMPATIBLE_WITH),
         ("requires", inp.requires, _MAX_REQUIRES),
+        ("drop", inp.drop, _MAX_DROP),
     ]
     for name, value, cap in caps:
         if value is not None and len(value) > cap:
@@ -186,8 +245,11 @@ def handle(**kwargs: Any):
         )
         raise
 
-    _check_mode_args(inp)
+    # Structural caps run first (cheap, mechanical) so size violations
+    # always surface as INVALID_INPUT_SIZE regardless of the contents
+    # being otherwise well-formed. Semantic mode-arg checks run second.
     _check_input_caps(inp)
+    _check_mode_args(inp)
 
     logger.info(
         "report_fields_call",
@@ -379,6 +441,8 @@ def _select_query_records(inp: ReportFieldsInput) -> List[Dict[str, Any]]:
 
 
 def _handle_query(inp: ReportFieldsInput) -> QueryReportFieldsResponse:
+    drop_set: Optional[set[str]] = set(inp.drop) if inp.drop else None
+
     # fields=[...] detail lookup path
     if inp.fields:
         entries: List[ReportFieldEntry] = []
@@ -406,7 +470,7 @@ def _handle_query(inp: ReportFieldsInput) -> QueryReportFieldsResponse:
             limit=len(entries),
             fields=entries,
         )
-        return _serialize_with_byte_cap(response)
+        return _serialize_with_byte_cap(response, drop=drop_set)
 
     # Standard filter+paginate path
     pool = _select_query_records(inp)
@@ -441,7 +505,7 @@ def _handle_query(inp: ReportFieldsInput) -> QueryReportFieldsResponse:
         limit=inp.limit,
         fields=entries,
     )
-    return _serialize_with_byte_cap(response)
+    return _serialize_with_byte_cap(response, drop=drop_set)
 
 
 # ---------- validate-mode ----------------------------------------------
@@ -586,21 +650,51 @@ def _env_max_bytes() -> int:
         return _DEFAULT_MAX_BYTES
 
 
-def _serialize_bytes(response: BaseModel) -> int:
+def _apply_drop_to_payload(payload: Dict[str, Any], drop: Optional[set[str]]) -> Dict[str, Any]:
+    """Strip caller-named top-level keys from each field record in *payload*.
+
+    Mutates and returns *payload*. No-op when *drop* is empty or when the
+    payload has no ``fields`` array (validate-mode response).
+    """
+    if not drop:
+        return payload
+    fields = payload.get("fields")
+    if not isinstance(fields, list):
+        return payload
+    for entry in fields:
+        for key in drop:
+            entry.pop(key, None)
+    return payload
+
+
+def _serialize_bytes(
+    response: BaseModel, drop: Optional[set[str]] = None
+) -> int:
     payload = response.model_dump(exclude_none=True)
+    _apply_drop_to_payload(payload, drop)
     return len(json.dumps(payload).encode("utf-8"))
 
 
-def _serialize_with_byte_cap(response: QueryReportFieldsResponse) -> QueryReportFieldsResponse:
+def _serialize_with_byte_cap(
+    response: QueryReportFieldsResponse,
+    *,
+    drop: Optional[set[str]] = None,
+) -> QueryReportFieldsResponse:
     """Enforce the hard byte cap on the serialized response.
 
     Clipping strategy: walk entries left-to-right and shorten
     ``short_description`` first, then drop ``description`` if present.
     Never drop fields (§4.6). When a clip happens, mark ``truncated=True``
     and populate ``truncated_reason="byte_cap"``.
+
+    The *drop* set (caller-supplied via ``ReportFieldsInput.drop``) is
+    factored into the byte calculation so that callers who opted to
+    strip large compatibility arrays don't pay clipping costs they
+    avoided. The wire-level removal happens at the tool wrapper after
+    ``model_dump``; the model itself is unchanged.
     """
     cap = _env_max_bytes()
-    if _serialize_bytes(response) <= cap:
+    if _serialize_bytes(response, drop=drop) <= cap:
         return response
 
     # Clip descriptions in-place (new entries, don't mutate model fields).

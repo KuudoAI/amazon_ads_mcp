@@ -150,6 +150,30 @@ report_fields(mode="validate",
 # → unknown_fields, missing_required, incompatible_pairs, suggested_replacements
 ```
 
+Slim the response when compatibility arrays aren't needed
+(autocomplete, name-only enumeration, existence checks):
+```
+report_fields(mode="query", category="metric", search="cost", limit=20,
+              drop=["compatible_dimensions", "incompatible_dimensions"])
+```
+
+`drop` semantics:
+- Optional list of top-level keys to omit from every record in `fields[]`.
+- **Query-mode only**. Passing `drop` in `mode="validate"` raises
+  `INVALID_MODE_ARGS` — validate carries no field records to shape, so
+  the call is treated as a contract violation, not a silent no-op.
+- Values are validated against the `ReportFieldEntry` allowlist. Typos
+  (e.g. `"compatable_dimensions"`) raise `INVALID_MODE_ARGS` rather than
+  silently keeping the bytes the caller meant to strip. The error
+  message lists the allowed keys.
+- Required keys (e.g. `field_id`) are still removable — the allowlist
+  gates known vs unknown record keys, not required vs optional.
+- Top-level response metadata (`total_matching`, `parsed_at`,
+  `stale_warning`, …) is not a record key and cannot be dropped.
+- Default behavior (no `drop`) is byte-identical to the prior shape.
+- Byte-cap measurement factors `drop` in, so dropping populated arrays
+  can also avoid description clipping when the post-drop payload fits.
+
 `category="filter"` and `category="time"` are accepted but return empty
 results in this release — use `list_report_fields(operation=...)` for
 filter/time baselines on other report APIs.
@@ -381,6 +405,36 @@ export CODE_MODE_MAX_MEMORY=50000000      # Sandbox memory (50MB)
 #   pip install "fastmcp[code-mode]>=3.1.0"
 # Set CODE_MODE=false to expose the full tool catalog directly instead.
 ```
+
+### Code Mode `execute` semantics
+
+The `execute` meta-tool runs LLM-generated Python in a Monty sandbox
+with a single external function in scope: `await call_tool(name, params)`.
+
+- **Errors are catchable.** Failures from `call_tool` are normalized to
+  `RuntimeError("<OriginalType>: <message>")` and surface inside the
+  sandbox so `try/except RuntimeError:` works as expected. The LLM can
+  probe N candidate tool names in a single `execute` block instead of
+  paying N round trips.
+- The dispatch loop (`MontyDispatchSandboxProvider` in
+  `src/amazon_ads_mcp/server/code_mode.py`) drives Monty via
+  `start()` + `resume()` rather than upstream `run_async()` so that
+  external-function exceptions actually reach the sandbox's surrounding
+  `try/except`. `run_async()` would bubble them out and abort the script.
+
+Sandbox guardrails (verified, documented in the `EXECUTE_DESCRIPTION`
+constant — keep aligned with reality):
+
+- No network (`urllib`, `requests`, `httpx`, `socket` blocked) — every
+  external interaction must go through `call_tool`.
+- No filesystem I/O (`open()`, `pathlib`, `os.*` blocked).
+- `print()` output may be discarded depending on the client path —
+  return data via the script's final expression instead.
+- `asyncio.sleep` is unavailable by design — chain `await call_tool`
+  calls (e.g. report-status polling) instead of sleeping.
+- `with` works for pure-Python context managers; not for `open(...)`.
+- `json.dumps(default=...)` may trip on Pydantic models; call
+  `model_dump()` first.
 
 ### Background Tasks Environment Variables
 

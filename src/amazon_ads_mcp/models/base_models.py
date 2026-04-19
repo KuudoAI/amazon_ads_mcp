@@ -178,21 +178,29 @@ class SetActiveIdentityRequest(BaseModel):
     Used when requesting to set a specific identity as the active
     identity for Amazon Ads API operations.
 
+    Note on backward compatibility: prior versions accepted a
+    ``persist: bool`` field. It was a no-op (auth state is persisted
+    automatically by ``AuthSessionStateMiddleware`` when an MCP
+    session is available) and has been removed. Pydantic ignores
+    unknown fields by default, so existing callers passing
+    ``persist=True`` continue to construct successfully — the value
+    is silently dropped, matching the prior observable behavior.
+    Inspect ``state_scope`` / ``state_reason`` on the response to
+    learn whether state will survive to the next tool call.
+
     :param identity_id: ID of the identity to activate
     :type identity_id: str
-    :param persist: Whether to persist this choice across sessions
-    :type persist: bool
     """
 
     identity_id: str
-    persist: bool = False
 
 
 class SetActiveIdentityResponse(BaseModel):
     """Response model for setting active identity.
 
     Response indicating the result of setting an identity as active,
-    including whether credentials were successfully loaded.
+    including whether credentials were successfully loaded and whether
+    the state will outlive the current request.
 
     :param success: Whether the operation was successful
     :type success: bool
@@ -202,12 +210,31 @@ class SetActiveIdentityResponse(BaseModel):
     :type credentials_loaded: bool
     :param message: Optional message about the operation result
     :type message: Optional[str]
+    :param session_present: Whether this call ran inside an MCP session
+        that will retain auth state across subsequent tool calls. Pure
+        transport fact; ``None`` when not computed (e.g. core function
+        called outside a tool wrapper).
+    :type session_present: Optional[bool]
+    :param state_scope: Caller directive: ``"session"`` when the
+        transport will keep state across the next tool call in this
+        connection, ``"request"`` when the caller must re-establish
+        context every call. ``None`` when not computed.
+    :type state_scope: Optional[str]
+    :param state_reason: Diagnostic explaining why state is not
+        sticky, or why state was wiped despite a session being
+        present. Known values: ``"no_mcp_session"``,
+        ``"token_swapped"``, ``"bridge_unavailable"``. ``None`` on
+        the happy path.
+    :type state_reason: Optional[str]
     """
 
     success: bool
     identity: Identity
     credentials_loaded: bool = False
     message: Optional[str] = None
+    session_present: Optional[bool] = None
+    state_scope: Optional[str] = None
+    state_reason: Optional[str] = None
 
 
 # OpenBridge API Models

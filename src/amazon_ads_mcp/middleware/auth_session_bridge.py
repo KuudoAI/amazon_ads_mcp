@@ -7,13 +7,14 @@ They are used by middleware and code-mode nested tool dispatch wrappers.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 from ..auth.session_state import (
     get_active_credentials,
     get_active_identity,
     get_active_profiles,
     get_last_seen_token_fingerprint,
+    get_state_reset_reason,
     set_active_credentials,
     set_active_identity,
     set_active_profiles,
@@ -41,6 +42,38 @@ def has_auth_session(fastmcp_context: Any) -> bool:
         if getattr(fastmcp_context, "request_context", None) is None:
             return False
     return True
+
+
+def compute_session_state(
+    fastmcp_context: Any,
+) -> Tuple[bool, str, Optional[str]]:
+    """Return ``(session_present, state_scope, state_reason)`` for a tool call.
+
+    Semantics:
+
+    * ``session_present`` — pure transport fact. ``True`` iff
+      :func:`has_auth_session` returns ``True``.
+    * ``state_scope`` — directive for the caller.
+        - ``"session"`` when the transport can keep state across
+          tool calls (``session_present is True``).
+        - ``"request"`` when each call must re-establish state
+          (``session_present is False``).
+    * ``state_reason`` — diagnostic detail, ``None`` on the happy path.
+        - ``"no_mcp_session"`` when ``session_present is False`` —
+          the transport cannot persist state (e.g. stateless HTTP).
+        - ``"token_swapped"`` when the transport CAN persist but the
+          previous tenant state was just wiped because a different
+          refresh token arrived mid-session. The caller must
+          re-establish context.
+
+    The function is read-only: it does not mutate any ContextVar.
+    """
+    session_present = has_auth_session(fastmcp_context)
+    if not session_present:
+        return False, "request", "no_mcp_session"
+
+    reset_reason = get_state_reset_reason()
+    return True, "session", reset_reason
 
 
 async def hydrate_auth_from_mcp_session(
