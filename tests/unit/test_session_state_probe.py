@@ -40,6 +40,7 @@ class FakeFastMCPContext:
     """Minimal FastMCP context double — see test_session_scope_signaling.py."""
 
     def __init__(self, with_session: bool = True):
+        self.session_id = "test-session" if with_session else None
         self.request_context = object() if with_session else None
         self._state: dict = {}
 

@@ -22,6 +22,7 @@ from amazon_ads_mcp.models import AuthCredentials, Identity
 
 class DummyFastMCPContext:
     def __init__(self, with_session: bool = True):
+        self.session_id = "test-session" if with_session else None
         self.request_context = object() if with_session else None
         self._state = {}
 
@@ -121,4 +122,53 @@ async def test_hydrate_persist_no_session_noop():
     await persist_auth_to_mcp_session(ctx)
 
     assert AUTH_SESSION_STATE_KEY not in ctx._state
+    reset_all_session_state()
+
+
+@pytest.mark.asyncio
+async def test_hydrate_persist_request_context_without_session_id_noop():
+    reset_all_session_state()
+
+    class Ctx:
+        request_context = object()
+        _state = {}
+
+        async def get_state(self, key):
+            return self._state.get(key)
+
+        async def set_state(self, key, value):
+            self._state[key] = value
+
+    ctx = Ctx()
+    set_active_identity(Identity(id="id-no-session", type="openbridge", attributes={}))
+
+    await hydrate_auth_from_mcp_session(ctx)
+    await persist_auth_to_mcp_session(ctx)
+
+    assert AUTH_SESSION_STATE_KEY not in ctx._state
+    reset_all_session_state()
+
+
+@pytest.mark.asyncio
+async def test_hydrate_persist_falls_back_to_request_context_session_id():
+    reset_all_session_state()
+
+    class Ctx:
+        request_context = SimpleNamespace(session_id="legacy-session")
+
+        def __init__(self):
+            self._state = {}
+
+        async def get_state(self, key):
+            return self._state.get(key)
+
+        async def set_state(self, key, value):
+            self._state[key] = value
+
+    ctx = Ctx()
+    set_active_identity(Identity(id="id-legacy", type="openbridge", attributes={}))
+
+    await persist_auth_to_mcp_session(ctx)
+
+    assert ctx._state[AUTH_SESSION_STATE_KEY]["active_identity"]["id"] == "id-legacy"
     reset_all_session_state()

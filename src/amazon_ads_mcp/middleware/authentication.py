@@ -828,6 +828,9 @@ class AuthSessionStateMiddleware(Middleware):
             return await call_next(context)
         finally:
             await self._persist(fastmcp_context)
+            from ..auth.session_state import reset_session_state
+
+            reset_session_state()
 
 
 class JWTAuthenticationMiddleware(Middleware):

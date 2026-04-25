@@ -452,6 +452,7 @@ class ConcurrentSandbox:
 class DummyContext:
     def __init__(self, fastmcp):
         self.fastmcp = fastmcp
+        self.session_id = "test-session"
         self.request_context = object()
         self.state = {}
 

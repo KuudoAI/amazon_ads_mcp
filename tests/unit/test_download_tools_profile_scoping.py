@@ -114,13 +114,24 @@ class TestCheckAndDownloadExportWithProfile:
             "url": "https://example.com/download.json",
         }
 
+        from unittest.mock import MagicMock
+
+        # Ensure the temp profile dir exists so .resolve() is stable.
+        profile_base = temp_base_dir / "profiles" / "profile_abc"
+        profile_base.mkdir(parents=True)
+        produced_file = profile_base / "test.json"
+        produced_file.write_text("{}")
+
         with patch(
             "amazon_ads_mcp.tools.download_tools.get_download_handler"
         ) as mock_get_handler:
-            mock_handler = AsyncMock()
-            mock_handler.handle_export_response = AsyncMock(
-                return_value=temp_base_dir / "profiles" / "profile_abc" / "test.json"
-            )
+            # MagicMock for sync surface (get_profile_base_dir, base_dir), AsyncMock
+            # only for the async method — avoids AsyncMock auto-coroutining
+            # get_profile_base_dir, which would break the P0.3 canonicalization path.
+            mock_handler = MagicMock()
+            mock_handler.handle_export_response = AsyncMock(return_value=produced_file)
+            mock_handler.get_profile_base_dir = MagicMock(return_value=profile_base)
+            mock_handler.base_dir = temp_base_dir
             mock_get_handler.return_value = mock_handler
 
             result = await check_and_download_export(
@@ -135,8 +146,10 @@ class TestCheckAndDownloadExportWithProfile:
         call_kwargs = mock_handler.handle_export_response.call_args.kwargs
         assert call_kwargs.get("profile_id") == "profile_abc"
 
-        # Verify success
+        # Verify success + P0.3 canonical profile-relative file_path.
         assert result["success"] is True
+        assert result["file_path"] == "test.json"
+        assert result["file_path_absolute"] == str(produced_file)
 
 
 # =============================================================================

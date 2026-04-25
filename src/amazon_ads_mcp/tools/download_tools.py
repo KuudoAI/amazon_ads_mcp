@@ -68,10 +68,30 @@ async def check_and_download_export(
     )
 
     if file_path:
+        # P0.3: canonicalize ``file_path`` as profile-relative so the value
+        # round-trips straight into ``read_download`` / ``get_download_metadata``.
+        # ``file_path_absolute`` is additive for debugging / server-side logging.
+        # In legacy mode (profile_id=None) the "profile base" is handler.base_dir
+        # itself, so relative paths collapse to just the filename/sub-path.
+        profile_base = handler.get_profile_base_dir(profile_id)
+        try:
+            rel = file_path.resolve().relative_to(profile_base.resolve())
+            rel_str = str(rel)
+        except ValueError:
+            # Handler produced a file outside its own profile base — unexpected,
+            # but don't crash: fall back to the absolute form for both fields.
+            logger.warning(
+                "download_export produced a path outside profile base: "
+                "file=%s base=%s",
+                file_path,
+                profile_base,
+            )
+            rel_str = str(file_path)
         return {
             "success": True,
             "status": "downloaded",
-            "file_path": str(file_path),
+            "file_path": rel_str,
+            "file_path_absolute": str(file_path),
             "export_id": export_id,
             "message": f"Export downloaded successfully to {file_path}",
         }
@@ -171,13 +191,22 @@ async def get_download_metadata(
             "file_path": file_path,
         }
 
-    from ..utils.paths import PathTraversalError, safe_join_within
+    from ..utils.paths import (
+        PathTraversalError,
+        normalize_to_profile_relative,
+        safe_join_within,
+    )
 
     handler = get_download_handler()
     profile_dir = handler.base_dir / "profiles" / profile_id
 
+    # P0.3: accept absolute paths that resolve inside the profile. Relative
+    # inputs pass through untouched; absolute-outside-profile falls through to
+    # safe_join_within which rejects with its usual PathTraversalError.
+    normalized = normalize_to_profile_relative(profile_dir, file_path)
+
     try:
-        path = safe_join_within(profile_dir, file_path)
+        path = safe_join_within(profile_dir, normalized)
     except PathTraversalError:
         return {
             "success": False,

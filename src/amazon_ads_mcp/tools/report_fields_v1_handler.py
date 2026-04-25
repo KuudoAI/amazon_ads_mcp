@@ -440,6 +440,30 @@ def _select_query_records(inp: ReportFieldsInput) -> List[Dict[str, Any]]:
     return pool
 
 
+def _rank_search_hit(record: Dict[str, Any], needle: str) -> int:
+    """Rank how well *record* matches the (already-lowercased) search *needle*.
+
+    Used as the primary sort key in ``_handle_query`` so that canonical hits
+    aren't hidden below the default ``limit=25`` when a broad term like
+    ``"cost"`` produces dozens of substring matches. Alphabetical by
+    ``field_id`` is the tiebreaker (applied as the secondary key by the
+    caller), so order is fully deterministic within each tier.
+
+    Tiers (lower sorts first):
+        0 — exact match on ``field_id`` or ``display_name``
+        1 — either starts with *needle* (prefix match)
+        2 — substring hit (the fallback; the pool is already pre-filtered
+            so every record will match at least at this tier)
+    """
+    fid = record.get("field_id", "").lower()
+    dname = record.get("display_name", "").lower()
+    if needle == fid or needle == dname:
+        return 0
+    if fid.startswith(needle) or dname.startswith(needle):
+        return 1
+    return 2
+
+
 def _handle_query(inp: ReportFieldsInput) -> QueryReportFieldsResponse:
     drop_set: Optional[set[str]] = set(inp.drop) if inp.drop else None
 
@@ -485,12 +509,40 @@ def _handle_query(inp: ReportFieldsInput) -> QueryReportFieldsResponse:
         ]
 
     total = len(pool)
-    paged = sorted(pool, key=lambda r: r["field_id"])[inp.offset : inp.offset + inp.limit]
+    # P1.1: when a search term is present, rank-then-alphabetize so canonical
+    # hits (e.g. ``metric.totalCost`` for search "cost") aren't hidden below the
+    # default limit=25. Without search, keep the original pure-alphabetical
+    # order (no disruption to non-search callers).
+    if inp.search:
+        needle = inp.search.lower()
+
+        def _sort_key(r: Dict[str, Any]) -> tuple:
+            return (_rank_search_hit(r, needle), r["field_id"])
+    else:
+
+        def _sort_key(r: Dict[str, Any]) -> tuple:
+            return (r["field_id"],)
+
+    paged = sorted(pool, key=_sort_key)[inp.offset : inp.offset + inp.limit]
 
     entries = [
         _record_to_entry(r, include_description=False, include_v3=inp.include_v3_mapping)
         for r in paged
     ]
+
+    # P1.3: response-level co-field hint. Fires ONLY when the paged window
+    # (not the full pool) contains at least one entry with non-empty
+    # ``required_fields``. The hint points the agent at validate mode so
+    # they get the precise required-co-field list in one call instead of
+    # submit-fail-learn.
+    hint_required = any(bool(e.required_fields) for e in entries)
+    hint_message: Optional[str] = None
+    if hint_required:
+        hint_message = (
+            "Some returned entries require co-fields (e.g. budgetCurrency.value). "
+            "Use mode='validate' to confirm the required co-fields for your "
+            "selection before submitting CreateReport."
+        )
 
     response = QueryReportFieldsResponse(
         mode="query",
@@ -504,6 +556,8 @@ def _handle_query(inp: ReportFieldsInput) -> QueryReportFieldsResponse:
         offset=inp.offset,
         limit=inp.limit,
         fields=entries,
+        hint_required_co_fields=hint_required,
+        hint_message=hint_message,
     )
     return _serialize_with_byte_cap(response, drop=drop_set)
 

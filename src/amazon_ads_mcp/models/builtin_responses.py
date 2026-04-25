@@ -692,12 +692,15 @@ class ReportFieldEntry(BaseModel):
     provenance: Literal["empirical", "documented", "schema-derived"]
     short_description: str  # always; clipped to <=160 chars upstream
 
-    # Detail-only:
-    description: Optional[str] = None
-
-    # Always-applicable (may be empty; always included in output):
+    # Always-applicable co-field dependencies (may be empty; always included
+    # in output). Declared ahead of the detail description and the
+    # compatibility arrays so an agent reading the serialized entry
+    # top-to-bottom sees the load-bearing co-field wall first (P1.3).
     required_fields: List[str] = Field(default_factory=list)
     complementary_fields: List[str] = Field(default_factory=list)
+
+    # Detail-only:
+    description: Optional[str] = None
 
     # Compatibility graph — dropped via exclude_none when empty.
     # Source-side (populated on metric records by Amazon; carries display labels):
@@ -733,6 +736,14 @@ class QueryReportFieldsResponse(BaseModel):
     offset: int
     limit: int
     fields: List[ReportFieldEntry] = Field(default_factory=list)
+
+    # P1.3: when any entry in the returned page carries non-empty
+    # ``required_fields``, set ``hint_required_co_fields=True`` and populate
+    # ``hint_message`` with short guidance pointing the agent at validate mode.
+    # Both remain falsy/None otherwise — existing consumers see no change in
+    # shape unless they opt in.
+    hint_required_co_fields: bool = False
+    hint_message: Optional[str] = None
 
 
 class ValidateReportFieldsResponse(BaseModel):

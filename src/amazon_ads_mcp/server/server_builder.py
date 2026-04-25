@@ -244,6 +244,19 @@ class ServerBuilder:
                 f"Added {len(auth_middlewares)} OpenBridge authentication middleware components"
             )
 
+        # P1.5: server-side guardrail for AdsApiv1CreateReport filter values.
+        # Pre-flights filter enums against the bundled spec (AdProduct today)
+        # so invalid values get rejected with the accepted-values list before
+        # the upstream 400. Does NOT fix the upstream semantic leakage where
+        # a valid SPONSORED_PRODUCTS filter still returns SB rows — that's a
+        # separate ticket.
+        from ..middleware.create_report_guardrail import (
+            CreateReportFilterGuardrailMiddleware,
+        )
+
+        middleware_list.append(CreateReportFilterGuardrailMiddleware())
+        logger.info("Added CreateReportFilterGuardrailMiddleware (adProduct.value enum)")
+
         # Add OAuth middleware if credentials are available
         if create_oauth_middleware and all(
             [

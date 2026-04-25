@@ -8,7 +8,7 @@
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![CI](https://github.com/KuudoAI/amazon-ads-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/KuudoAI/amazon-ads-mcp/actions/workflows/ci.yml)
+[![CI](https://github.com/KuudoAI/amazon_ads_mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/KuudoAI/amazon_ads_mcp/actions/workflows/ci.yml)
 
 **MCP registry id** (for clients and catalogs that display a stable package name): `io.github.KuudoAI/amazon_ads_mcp`
 
@@ -84,7 +84,7 @@ The Amazon Ads API MCP SDK is an open-source implementation that provides a robu
 
 **Prerequisites:** [Docker](https://docs.docker.com/get-started/) (recommended), Python 3.10+ if you run from source, and [Amazon Ads API access](https://advertising.amazon.com/API/docs/en-us/guides/get-started/overview) (your own developer app or a partner such as Openbridge).
 
-1. `git clone https://github.com/KuudoAI/amazon-ads-mcp.git && cd amazon-ads-mcp`
+1. `git clone https://github.com/KuudoAI/amazon_ads_mcp.git && cd amazon_ads_mcp`
 2. `cp .env.example .env` and add credentials (see [Configuration](#configuration)).
 3. `docker compose up -d`
 4. Connect your MCP client to `http://localhost:<PORT>/mcp/` — `.env.example` sets **`PORT=9080`** (override in `.env` if needed).
@@ -148,8 +148,8 @@ For more information, see Amazon's [Campaign Management Overview](https://advert
 We recommend running Amazon Ads API MCP with 🐳 [Docker](https://docs.docker.com/get-started/). Build the image from this repository (there is no supported `docker pull` for a third-party registry image here—use the `Dockerfile` and `docker-compose.yaml` in the repo).
 
 ```bash
-git clone https://github.com/KuudoAI/amazon-ads-mcp.git
-cd amazon-ads-mcp
+git clone https://github.com/KuudoAI/amazon_ads_mcp.git
+cd amazon_ads_mcp
 ```
 
 Copy the environment template:
@@ -933,4 +933,4 @@ FASTMCP_DOCKET_URL=redis://localhost:6379
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
 
-**Security:** report vulnerabilities through [GitHub private security advisories](https://github.com/KuudoAI/amazon-ads-mcp/security/advisories/new) for this repository.
+**Security:** report vulnerabilities through [GitHub private security advisories](https://github.com/KuudoAI/amazon_ads_mcp/security/advisories/new) for this repository.

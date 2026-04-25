@@ -36,6 +36,8 @@ class DummyContext:
 
 class DummyStateFastMCPContext:
     def __init__(self, initial_state=None):
+        self.session_id = "test-session"
+        self.request_context = DummyRequestContext(DummyRequest({}))
         self._state = initial_state or {}
 
     async def get_state(self, key):
@@ -404,6 +406,7 @@ async def test_auth_session_state_persists_across_tool_calls():
 
     assert await middleware.on_request(ctx1, first_call_next) == "ok-1"
     assert fastmcp_context._state[AUTH_SESSION_STATE_KEY]["active_identity"]["id"] == "3175"
+    assert get_active_identity() is None
 
     # Simulate next call in a fresh async context with empty ContextVars.
     reset_all_session_state()
@@ -417,6 +420,7 @@ async def test_auth_session_state_persists_across_tool_calls():
         return current.id if current else None
 
     assert await middleware.on_request(ctx2, second_call_next) == "3175"
+    assert get_active_identity() is None
 
 
 @pytest.mark.asyncio

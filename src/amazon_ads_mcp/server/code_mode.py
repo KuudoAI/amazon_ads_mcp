@@ -351,6 +351,9 @@ class AuthBridgingSandboxProvider:
                                 f"{type(exc).__name__}: {exc}"
                             ) from None
                     finally:
+                        await hydrate_auth_from_mcp_session(
+                            parent_ctx, logger_instance=logger
+                        )
                         await persist_auth_to_mcp_session(
                             parent_ctx, logger_instance=logger
                         )

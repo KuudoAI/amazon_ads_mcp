@@ -163,10 +163,14 @@ ASYNC_OPERATION_HINTS: Dict[str, Tuple[str, Optional[str]]] = {
     ),
     "AdsApiv1RetrieveReport": (
         "Returns the current status of an AdsAPI v1 report (PENDING, "
-        "PROCESSING, COMPLETED, FAILED). If not yet complete, tell the user "
-        "and suggest checking back shortly rather than polling in a loop. "
-        "When COMPLETED, the response includes a download URL. Use "
-        "`download_export` to persist the file to profile-scoped storage.",
+        "PROCESSING, COMPLETED, FAILED). PENDING and PROCESSING are both "
+        "in-progress states. Typical completion is 1-5 minutes for small "
+        "reports (≤1M rows) and up to 20 minutes for wide catalogs. Poll at "
+        "30-60s intervals; do not retry creation. If not yet complete, tell "
+        "the user a ballpark wait and suggest checking back shortly rather "
+        "than polling in a loop. When COMPLETED, the response includes a "
+        "download URL. Use `download_export` to persist the file to "
+        "profile-scoped storage.",
         None,
     ),
 }
@@ -175,12 +179,80 @@ ASYNC_OPERATION_HINTS: Dict[str, Tuple[str, Optional[str]]] = {
 # ---------- conditional hint assembly ------------------------------------
 
 
+# Minimum-viable v1 CreateReport request body. Derived directly from the
+# bundled spec (``dist/openapi/resources/AdsAPIv1All.json``) —
+# CreateReportRequest → ReportCreate → CreateReportingQuery →
+# CreateFilter/CreateComparisonPredicate. Locked by
+# tests/unit/test_async_hints_report_fields.py::
+# test_hint_skeleton_validates_against_openapi_create_report_request;
+# when the spec regenerates, that test surfaces drift before this hint
+# ships a broken example to clients.
+#
+# Non-obvious required fields the skeleton MUST carry:
+#   • accessRequestedAccounts[].advertiserAccountId
+#   • reports[].format, reports[].periods, reports[].query (all required)
+#   • periods[].datePeriod (oneOf only option; clients miss the nesting)
+#   • ComparisonPredicate.{comparisonOperator, field, not, values} ALL required
+#     — ComparisonOperator.enum is ["EQUALS", "IN"] (not "EQUAL_TO")
+#     — omitting ``not`` is a very common 400 source
+_V1_CREATE_REPORT_SKELETON = (
+    "Minimum viable request body (derived from AdsApiv1CreateReport schema):\n"
+    "  {\n"
+    '    "accessRequestedAccounts": [\n'
+    '      {"advertiserAccountId": "<amzn1.ads-account.g.*>"}\n'
+    "    ],\n"
+    '    "reports": [\n'
+    "      {\n"
+    '        "format": "GZIP_JSON",\n'
+    '        "periods": [\n'
+    '          {"datePeriod": {"startDate": "2026-01-01",'
+    ' "endDate": "2026-01-07"}}\n'
+    "        ],\n"
+    '        "query": {\n'
+    '          "fields": ["campaign.id", "metric.totalCost"],\n'
+    '          "filter": {\n'
+    '            "and": {\n'
+    '              "filters": [\n'
+    '                {"on": {\n'
+    '                    "field": "adProduct.value",\n'
+    '                    "comparisonOperator": "EQUALS",\n'
+    '                    "not": false,\n'
+    '                    "values": ["SPONSORED_PRODUCTS"]\n'
+    "                }}\n"
+    "              ]\n"
+    "            }\n"
+    "          }\n"
+    "        }\n"
+    "      }\n"
+    "    ]\n"
+    "  }"
+)
+
+
+# Discoverability callout for the "true campaign state" follow-up question that
+# naturally arises when the agent sees deliveryStatus in a report row (P1.6).
+# Framed generically (category, not op IDs) + examples + always-available
+# discovery fallback, so the hint degrades gracefully across deployments with
+# different tool-mount configs or code-mode settings.
+_V1_CAMPAIGN_STATE_CALLOUT = (
+    "Note: v1 reports only return campaigns that served in-window. "
+    "`deliveryStatus` from these reports is not a reliable proxy for true "
+    "state (enabled/paused/archived) — paused campaigns simply won't appear. "
+    "For a true campaign inventory, use the campaign list/query tools for "
+    "the relevant product line (e.g. ADSP, Sponsored Brands, Sponsored "
+    "Products, Sponsored Display). If the tool you need isn't visible, call "
+    "`list_tool_groups` / `enable_tool_group` (always available). If code "
+    "mode is enabled, you can also call `search` and `get_schemas` to "
+    "locate the campaign-management surface."
+)
+
+
 _ADS_V1_CREATE_BASELINE = (
     "This is the AdsAPI v1 report creation endpoint (asynchronous). "
     "IMPORTANT:\n"
     "• `accessRequestedAccounts[].advertiserAccountId` must be the "
     "`amzn1.ads-account.g.*` account ID — NOT a legacy numeric profile "
-    "ID. Use `allv1_AdsApiv1QueryAdvertiserAccount` to resolve a "
+    "ID. Use `allv1_QueryAdvertiserAccount` to resolve a "
     "profileId to its advertiserAccountId first.\n"
     "• Field names vary by endpoint and can reject guessed values. "
     "Use `list_report_fields` with "
@@ -190,7 +262,9 @@ _ADS_V1_CREATE_BASELINE = (
     "`date.value`), at least one level-of-detail dimension (e.g. "
     "`campaign.id`), and at least one metric (e.g. `metric.clicks`).\n"
     "• To filter on ad product use `adProduct.value` "
-    "(not `sponsoredProducts.adProduct`).\n"
+    "(not `sponsoredProducts.adProduct`).\n\n"
+    f"{_V1_CREATE_REPORT_SKELETON}\n\n"
+    f"{_V1_CAMPAIGN_STATE_CALLOUT}\n\n"
     "Returns a reportId; poll with `allv1_AdsApiv1RetrieveReport`. "
     "Typical completion: 1-20 minutes."
 )
@@ -200,7 +274,7 @@ _ADS_V1_CREATE_REPORT_FIELDS = (
     "IMPORTANT:\n"
     "• `accessRequestedAccounts[].advertiserAccountId` must be the "
     "`amzn1.ads-account.g.*` account ID — NOT a legacy numeric profile "
-    "ID. Use `allv1_AdsApiv1QueryAdvertiserAccount` to resolve a "
+    "ID. Use `allv1_QueryAdvertiserAccount` to resolve a "
     "profileId to its advertiserAccountId first.\n"
     "• BEFORE CreateReport, validate your field list with:\n"
     '    report_fields(mode="validate", operation="allv1_AdsApiv1CreateReport",\n'
@@ -215,7 +289,9 @@ _ADS_V1_CREATE_REPORT_FIELDS = (
     "`date.value`), at least one level-of-detail dimension (e.g. "
     "`campaign.id`), and at least one metric (e.g. `metric.clicks`).\n"
     "• To filter on ad product use `adProduct.value` "
-    "(not `sponsoredProducts.adProduct`).\n"
+    "(not `sponsoredProducts.adProduct`).\n\n"
+    f"{_V1_CREATE_REPORT_SKELETON}\n\n"
+    f"{_V1_CAMPAIGN_STATE_CALLOUT}\n\n"
     "Returns a reportId; poll with `allv1_AdsApiv1RetrieveReport`. "
     "Typical completion: 1-20 minutes."
 )

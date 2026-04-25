@@ -942,7 +942,9 @@ Note: Requires HTTP transport (not stdio).
         name="read_download",
         description=(
             "Read a profile-scoped downloaded file directly from server storage. "
-            "Use `list_downloads` to get a `file_path` first."
+            "Use `list_downloads` to get a `file_path` first. Accepts "
+            "profile-relative (canonical) or absolute-inside-profile paths — the "
+            "value emitted by ``download_export`` rounds-trips without conversion."
         ),
     )
     async def read_download_tool(
@@ -956,7 +958,11 @@ Note: Requires HTTP transport (not stdio).
         import base64
 
         from ..utils.export_download_handler import get_download_handler
-        from ..utils.paths import PathTraversalError, safe_join_within
+        from ..utils.paths import (
+            PathTraversalError,
+            normalize_to_profile_relative,
+            safe_join_within,
+        )
 
         if offset < 0:
             return ReadDownloadResponse(
@@ -983,13 +989,20 @@ Note: Requires HTTP transport (not stdio).
         handler = get_download_handler()
         profile_dir = handler.base_dir / "profiles" / profile_id
 
+        # P0.3: accept the absolute form too (legacy callers, file_path_absolute,
+        # hand-built paths) as long as it resolves inside the profile base.
+        normalized = normalize_to_profile_relative(profile_dir, file_path)
+
         try:
-            full_path = safe_join_within(profile_dir, file_path)
+            full_path = safe_join_within(profile_dir, normalized)
         except PathTraversalError:
             return ReadDownloadResponse(
                 success=False,
                 error="Invalid file path",
-                hint="Paths must be relative and stay within the active profile's directory",
+                hint=(
+                    "Paths must be profile-relative (canonical) or absolute-inside "
+                    "the active profile's directory"
+                ),
             )
 
         if not full_path.exists() or not full_path.is_file():

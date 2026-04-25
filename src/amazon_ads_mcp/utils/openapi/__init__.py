@@ -5,7 +5,7 @@ Recommended imports:
 """
 
 from .json import json_load, oai_template_to_regex
-from .loader import OpenAPISpecLoader
+from .loader import OpenAPISpecLoader, load_bundled_spec
 from .refs import deref
 
 __all__ = [
@@ -13,4 +13,5 @@ __all__ = [
     "deref",
     "oai_template_to_regex",
     "OpenAPISpecLoader",
+    "load_bundled_spec",
 ]

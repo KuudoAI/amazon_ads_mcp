@@ -31,17 +31,30 @@ AUTH_SESSION_STATE_KEY = "amazon_ads_auth_session"
 def has_auth_session(fastmcp_context: Any) -> bool:
     """Return True when the context has an active MCP session.
 
-    FastMCP startup/introspection paths do not have a bound request_context.
-    In those cases, get_state/set_state is unavailable and callers must no-op.
+    FastMCP v3 exposes the durable session identifier on ``ctx.session_id``.
+    Older test doubles / FastMCP builds may expose it on
+    ``ctx.request_context.session_id``. Startup/introspection paths do not have
+    a bound session, so callers must no-op.
     """
     if not fastmcp_context:
         return False
     if not hasattr(fastmcp_context, "get_state"):
         return False
-    if hasattr(fastmcp_context, "request_context"):
-        if getattr(fastmcp_context, "request_context", None) is None:
-            return False
-    return True
+
+    try:
+        if getattr(fastmcp_context, "session_id", None) not in (None, ""):
+            return True
+    except Exception:
+        pass
+
+    try:
+        request_context = getattr(fastmcp_context, "request_context", None)
+        if request_context is not None:
+            return getattr(request_context, "session_id", None) not in (None, "")
+    except Exception:
+        return False
+
+    return False
 
 
 def compute_session_state(

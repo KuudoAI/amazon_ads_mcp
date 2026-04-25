@@ -416,3 +416,242 @@ def test_truncation_emits_structured_log_event(small_catalog, caplog, monkeypatc
     ]
     assert events, "expected report_fields_truncation event when clipping"
     assert events[0].reason == "byte_cap"
+
+
+# ======================================================================
+# P1.1 Search-result ranking: exact → prefix → substring, alpha tiebreak
+# ======================================================================
+
+
+@pytest.fixture
+def ranking_catalog(tmp_path: Path, monkeypatch):
+    """Catalog with four cost-themed metrics exercising all three rank tiers.
+
+    Records:
+      metric.cost                  → exact match for search="cost"   (rank 0)
+      metric.costPerClick          → prefix match                    (rank 1)
+      metric.impressionCostShare   → substring match                 (rank 2)
+      metric.opportunityCost       → substring match                 (rank 2, alpha after)
+    """
+    dims = [
+        {
+            "field_id": "campaign.id",
+            "display_name": "Campaign id",
+            "data_type": "STRING",
+            "category": "dimension",
+            "provenance": "documented",
+            "short_description": "Campaign id.",
+            "description": "",
+            "required_fields": [],
+            "complementary_fields": [],
+            "compatible_dimensions": [],
+            "incompatible_dimensions": [],
+            "v3_name_dsp": "campaignId",
+            "v3_name_sponsored_ads": "campaignId",
+            "source": {"md_file": "cid.md", "parsed_at": "2026-04-18T00:00:00Z"},
+        },
+    ]
+    # Chosen so alphabetical order CONFLICTS with rank order. If the handler
+    # sorts alphabetically (old behavior), ``metric.acosShare`` and
+    # ``metric.amortizedCost`` appear before ``metric.cost``. Rank-based
+    # sorting must hoist the exact/prefix matches to the top regardless.
+    metric_ids = [
+        "metric.acosShare",          # substring in display_name only (rank 2)
+        "metric.amortizedCost",      # substring in field_id (rank 2, alpha before cost)
+        "metric.cost",               # exact match (rank 0)
+        "metric.costPerClick",       # prefix match (rank 1)
+        "metric.impressionCostShare",# substring (rank 2)
+        "metric.opportunityCost",    # substring (rank 2)
+    ]
+    # Display names — metric.acosShare's display_name contains "cost" even
+    # though its field_id does not, which lets us verify that display_name is
+    # also a search surface.
+    display_names = {
+        "metric.acosShare": "Advertising Cost Of Sales share",
+        "metric.amortizedCost": "Amortized cost",
+        "metric.cost": "Cost",
+        "metric.costPerClick": "Cost per click",
+        "metric.impressionCostShare": "Impression cost share",
+        "metric.opportunityCost": "Opportunity cost",
+    }
+    metrics = [
+        {
+            "field_id": mid,
+            "display_name": display_names[mid],
+            "data_type": "DECIMAL",
+            "category": "metric",
+            "provenance": "documented",
+            "short_description": f"{mid} description.",
+            "description": "",
+            "required_fields": [],
+            "complementary_fields": [],
+            "compatible_dimensions": [],
+            "incompatible_dimensions": [],
+            "v3_name_dsp": None,
+            "v3_name_sponsored_ads": None,
+            "source": {"md_file": f"{mid}.md", "parsed_at": "2026-04-18T00:00:00Z"},
+        }
+        for mid in metric_ids
+    ]
+
+    def _write_sorted(path: Path, obj):
+        return path.write_bytes(
+            json.dumps(obj, indent=2, sort_keys=True, ensure_ascii=False).encode() + b"\n"
+        )
+
+    _write_sorted(tmp_path / "dimensions.json", dims)
+    _write_sorted(tmp_path / "metrics.json", metrics)
+    index_fields = {d["field_id"]: {"file": "dimensions", "category": "dimension"} for d in dims}
+    index_fields.update({m["field_id"]: {"file": "metrics", "category": "metric"} for m in metrics})
+    (tmp_path / "index.json").write_text(
+        json.dumps({"schema_version": 1, "fields": index_fields}, indent=2, sort_keys=True)
+    )
+    (tmp_path / "dimension_label_index.json").write_text(
+        json.dumps({"schema_version": 1, "labels": {}}, indent=2, sort_keys=True)
+    )
+    meta = {
+        "schema_version": 1,
+        "parsed_at": "2026-04-18T00:00:00Z",
+        "generated_at": "2026-04-18T00:00:00Z",
+        "generator_version": "test",
+        "source_commit": "test",
+        "source_files_sha256": {"amazon_ads_v1_dimensions.json": "x", "amazon_ads_v1_metrics.json": "y"},
+        "output_files_sha256": {
+            "dimensions.json": hashlib.sha256((tmp_path / "dimensions.json").read_bytes()).hexdigest(),
+            "metrics.json": hashlib.sha256((tmp_path / "metrics.json").read_bytes()).hexdigest(),
+            "dimension_label_index.json": hashlib.sha256(
+                (tmp_path / "dimension_label_index.json").read_bytes()
+            ).hexdigest(),
+        },
+    }
+    (tmp_path / "catalog_meta.json").write_text(json.dumps(meta, indent=2, sort_keys=True))
+
+    catalog_mod.set_catalog_dir(tmp_path)
+    yield tmp_path
+    catalog_mod.set_catalog_dir(None)
+
+
+def test_query_ranks_exact_field_id_first(ranking_catalog):
+    """Exact match on field_id beats alphabetical ordering.
+
+    ``metric.amortizedCost`` sorts alphabetically BEFORE ``metric.cost`` —
+    the old pure-alphabetical sort would place amortizedCost first. Rank-based
+    sort must put the exact match at index 0.
+    """
+    r = handle(mode="query", category="metric", search="metric.cost", limit=10)
+    ids = [e.field_id for e in r.fields]
+    assert ids[0] == "metric.cost", f"expected metric.cost first, got {ids}"
+
+
+def test_query_ranks_prefix_before_alphabetically_earlier_substring(ranking_catalog):
+    """Prefix match beats alphabetically-earlier substring matches.
+
+    ``metric.amortizedCost`` and ``metric.acosShare`` both sort before
+    ``metric.cost`` alphabetically. With rank-based sort, the exact (``metric.cost``)
+    and prefix (``metric.costPerClick``) hits must appear before all substring
+    hits, even though substring hits win the alphabetical comparison.
+    """
+    r = handle(mode="query", category="metric", search="cost", limit=25)
+    ids = [e.field_id for e in r.fields]
+    # Rank 0: metric.cost. Rank 1: metric.costPerClick.
+    # Rank 2 substring hits: metric.acosShare (display_name), metric.amortizedCost,
+    #                        metric.impressionCostShare, metric.opportunityCost.
+    assert ids.index("metric.cost") < ids.index("metric.amortizedCost")
+    assert ids.index("metric.cost") < ids.index("metric.acosShare")
+    assert ids.index("metric.costPerClick") < ids.index("metric.amortizedCost")
+    assert ids.index("metric.costPerClick") < ids.index("metric.impressionCostShare")
+
+
+def test_query_alphabetical_tiebreaker_within_rank_tier(ranking_catalog):
+    """Within a single rank tier, alphabetical by field_id is the tiebreaker."""
+    r = handle(mode="query", category="metric", search="cost", limit=25)
+    ids = [e.field_id for e in r.fields]
+    # Rank-2 (substring) members sorted alphabetically among themselves.
+    rank2 = ["metric.acosShare", "metric.amortizedCost",
+             "metric.impressionCostShare", "metric.opportunityCost"]
+    rank2_positions = [ids.index(mid) for mid in rank2]
+    assert rank2_positions == sorted(rank2_positions), (
+        f"rank-2 members out of alphabetical order: {ids}"
+    )
+
+
+def test_query_display_name_also_ranks(ranking_catalog):
+    """Search hits display_name too, not just field_id."""
+    # "Advertising Cost Of Sales share" matches "cost" via display_name only.
+    r = handle(mode="query", category="metric", search="cost", limit=25)
+    ids = [e.field_id for e in r.fields]
+    assert "metric.acosShare" in ids
+
+
+def test_query_no_search_keeps_alphabetical(ranking_catalog):
+    # With no search, the existing pure-alphabetical sort is preserved.
+    r = handle(mode="query", category="metric", limit=25)
+    ids = [e.field_id for e in r.fields]
+    assert ids == sorted(ids)
+
+
+# ======================================================================
+# P1.3 required_fields visibility: entry field order + response-level hint
+# ======================================================================
+
+
+def test_entry_field_order_puts_required_fields_before_description():
+    """``required_fields`` / ``complementary_fields`` are the load-bearing co-field
+    hint an agent needs to build a valid CreateReport request. They must
+    appear in the serialized entry BEFORE the detail ``description`` and the
+    compatibility graph arrays, so an agent reading top-to-bottom sees the
+    dependency wall first."""
+    from amazon_ads_mcp.models.builtin_responses import (
+        CatalogSourceMeta,
+        ReportFieldEntry,
+    )
+
+    entry = ReportFieldEntry(
+        field_id="metric.example",
+        display_name="Example",
+        data_type="INTEGER",
+        category="metric",
+        provenance="documented",
+        short_description="Example metric.",
+        description="A longer explanation that might include edge cases.",
+        required_fields=["budgetCurrency.value"],
+        complementary_fields=[],
+        compatible_dimensions=["campaign.id"],
+        source=CatalogSourceMeta(md_file="x.md", parsed_at="2026-04-18T00:00:00Z"),
+    )
+    keys = list(entry.model_dump(exclude_none=False).keys())
+    # required_fields/complementary_fields must precede description and the
+    # compatibility arrays in declaration order.
+    assert keys.index("required_fields") < keys.index("description")
+    assert keys.index("required_fields") < keys.index("compatible_dimensions")
+    assert keys.index("complementary_fields") < keys.index("description")
+
+
+def test_query_response_flags_required_co_fields_when_any_present(small_catalog):
+    """When any returned entry has non-empty ``required_fields``, the response
+    carries a top-level ``hint_required_co_fields=True`` plus a human-readable
+    ``hint_message`` pointing the agent at validate mode."""
+    # campaign.name has required_fields=["campaign.id"] in small_catalog.
+    r = handle(mode="query", search="campaign", limit=10)
+    assert r.hint_required_co_fields is True
+    assert r.hint_message is not None
+    # Message should mention validate mode OR the idea of co-fields explicitly.
+    msg = r.hint_message.lower()
+    assert "validate" in msg or "co-field" in msg or "required" in msg
+
+
+def test_query_response_no_hint_when_no_required_fields(small_catalog):
+    """No returned entry has required_fields → hint flag is False/None."""
+    # metric.clicks and metric.impressions both have required_fields=[].
+    r = handle(mode="query", category="metric")
+    assert not r.hint_required_co_fields
+    assert r.hint_message is None
+
+
+def test_query_hint_looks_at_paged_window_not_full_pool(small_catalog):
+    """The hint only fires when a required-fields entry is in the returned page.
+    A catalog-wide required-fields entry that's filtered out or paginated off
+    must not spuriously trigger the hint."""
+    # category="metric" filters out campaign.name (dimension with required_fields).
+    r = handle(mode="query", category="metric")
+    assert not r.hint_required_co_fields

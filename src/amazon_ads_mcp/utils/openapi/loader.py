@@ -13,6 +13,70 @@ from typing import Any, Dict, List
 logger = logging.getLogger(__name__)
 
 
+# Module-level cache for load_bundled_spec — one parse per spec name per process.
+_bundled_spec_cache: Dict[str, Dict[str, Any]] = {}
+
+
+def _bundled_spec_search_paths() -> List[Path]:
+    """Candidate directories for a named bundled spec, in preference order.
+
+    Mirrors the three-tier fallback used by
+    :class:`amazon_ads_mcp.server.server_builder.ServerBuilder`:
+
+    1. ``dist/openapi/resources/`` — minified production build output (CWD-relative).
+    2. ``openapi/resources/`` — raw dev-tree source (CWD-relative).
+    3. ``<pkg>/resources/`` — wheel-packaged fallback relative to this module.
+    """
+    return [
+        Path("dist") / "openapi" / "resources",
+        Path("openapi") / "resources",
+        Path(__file__).resolve().parent.parent.parent / "resources",
+    ]
+
+
+def load_bundled_spec(name: str) -> Dict[str, Any]:
+    """Load a single bundled OpenAPI spec by resource name (no extension).
+
+    Used by features that need direct access to the raw spec — e.g. the
+    CreateReport filter guardrail (reads ``components.schemas.AdProduct.enum``)
+    and the async-hint schema-validation test (validates the hint's request
+    example against ``components.schemas.CreateReportRequest``).
+
+    :param name: Base name of the spec, e.g. ``"AdsAPIv1All"``. No path
+        traversal allowed.
+    :raises ValueError: If *name* contains path separators or traversal markers.
+    :raises FileNotFoundError: If the spec cannot be found under any known
+        search path.
+    :return: Parsed spec dict. Cached per-process after the first call; repeat
+        calls return the same object.
+    """
+    # Reject path traversal outright — name must be a bare identifier.
+    if "/" in name or "\\" in name or ".." in name:
+        raise ValueError(
+            f"load_bundled_spec: invalid name {name!r} (no path separators allowed)"
+        )
+
+    cached = _bundled_spec_cache.get(name)
+    if cached is not None:
+        return cached
+
+    filename = f"{name}.json"
+    tried: List[Path] = []
+    for base in _bundled_spec_search_paths():
+        candidate = base / filename
+        tried.append(candidate)
+        if candidate.exists():
+            with open(candidate) as fh:
+                spec = json.load(fh)
+            _bundled_spec_cache[name] = spec
+            return spec
+
+    raise FileNotFoundError(
+        f"load_bundled_spec: could not locate {filename!r}; "
+        f"tried: {[str(p) for p in tried]}"
+    )
+
+
 class OpenAPISpecLoader:
     """Load and merge OpenAPI specifications dynamically.
 

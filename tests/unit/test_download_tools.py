@@ -38,6 +38,11 @@ class FakeHandler:
 
 @pytest.mark.asyncio
 async def test_check_and_download_export_downloaded(monkeypatch, tmp_path):
+    """P0.3 — legacy mode (no profile_id): file sits under the handler base dir
+    itself, so the canonical ``file_path`` is the filename relative to that base,
+    and ``file_path_absolute`` is the additive debug field carrying the raw
+    absolute path.
+    """
     export_id = base64.b64encode(b"export,C").decode("ascii").rstrip("=")
     file_path = tmp_path / "file.csv"
     handler = FakeHandler(tmp_path, file_path=file_path)
@@ -48,8 +53,104 @@ async def test_check_and_download_export_downloaded(monkeypatch, tmp_path):
 
     assert result["success"] is True
     assert result["status"] == "downloaded"
-    assert result["file_path"] == str(file_path)
+    # Canonical field name unchanged; value is now profile-relative (or legacy-base-relative).
+    assert result["file_path"] == "file.csv"
+    assert not Path(result["file_path"]).is_absolute()
+    # Additive absolute path preserved for debugging/server-side logging.
+    assert result["file_path_absolute"] == str(file_path)
     assert handler.calls[0]["export_type"] == "campaigns"
+
+
+@pytest.mark.asyncio
+async def test_check_and_download_export_returns_profile_relative_path(
+    monkeypatch, tmp_path
+):
+    """P0.3 — with profile_id, canonical file_path is relative to the profile base
+    so it round-trips straight into read_download / get_download_metadata.
+    """
+    export_id = base64.b64encode(b"export,C").decode("ascii").rstrip("=")
+    profile_id = "P1"
+    abs_file = tmp_path / "profiles" / profile_id / "reports" / "s3-reports" / "foo.csv"
+    abs_file.parent.mkdir(parents=True)
+    abs_file.write_text("data")
+    handler = FakeHandler(tmp_path, file_path=abs_file)
+    monkeypatch.setattr(download_tools, "get_download_handler", lambda: handler)
+
+    export_response = {"status": "COMPLETED", "url": "http://example.com"}
+    result = await download_tools.check_and_download_export(
+        export_id, export_response, profile_id=profile_id
+    )
+
+    assert result["success"] is True
+    assert result["file_path"] == "reports/s3-reports/foo.csv"
+    assert not Path(result["file_path"]).is_absolute()
+    assert result["file_path_absolute"] == str(abs_file)
+
+
+@pytest.mark.asyncio
+async def test_round_trip_file_path_from_download_export_into_read_download(
+    monkeypatch, tmp_path
+):
+    """P0.3 — the exact ``file_path`` emitted by check_and_download_export must
+    be accepted verbatim by get_download_metadata. This is the scenario the
+    client reported broken."""
+    export_id = base64.b64encode(b"export,C").decode("ascii").rstrip("=")
+    profile_id = "P1"
+    abs_file = tmp_path / "profiles" / profile_id / "reports" / "s3-reports" / "foo.csv"
+    abs_file.parent.mkdir(parents=True)
+    abs_file.write_text("hello")
+    handler = FakeHandler(tmp_path, file_path=abs_file)
+    monkeypatch.setattr(download_tools, "get_download_handler", lambda: handler)
+
+    export_response = {"status": "COMPLETED", "url": "http://example.com"}
+    produced = await download_tools.check_and_download_export(
+        export_id, export_response, profile_id=profile_id
+    )
+    # Round-trip canonical value — no manual conversion.
+    meta = await download_tools.get_download_metadata(
+        produced["file_path"], profile_id=profile_id
+    )
+    assert meta["success"] is True
+
+
+@pytest.mark.asyncio
+async def test_get_download_metadata_accepts_absolute_path_inside_profile(
+    monkeypatch, tmp_path
+):
+    """P0.3 — permissive widening: absolute paths that resolve inside the
+    profile base are accepted (normalized to relative internally), so clients
+    that still carry an absolute path (e.g. the old format, or
+    ``file_path_absolute``) still round-trip."""
+    profile_id = "P1"
+    profile_dir = tmp_path / "profiles" / profile_id / "reports"
+    profile_dir.mkdir(parents=True)
+    (profile_dir / "inside.csv").write_text("ok")
+
+    handler = FakeHandler(tmp_path)
+    monkeypatch.setattr(download_tools, "get_download_handler", lambda: handler)
+
+    abs_path = str(profile_dir / "inside.csv")
+    result = await download_tools.get_download_metadata(
+        abs_path, profile_id=profile_id
+    )
+    assert result["success"] is True
+
+
+@pytest.mark.asyncio
+async def test_get_download_metadata_still_rejects_absolute_outside_profile(
+    monkeypatch, tmp_path
+):
+    """P0.3 — widening is profile-bounded. ``/etc/passwd`` still rejects."""
+    profile_id = "P1"
+    (tmp_path / "profiles" / profile_id).mkdir(parents=True)
+    handler = FakeHandler(tmp_path)
+    monkeypatch.setattr(download_tools, "get_download_handler", lambda: handler)
+
+    result = await download_tools.get_download_metadata(
+        "/etc/passwd", profile_id=profile_id
+    )
+    assert result["success"] is False
+    assert result["error"] == "Invalid file path"
 
 
 @pytest.mark.asyncio
