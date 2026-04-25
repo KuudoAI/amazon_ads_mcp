@@ -666,14 +666,36 @@ async def register_region_tools(server: FastMCP):
         region: Optional[str] = None,
         region_code: Optional[str] = None,
     ) -> SetRegionResponse:
-        """Set the region for API calls. Accepts legacy `region_code` alias."""
+        """Set the region for API calls. Accepts legacy `region_code` alias.
+
+        Bad input is reported as ``mcp_input_validation`` with alias-aware
+        hints so agents recover with one targeted retry instead of getting
+        ``internal_error`` and a generic message.
+        """
+        from ..exceptions import ValidationError as _AdsValidationError
+
         value = region or region_code
         if not value:
-            raise ValueError(
-                "set_region requires `region` (or legacy `region_code`). "
-                "Valid values: 'na', 'eu', 'fe'."
+            raise _AdsValidationError(
+                "set_region requires `region` (or legacy `region_code`).",
+                field="region",
+                value=None,
             )
-        result = await region_module.set_region(value)
+        try:
+            result = await region_module.set_region(value)
+        except ValueError as exc:
+            # Convert the bare ValueError raised by set_active_region into a
+            # typed validation error so the envelope translator routes it as
+            # ``mcp_input_validation`` with alias-aware hints.
+            hints = _build_set_region_hints(value)
+            err = _AdsValidationError(
+                str(exc) or "Invalid region.",
+                field="region",
+                value=value,
+            )
+            # Translator surfaces custom hints from details["hints"] if present.
+            err.details["hints"] = hints
+            raise err from exc
         return SetRegionResponse(**result)
 
     @server.tool(name="get_region", description="Get the current region setting")
@@ -1457,6 +1479,92 @@ async def register_tool_group_tools(
     )
 
 
+# Alias map for the ``set_region`` validator. Mirrors SP's
+# ``_REGION_SUGGESTION_ALIASES`` — common ways agents name a region and the
+# canonical SP/Ads code we steer them to.
+_REGION_SUGGESTION_ALIASES: Dict[str, str] = {
+    "usa": "na",
+    "unitedstates": "na",
+    "northamerica": "na",
+    "america": "na",
+    "europe": "eu",
+    "europeanunion": "eu",
+    "euro": "eu",
+    "asia": "fe",
+    "apac": "fe",
+    "fareast": "fe",
+    "asiapacific": "fe",
+}
+
+
+def _build_set_region_hints(invalid_value: Optional[str]) -> list[str]:
+    """Return alias-aware hints for an invalid ``set_region`` input.
+
+    Always names the canonical valid set so an agent can recover with one
+    targeted retry. When ``invalid_value`` matches a known alias, prepends
+    a ``did_you_mean`` hint with the canonical code.
+    """
+    import re as _re
+
+    hints: list[str] = []
+    if isinstance(invalid_value, str) and invalid_value:
+        compact = _re.sub(r"[^a-z0-9]+", "", invalid_value.lower())
+        suggested = _REGION_SUGGESTION_ALIASES.get(compact)
+        if suggested:
+            hints.append(
+                f"Region {invalid_value!r} is not valid. "
+                f"Did you mean region={suggested!r}?"
+            )
+    hints.append("set_region accepts canonical regions: 'na', 'eu', or 'fe'.")
+    return hints
+
+
+async def register_envelope_contract_tools(server: FastMCP) -> None:
+    """Register a read-only probe exposing the cross-server envelope contract.
+
+    Agents can call ``get_envelope_contract`` once at startup to discover
+    which contract version this server implements and which ``error_kind``
+    values it may emit. See ``openbridge-mcp/CONTRACT.md`` for the canonical
+    definition.
+
+    :param server: FastMCP server instance.
+    """
+    from typing import Any
+
+    from ..middleware.error_envelope import (
+        ENVELOPE_VERSION,
+        SUPPORTED_ERROR_KINDS,
+    )
+
+    @server.tool(
+        name="get_envelope_contract",
+        description=(
+            "Read-only probe: returns the cross-server error envelope contract "
+            "this server implements (contract_version, error_kinds, normalized_kinds, "
+            "env_vars). See openbridge-mcp/CONTRACT.md for the canonical specification."
+        ),
+    )
+    async def get_envelope_contract_tool() -> Dict[str, Any]:
+        """Return the envelope contract metadata this server implements."""
+        return {
+            "contract_version": ENVELOPE_VERSION,
+            "error_kinds": list(SUPPORTED_ERROR_KINDS),
+            "normalized_kinds": [
+                "renamed",
+                "dropped_alias",
+                "coerced",
+                "unknown_field_passed_through",
+            ],
+            "env_vars": {
+                "MCP_SCHEMA_KEY_NORMALIZATION_ENABLED": "default true; master switch for pre-flight key normalization",
+                "MCP_SCHEMA_KEY_NORMALIZATION_META": "default false; emit `_meta.normalized` events on responses",
+            },
+            "spec_url": (
+                "https://github.com/openbridge/openbridge-mcp/blob/main/CONTRACT.md"
+            ),
+        }
+
+
 async def register_all_builtin_tools(
     server: FastMCP,
     mounted_servers: Optional[Dict[str, FastMCP]] = None,
@@ -1472,6 +1580,7 @@ async def register_all_builtin_tools(
         Used when code mode is active (GetTags replaces progressive disclosure).
     """
     # Register common tools that work for all auth types
+    await register_envelope_contract_tools(server)
     await register_profile_tools(server)
     await register_profile_listing_tools(server)
     await register_region_tools(server)
