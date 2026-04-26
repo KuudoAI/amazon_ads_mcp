@@ -28,6 +28,42 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AdvertiserIds",
+            "to": "advertiserIds"
+          },
+          {
+            "from": "Count",
+            "to": "count"
+          },
+          {
+            "from": "CursorId",
+            "to": "cursorId"
+          },
+          {
+            "from": "EndDate",
+            "to": "endDate"
+          },
+          {
+            "from": "GroupBy",
+            "to": "groupBy"
+          },
+          {
+            "from": "Metrics",
+            "to": "metrics"
+          },
+          {
+            "from": "ReportType",
+            "to": "reportType"
+          },
+          {
+            "from": "StartDate",
+            "to": "startDate"
+          }
+        ]
       }
     },
     {
@@ -37,6 +73,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "PublisherIds",
+            "to": "publisherIds"
+          },
+          {
+            "from": "AdvertiserIds",
+            "to": "advertiserIds"
+          }
+        ]
       }
     },
     {
@@ -46,6 +94,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "PublisherIds",
+            "to": "publisherIds"
+          },
+          {
+            "from": "AdvertiserIds",
+            "to": "advertiserIds"
+          }
+        ]
       }
     }
   ]

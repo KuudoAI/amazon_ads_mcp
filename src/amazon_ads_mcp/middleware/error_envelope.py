@@ -107,6 +107,19 @@ def build_envelope_from_exception(
         the envelope carrying the prior taxonomy value (one-release migration
         window). Default False.
     """
+    # Round 8: when the exception's message text carries an inner v1
+    # envelope (Code Mode sandbox bridge → MontyRuntimeError → outer
+    # RuntimeError chain), surface the inner envelope rather than
+    # wrapping it. Otherwise every ``execute(call_tool(...))`` failure
+    # shows as ``internal_error`` / ``sandbox_runtime`` and the inner
+    # mcp_input_validation / ads_api_http / etc. is buried in
+    # ``details[0].issue`` as a string.
+    inner = _extract_inner_envelope(exc)
+    if inner is not None:
+        if emit_legacy_error_kind:
+            # Preserve legacy taxonomy from the inner envelope if present
+            inner = dict(inner)
+        return inner
     # Classify by the OUTER exception first so typed re-raises (e.g.
     # ``raise AdsValidationError(...) from ValueError(...)``) are routed by
     # the wrapper's class, not the underlying cause. Fall back to the root
@@ -141,6 +154,10 @@ def build_envelope_from_exception(
     )
     if emit_legacy_error_kind and classification.legacy_error_kind is not None:
         envelope["legacy_error_kind"] = classification.legacy_error_kind
+    # Round 6 #2: single envelope-level field-name promotion pass.
+    # Runs AFTER classification regardless of which classifier built
+    # the envelope. New classification paths get hint quality for free.
+    _promote_field_signals_into_hints(envelope)
     return envelope
 
 
@@ -148,24 +165,43 @@ def _merge_http_meta(
     root: BaseException,
     explicit: dict[str, Any] | None,
 ) -> dict[str, Any] | None:
-    """Auto-extract rate-limit headers from ``httpx.HTTPStatusError`` and
-    merge with explicitly-provided ``http_meta``.
+    """Auto-extract rate-limit headers from ``httpx.HTTPStatusError``,
+    fall back to the per-call context-var, and merge with
+    explicitly-provided ``http_meta``.
 
-    Explicit caller-supplied values win on key collisions. This preserves
-    test/integration override patterns while making the common path
-    (translator pulls headers from the response) zero-config.
+    Round 5 #2: typed exceptions (e.g. ``RateLimitError``) raised after
+    the HTTP client captured rate-limit headers don't carry the response
+    object — but the context-var ``_LAST_HTTP_META`` populated by
+    ``AuthenticatedClient.send`` still has the data. Pull from there as
+    a fallback so error envelopes carry ``_meta.rate_limit`` regardless
+    of which exception type ultimately fires.
+
+    Precedence (highest to lowest): explicit ``http_meta`` arg →
+    auto-extracted HTTPStatusError response headers → context-var
+    capture.
     """
+    from ..utils.http.rate_limit_headers import (
+        extract_rate_limit_meta,
+        get_last_http_meta,
+    )
+
     auto: dict[str, Any] = {}
     if isinstance(root, httpx.HTTPStatusError):
-        from ..utils.http.rate_limit_headers import extract_rate_limit_meta
-
         auto = extract_rate_limit_meta(root.response)
+    if not auto:
+        # Fallback: per-call context-var captured by the HTTP client.
+        captured = get_last_http_meta()
+        if captured:
+            auto = dict(captured)
     if not auto and not explicit:
         return None
     if not explicit:
         return auto
     if not auto:
         return explicit
+    # Explicit wins on key collisions; auto fills in missing keys
+    # (including individual sub-keys of ``rate_limit`` when explicit
+    # only specifies some of them).
     return {**auto, **explicit}
 
 
@@ -203,6 +239,93 @@ class _Classification:
         self.error_code = error_code
         self.retryable = retryable
         self.legacy_error_kind = legacy_error_kind
+
+
+def _extract_inner_envelope(exc: BaseException) -> dict[str, Any] | None:
+    """Round 8: walk ``exc.__cause__`` / ``__context__`` and message
+    text looking for an embedded v1 envelope. Returns the parsed
+    envelope dict when one is found, else ``None``.
+
+    Patterns handled:
+    - ``RuntimeError("ToolError: <envelope_json>")`` — Code Mode bridge
+    - ``RuntimeError("<envelope_json>")`` — bare envelope as message
+    - ``MontyRuntimeError("RuntimeError: ToolError: <envelope_json>")``
+    - Same shapes nested in ``__cause__`` / ``__context__``
+
+    Otherwise an ``execute(call_tool(...))`` failure shows the outer
+    middleware's ``internal_error`` wrapper and the inner v1 envelope is
+    buried in ``details[0].issue`` as a string — defeating the
+    cross-server contract.
+    """
+    visited: set[int] = set()
+    current: BaseException | None = exc
+    while current is not None and id(current) not in visited:
+        visited.add(id(current))
+        text = str(current)
+        if text and "_envelope_version" in text:
+            envelope = _try_parse_v1_envelope_from_text(text)
+            if envelope is not None:
+                return envelope
+        nxt = current.__cause__ or current.__context__
+        if not isinstance(nxt, BaseException):
+            return None
+        current = nxt
+    return None
+
+
+def _try_parse_v1_envelope_from_text(text: str) -> dict[str, Any] | None:
+    """Pull the first balanced JSON object containing
+    ``"_envelope_version": 1`` out of a message string and validate it
+    against the v1 envelope shape.
+    """
+    if "_envelope_version" not in text:
+        return None
+    n = len(text)
+    i = 0
+    while i < n:
+        if text[i] != "{":
+            i += 1
+            continue
+        depth = 0
+        j = i
+        in_string = False
+        escape = False
+        while j < n:
+            ch = text[j]
+            if in_string:
+                if escape:
+                    escape = False
+                elif ch == "\\":
+                    escape = True
+                elif ch == '"':
+                    in_string = False
+            else:
+                if ch == '"':
+                    in_string = True
+                elif ch == "{":
+                    depth += 1
+                elif ch == "}":
+                    depth -= 1
+                    if depth == 0:
+                        candidate = text[i : j + 1]
+                        try:
+                            parsed = json.loads(candidate)
+                        except (TypeError, ValueError):
+                            parsed = None
+                        if (
+                            isinstance(parsed, dict)
+                            and parsed.get("_envelope_version") == 1
+                            and _ENVELOPE_KEYS.issubset(parsed.keys())
+                        ):
+                            return parsed
+                        i = j + 1
+                        break
+            j += 1
+        else:
+            return None
+        if j >= n:
+            return None
+    return None
 
 
 def _try_classify_known_type(exc: BaseException) -> _Classification | None:
@@ -552,56 +675,114 @@ def _walk_subclasses(root: type) -> list[type]:
     return out
 
 
-def _hints_for_validation(
-    details: list[dict[str, Any]],
-    schema_field_names: list[str],
-) -> list[str]:
-    """Build specific hints from the validation details array.
+#: Trailing characters that appear in upstream-supplied ``details.path``
+#: values and must be stripped before formatting field names into hints.
+_PATH_TRAILING_JUNK = " \t\n\r;,.:!?\"'"
 
-    Specific hints first (so they appear at the top of the agent's view),
-    generic boilerplate as fallback when the details don't match a known
-    pattern. Hints emitted:
 
-    - ``"Required field missing: 'X'"`` when issue text contains "required" or
-      "missing"
-    - ``"Unknown field 'X'. Did you mean 'Y'?"`` when issue text indicates
-      an unexpected key and a close canonical match exists (Levenshtein ≤ 2
-      against ``schema_field_names``)
-    - ``"Unknown field 'X'. Valid fields: ['a','b',...]"`` when no close
-      match found but the schema names are known
+def _sanitize_path(path: str) -> str:
+    """Strip trailing punctuation / quotes / whitespace from a
+    path string before it's formatted into a hint.
     """
-    specific: list[str] = []
+    if not isinstance(path, str):
+        return ""
+    cleaned = path.strip(_PATH_TRAILING_JUNK)
+    if len(cleaned) >= 2 and cleaned[0] == cleaned[-1] and cleaned[0] in ("'", '"'):
+        cleaned = cleaned[1:-1].strip(_PATH_TRAILING_JUNK)
+    return cleaned
+
+
+def _promote_field_signals_into_hints(envelope: dict[str, Any]) -> None:
+    """Single envelope-level pass that promotes ``details.path`` into
+    specific hints when ``details[*].issue`` carries field-level signals.
+
+    Runs once at the end of ``build_envelope_from_exception`` regardless
+    of which classifier built the envelope. Pydantic validation,
+    upstream HTTP errors, MCPError-typed exceptions, and bare
+    exceptions all benefit. Mirrors the SP implementation so cross-
+    server agent code sees identical hint shapes.
+
+    - "Required field missing: 'X'" when issue suggests missing/required
+    - "Unknown field 'X'" when issue suggests extra/unexpected/
+      forbidden/not-permitted
+
+    Field names are sanitized via :func:`_sanitize_path` so artifacts
+    like ``"reportTypes;"`` don't leak into agent-facing text.
+    """
+    details = envelope.get("details") or []
+    if not isinstance(details, list):
+        return
+    promoted: list[str] = []
+    seen_paths: set[str] = set()
     for entry in details:
         if not isinstance(entry, dict):
             continue
-        path = str(entry.get("path") or "").strip()
+        raw_path = entry.get("path")
+        if not isinstance(raw_path, str):
+            continue
+        path = _sanitize_path(raw_path)
+        if not path or path in seen_paths:
+            continue
         issue_text = str(entry.get("issue") or "").lower()
-
-        if not path:
+        if (
+            "missing" in issue_text
+            or "required" in issue_text
+            or "field required" in issue_text
+        ):
+            promoted.append(f"Required field missing: '{path}'.")
+            seen_paths.add(path)
             continue
-
-        if "missing" in issue_text or "required" in issue_text or "field required" in issue_text:
-            specific.append(f"Required field missing: '{path}'.")
-            continue
-
         if (
             "extra" in issue_text
             or "unexpected" in issue_text
             or "not permitted" in issue_text
             or "forbidden" in issue_text
+            or "unknown" in issue_text
         ):
-            suggestion = _did_you_mean(path, schema_field_names)
-            if suggestion:
-                specific.append(
-                    f"Unknown field '{path}'. Did you mean '{suggestion}'?"
-                )
-            elif schema_field_names:
-                preview = sorted(schema_field_names)[:8]
-                specific.append(
-                    f"Unknown field '{path}'. Valid fields: {preview}."
-                )
-            else:
-                specific.append(f"Unknown field '{path}'.")
+            promoted.append(f"Unknown field '{path}'.")
+            seen_paths.add(path)
+    if not promoted:
+        return
+    existing_hints = envelope.get("hints") or []
+    if not isinstance(existing_hints, list):
+        existing_hints = []
+    envelope["hints"] = promoted + [h for h in existing_hints if h not in promoted]
+
+
+def _hints_for_validation(
+    details: list[dict[str, Any]],
+    schema_field_names: list[str],
+) -> list[str]:
+    """Generic guidance for input validation rejections.
+
+    Field-name promotion ("Required field missing: 'X'", etc.) is
+    handled by the consolidated envelope-level pass
+    :func:`_promote_field_signals_into_hints` so it fires regardless of
+    which classifier built the envelope. This helper only contributes
+    the generic baseline plus the "Did you mean 'Y'?" suggestion when
+    schema field names are known (the suggestion needs schema
+    introspection that the envelope-level pass doesn't have access to).
+    """
+    specific: list[str] = []
+    if schema_field_names:
+        for entry in details:
+            if not isinstance(entry, dict):
+                continue
+            path = str(entry.get("path") or "").strip()
+            issue_text = str(entry.get("issue") or "").lower()
+            if not path:
+                continue
+            if (
+                "extra" in issue_text
+                or "unexpected" in issue_text
+                or "not permitted" in issue_text
+                or "forbidden" in issue_text
+            ):
+                suggestion = _did_you_mean(path, schema_field_names)
+                if suggestion:
+                    specific.append(
+                        f"Unknown field '{path}'. Did you mean '{suggestion}'?"
+                    )
 
     fallback = [
         "Check required fields and input types in the tool schema.",

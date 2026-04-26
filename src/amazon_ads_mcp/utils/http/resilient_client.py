@@ -119,20 +119,12 @@ class ResilientAuthenticatedClient(AuthenticatedClient):
                 breaker = get_circuit_breaker(endpoint)
                 breaker.record_success()
 
-            # Capture rate-limit telemetry for the per-call context-var so
-            # the meta-injection middleware can surface it as ``_meta.rate_limit``
-            # on successful tool responses. See openbridge-mcp/CONTRACT.md.
-            try:
-                from .rate_limit_headers import (
-                    extract_rate_limit_meta,
-                    set_last_http_meta,
-                )
-
-                meta = extract_rate_limit_meta(response)
-                if meta:
-                    set_last_http_meta(meta)
-            except Exception as exc:  # pragma: no cover - defensive
-                logger.debug("Rate-limit meta capture failed: %s", exc)
+            # Rate-limit telemetry capture moved to the parent class
+            # ``AuthenticatedClient.send`` (Round 4 #2) so every code
+            # path — including FastMCP-from-OpenAPI tools that don't
+            # route through this resilient client — populates the
+            # per-call context-var consistently. ``send_with_retry``
+            # above invokes ``super().send`` which now handles capture.
 
             return response
 

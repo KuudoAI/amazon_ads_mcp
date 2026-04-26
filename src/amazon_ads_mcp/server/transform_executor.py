@@ -83,8 +83,19 @@ class DeclarativeTransformExecutor:
 
                 # argument aliases (compatibility shims)
                 # Example: {"from": "reportId", "to": "reportIds", "wrap": "list"}
+                #
+                # Round 4 #1: emit ``_meta.normalized`` events when an alias
+                # fires so agents see the rewrite. Events flow through the
+                # same per-call ``_CURRENT_NORMALIZATION_EVENTS`` ContextVar
+                # the schema-driven middleware uses; the
+                # ``MetaInjectionMiddleware`` reads it on success and
+                # surfaces under ``_meta.normalized``.
                 aliases = cfg.get("arg_aliases")
                 if isinstance(aliases, list):
+                    from ..middleware.schema_normalization import (
+                        _CURRENT_NORMALIZATION_EVENTS as _NORM_EVENTS,
+                    )
+
                     for alias in aliases:
                         if not isinstance(alias, dict):
                             continue
@@ -97,10 +108,33 @@ class DeclarativeTransformExecutor:
                             continue
                         if src not in a or a.get(src) in (None, ""):
                             continue
-                        val = a.get(src)
+                        original_val = a.get(src)
+                        val = original_val
                         if wrap == "list":
                             val = val if isinstance(val, list) else [val]
                         a[dst] = val
+
+                        existing_events = _NORM_EVENTS.get() or []
+                        new_events = list(existing_events)
+                        new_events.append(
+                            {
+                                "kind": "renamed",
+                                "from": src,
+                                "to": dst,
+                                "reason": "arg_alias",
+                            }
+                        )
+                        if val is not original_val:
+                            new_events.append(
+                                {
+                                    "kind": "coerced",
+                                    "field": dst,
+                                    "from_type": type(original_val).__name__,
+                                    "to_type": type(val).__name__,
+                                    "reason": "arg_alias_wrap",
+                                }
+                            )
+                        _NORM_EVENTS.set(new_events)
 
                 # defaults: relative time (e.g., set minCreationTime if missing)
                 defaults = cfg.get("defaults") if isinstance(cfg, dict) else None

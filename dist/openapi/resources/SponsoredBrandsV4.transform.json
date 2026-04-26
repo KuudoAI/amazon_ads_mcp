@@ -71,6 +71,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "PageSize",
+            "to": "pageSize"
+          }
+        ]
       }
     },
     {
@@ -80,6 +92,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "BudgetRulesDetails",
+            "to": "budgetRulesDetails"
+          }
+        ]
       }
     },
     {
@@ -89,6 +109,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "BudgetRulesDetails",
+            "to": "budgetRulesDetails"
+          }
+        ]
       }
     },
     {
@@ -98,6 +126,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "BudgetRuleId",
+            "to": "budgetRuleId"
+          }
+        ]
       }
     },
     {
@@ -114,6 +150,22 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "BudgetRuleId",
+            "to": "budgetRuleId"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "PageSize",
+            "to": "pageSize"
+          }
+        ]
       }
     },
     {
@@ -148,6 +200,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          }
+        ]
       }
     },
     {
@@ -157,6 +217,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "CampaignId",
+            "to": "campaignId"
+          }
+        ]
       }
     },
     {
@@ -166,6 +234,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "CampaignId",
+            "to": "campaignId"
+          },
+          {
+            "from": "BudgetRuleIds",
+            "to": "budgetRuleIds"
+          }
+        ]
       }
     },
     {
@@ -175,6 +255,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "CampaignId",
+            "to": "campaignId"
+          },
+          {
+            "from": "BudgetRuleId",
+            "to": "budgetRuleId"
+          }
+        ]
       }
     },
     {
@@ -200,6 +292,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          }
+        ]
       }
     },
     {
@@ -209,6 +309,26 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AdFormat",
+            "to": "adFormat"
+          },
+          {
+            "from": "Asins",
+            "to": "asins"
+          },
+          {
+            "from": "MaxNumSuggestions",
+            "to": "maxNumSuggestions"
+          },
+          {
+            "from": "StorePages",
+            "to": "storePages"
+          }
+        ]
       }
     },
     {
@@ -279,6 +399,30 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "Locale",
+            "to": "locale"
+          },
+          {
+            "from": "SupplySource",
+            "to": "supplySource"
+          },
+          {
+            "from": "IncludeOnlyRootCategories",
+            "to": "includeOnlyRootCategories"
+          },
+          {
+            "from": "ParentCategoryRefinementId",
+            "to": "parentCategoryRefinementId"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          }
+        ]
       }
     },
     {
@@ -295,6 +439,22 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "CategoryRefinementId",
+            "to": "categoryRefinementId"
+          },
+          {
+            "from": "Locale",
+            "to": "locale"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          }
+        ]
       }
     },
     {

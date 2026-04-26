@@ -590,16 +590,25 @@ async def register_profile_listing_tools(server: FastMCP):
 
     @server.tool(
         name="summarize_profiles",
-        description="Summarize available profiles by country and account type",
+        description=(
+            "List profiles (summary mode): aggregate counts by country "
+            "and account type. Use when you need to know what profile "
+            "kinds exist without enumerating individual records."
+        ),
     )
     async def summarize_profiles_tool(ctx: Context) -> ProfileSummaryResponse:
-        """Summarize available profiles."""
+        """List profiles in summary mode."""
         result = await profile_listing.summarize_profiles()
         return ProfileSummaryResponse(**result)
 
     @server.tool(
         name="search_profiles",
-        description="Search profiles by name, country, or account type",
+        description=(
+            "List profiles (search mode): filter by name (`query`), "
+            "`country_code`, or `account_type`, with bounded `limit`. "
+            "Use when you know what you're looking for and want a "
+            "focused result set."
+        ),
     )
     async def search_profiles_tool(
         ctx: Context,
@@ -608,7 +617,7 @@ async def register_profile_listing_tools(server: FastMCP):
         account_type: Optional[str] = None,
         limit: int = profile_listing.DEFAULT_SEARCH_LIMIT,
     ) -> ProfileSearchResponse:
-        """Search profiles with bounded output."""
+        """List profiles in search mode (filtered, bounded)."""
         result = await profile_listing.search_profiles(
             query=query,
             country_code=country_code,
@@ -619,7 +628,12 @@ async def register_profile_listing_tools(server: FastMCP):
 
     @server.tool(
         name="page_profiles",
-        description="Page through profiles with offset and limit",
+        description=(
+            "List profiles (paged mode): paginated read with `offset` "
+            "and `limit`. Returns `{items, total_count, has_more, "
+            "next_offset}`. Use when iterating across the full set "
+            "without dumping everything at once."
+        ),
     )
     async def page_profiles_tool(
         ctx: Context,
@@ -628,7 +642,7 @@ async def register_profile_listing_tools(server: FastMCP):
         offset: int = 0,
         limit: int = profile_listing.DEFAULT_PAGE_LIMIT,
     ) -> ProfilePageResponse:
-        """Return a page of profiles with bounded output."""
+        """List profiles in paged mode."""
         result = await profile_listing.page_profiles(
             country_code=country_code,
             account_type=account_type,
@@ -639,7 +653,12 @@ async def register_profile_listing_tools(server: FastMCP):
 
     @server.tool(
         name="refresh_profiles_cache",
-        description="Force refresh of cached profiles for the current identity and region",
+        description=(
+            "List profiles (cache refresh): force re-fetch of cached "
+            "profiles for the current identity and region. Use when "
+            "you suspect cached data is stale before the next "
+            "summarize/search/page call."
+        ),
     )
     async def refresh_profiles_cache_tool(ctx: Context) -> ProfileCacheRefreshResponse:
         """Force refresh the cached profile list."""

@@ -19,6 +19,30 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "EditionIdFilter",
+            "to": "editionIdFilter"
+          },
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "PublishStatusFilter",
+            "to": "publishStatusFilter"
+          },
+          {
+            "from": "StoreIdFilter",
+            "to": "storeIdFilter"
+          }
+        ]
       }
     },
     {
@@ -28,6 +52,34 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "EditionIdFilter",
+            "to": "editionIdFilter"
+          },
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "PageIdFilter",
+            "to": "pageIdFilter"
+          },
+          {
+            "from": "StoreEditionPublishIdFilter",
+            "to": "storeEditionPublishIdFilter"
+          },
+          {
+            "from": "StoreIdFilter",
+            "to": "storeIdFilter"
+          }
+        ]
       }
     },
     {
@@ -37,6 +89,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "BrandStoreEditionPublishVersions",
+            "to": "brandStoreEditionPublishVersions"
+          }
+        ]
       }
     },
     {
@@ -46,6 +106,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "BrandStorePages",
+            "to": "brandStorePages"
+          }
+        ]
       }
     }
   ]

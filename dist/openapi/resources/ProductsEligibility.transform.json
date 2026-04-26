@@ -10,6 +10,22 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AdType",
+            "to": "adType"
+          },
+          {
+            "from": "Locale",
+            "to": "locale"
+          },
+          {
+            "from": "ProductDetailsList",
+            "to": "productDetailsList"
+          }
+        ]
       }
     },
     {
@@ -19,6 +35,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "SkipChecks",
+            "to": "skipChecks"
+          }
+        ]
       }
     }
   ]

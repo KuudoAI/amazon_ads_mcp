@@ -199,6 +199,24 @@ class AuthenticatedClient(httpx.AsyncClient):
         # Call parent's send
         resp = await super().send(request, **kwargs)
 
+        # Round 4 #2: capture upstream rate-limit telemetry for the
+        # per-call context-var so ``MetaInjectionMiddleware`` can surface
+        # ``_meta.rate_limit`` on successful responses. Done at the
+        # parent class so every code path (FastMCP-from-OpenAPI tools,
+        # custom tools using ``ResilientAuthenticatedClient``, etc.)
+        # populates the context-var consistently.
+        try:
+            from .http.rate_limit_headers import (
+                extract_rate_limit_meta,
+                set_last_http_meta,
+            )
+
+            meta = extract_rate_limit_meta(resp)
+            if meta:
+                set_last_http_meta(meta)
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.debug("Rate-limit meta capture failed: %s", exc)
+
         # Best-effort fallback shaping for AMC endpoints when FastMCP transforms are unavailable
         try:
             ct = (resp.headers.get("Content-Type") or "").lower()
