@@ -221,11 +221,24 @@ class TestInMemoryMCPOperations:
             assert len(result.content) > 0
 
     @pytest.mark.asyncio
-    async def test_set_active_profile_stores_profile(self, mcp_server):
-        """Test set_active_profile correctly stores the profile ID."""
+    async def test_set_active_profile_stores_profile(self, mcp_server, monkeypatch):
+        """Test set_active_profile correctly stores the profile ID.
+
+        Mocks the cached profile list so the validation path
+        (added in fix(profile): validate profile_id against cached profile list)
+        sees the test ID as known. Without this mock, validation would
+        attempt a live fetch from /v2/profiles and fail with 401 in test env.
+        """
         from fastmcp import Client
 
         test_profile_id = "1234567890"
+
+        async def _fake_cached(force_refresh=False):
+            return [{"profileId": int(test_profile_id)}], False
+
+        from amazon_ads_mcp.tools import profile_listing
+
+        monkeypatch.setattr(profile_listing, "get_profiles_cached", _fake_cached)
 
         async with Client(mcp_server) as client:
             # Set a profile
@@ -260,9 +273,20 @@ class TestInMemoryMCPOperations:
             assert get_result is not None
 
     @pytest.mark.asyncio
-    async def test_clear_active_profile_removes_profile(self, mcp_server):
-        """Test clear_active_profile removes the stored profile."""
+    async def test_clear_active_profile_removes_profile(self, mcp_server, monkeypatch):
+        """Test clear_active_profile removes the stored profile.
+
+        Mocks the cached profile list so set_active_profile's new validation
+        accepts the test ID without a live API fetch.
+        """
         from fastmcp import Client
+
+        async def _fake_cached(force_refresh=False):
+            return [{"profileId": 1234567890}], False
+
+        from amazon_ads_mcp.tools import profile_listing
+
+        monkeypatch.setattr(profile_listing, "get_profiles_cached", _fake_cached)
 
         async with Client(mcp_server) as client:
             # First set a profile
