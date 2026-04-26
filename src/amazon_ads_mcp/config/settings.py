@@ -187,6 +187,60 @@ class Settings(BaseSettings):
         ),
     )
 
+    mcp_schema_constraint_validation_enabled: bool = Field(
+        True,
+        alias="MCP_SCHEMA_CONSTRAINT_VALIDATION_ENABLED",
+        description=(
+            "Run jsonschema constraint validation against the tool's input "
+            "schema before dispatch (types, enums, required, numeric/array "
+            "bounds). Default ON: invalid args surface as "
+            "`mcp_input_validation` errors with `INPUT_VALIDATION_FAILED` "
+            "and the full error path/message preserved (no Amazon "
+            "round-trip, no truncation of helpful enum lists). Set false "
+            "to skip the check — useful when Amazon ships fields ahead of "
+            "the spec or when the spec is malformed. The validator fails "
+            "OPEN on schema-lookup errors (logs telemetry, doesn't break "
+            "tool execution); see feedback_fail_open_telemetry.md."
+        ),
+    )
+
+    mcp_ad_product_cap_validation_enabled: bool = Field(
+        True,
+        alias="MCP_AD_PRODUCT_CAP_VALIDATION_ENABLED",
+        description=(
+            "Enforce per-ad-product `maxResults` caps that Amazon imposes "
+            "below the schema's declared maximum. Default ON: e.g. "
+            "QueryCampaign with `adProductFilter: SPONSORED_PRODUCTS` is "
+            "capped at 1000 even though the schema says 5000 — Amazon "
+            "would 400 with a per-ad-product cap message; we surface it "
+            "locally as `mcp_input_validation` / `INPUT_VALIDATION_FAILED` "
+            "with the offending ad product, the cap, and the requested "
+            "value. Conservative table: only confirmed caps are enforced "
+            "(SPONSORED_PRODUCTS=1000); other ad products fail open until "
+            "their caps are confirmed via wire trace or Amazon docs. Set "
+            "false to skip the check (e.g. when testing new ad-product "
+            "behavior or if Amazon raises a cap)."
+        ),
+    )
+
+    mcp_strict_unknown_fields: bool = Field(
+        True,
+        alias="MCP_STRICT_UNKNOWN_FIELDS",
+        description=(
+            "Reject tool calls that include fields not declared in the tool's "
+            "input schema (after canonical-key normalization AND sidecar "
+            "alias rewrites). Default ON: typo'd or unknown top-level fields "
+            "surface as `mcp_input_validation` errors with `did_you_mean` "
+            "hints instead of being silently dropped (which previously caused "
+            "Amazon defaults to apply — e.g. `stateFilte` typo silently "
+            "ignored, returning all states instead of filtering to ENABLED; "
+            "`maxResult` typo returns 1000 results instead of the intended "
+            "page size). Set false as an escape hatch when Amazon ships "
+            "fields ahead of our OpenAPI spec and strict rejection would "
+            "block valid calls."
+        ),
+    )
+
     # OAuth Configuration (optional, for web-based authentication flows)
     oauth_client_id: Optional[str] = Field(
         None,

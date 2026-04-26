@@ -94,6 +94,13 @@ class SidecarTransformMiddleware(Middleware):
         overlays_dir: Optional[Path] = None,
     ) -> None:
         self._input_transforms: Dict[str, List[InputTransform]] = {}
+        # arg_aliases is intentionally additive (the rewrite leaves the
+        # source key in place; HTTP clients ignore unknown params, and
+        # callers may submit either form). Track the source keys per tool
+        # so the strict-unknown-fields check can exempt them — otherwise
+        # MCP_STRICT_UNKNOWN_FIELDS=true would reject legitimate alias
+        # callers like ``reportId`` for ``allv1_AdsApiv1RetrieveReport``.
+        self._arg_alias_sources: Dict[str, set[str]] = {}
         self._loaded_rules = 0
         self._loaded_transforms = 0
         self._loaded_overlays = 0
@@ -170,7 +177,30 @@ class SidecarTransformMiddleware(Middleware):
             keys.append(op_id)
         for key in keys:
             self._input_transforms.setdefault(key, []).append(input_tx)
+
+        # Record arg_aliases source keys so strict-unknown-fields can
+        # exempt them. arg_aliases lives under input_transform (most
+        # common) or directly on the rule (overlay convention).
+        cfg = (rule.get("input_transform") or {}) if isinstance(
+            rule.get("input_transform"), dict
+        ) else {}
+        aliases = cfg.get("arg_aliases") or rule.get("arg_aliases") or []
+        if isinstance(aliases, list):
+            for alias in aliases:
+                if not isinstance(alias, dict):
+                    continue
+                src = alias.get("from")
+                if isinstance(src, str) and src:
+                    for key in keys:
+                        self._arg_alias_sources.setdefault(key, set()).add(src)
         return True
+
+    def alias_sources_for(self, tool_name: str) -> set[str]:
+        """Return the set of arg_aliases ``from`` keys registered for
+        ``tool_name`` (or ``op_id``). Used by the strict-unknown-fields
+        check to exempt legitimate aliases that the additive rewrite
+        leaves in place. Empty set when no aliases registered."""
+        return self._arg_alias_sources.get(tool_name, set())
 
     def _load(self, resources_dir: Path) -> None:
         if not resources_dir.exists():
@@ -309,28 +339,82 @@ class SidecarTransformMiddleware(Middleware):
         if not tool_name:
             return await call_next(context)
 
-        transforms = self._input_transforms.get(tool_name)
-        if not transforms:
-            return await call_next(context)
-
+        # Capture starting args (after schema_normalization, before sidecar)
         raw_args: Dict[str, Any] = dict(getattr(message, "arguments", None) or {})
-        rewritten = await self.rewrite_args(tool_name, raw_args)
+        final_args = raw_args
 
-        # Only mutate the payload if the rewrite actually changed anything.
-        if rewritten != raw_args:
-            try:
-                message.arguments = rewritten
-            except Exception:
-                # Some pydantic versions make arguments frozen; rebuild.
+        transforms = self._input_transforms.get(tool_name)
+        if transforms:
+            rewritten = await self.rewrite_args(tool_name, raw_args)
+            # Only mutate the payload if the rewrite actually changed anything.
+            if rewritten != raw_args:
                 try:
-                    new_message = message.model_copy(update={"arguments": rewritten})
-                    context.message = new_message  # type: ignore[assignment]
-                except Exception as exc:  # pragma: no cover - defensive
-                    logger.warning(
-                        "SidecarTransformMiddleware: could not replace arguments on %s: %s",
-                        tool_name,
-                        exc,
-                    )
+                    message.arguments = rewritten
+                except Exception:
+                    # Some pydantic versions make arguments frozen; rebuild.
+                    try:
+                        new_message = message.model_copy(
+                            update={"arguments": rewritten}
+                        )
+                        context.message = new_message  # type: ignore[assignment]
+                    except Exception as exc:  # pragma: no cover - defensive
+                        logger.warning(
+                            "SidecarTransformMiddleware: could not replace "
+                            "arguments on %s: %s",
+                            tool_name,
+                            exc,
+                        )
+            final_args = rewritten
+
+        # Two pre-flight checks run AFTER schema_normalization (upstream
+        # middleware) AND sidecar alias rewrites (above), BEFORE tool
+        # dispatch. Both share the same alias-exemption set so legitimate
+        # arg_aliases source keys survive (additive rewrite leaves them
+        # in args alongside the canonical key).
+        #
+        # Order matters:
+        #   1. check_schema_constraints — full jsonschema validation
+        #      (types, enums, required, numeric/array bounds). Catches
+        #      the most specific class of error and returns the most
+        #      actionable message (e.g. full enum list, exact numeric
+        #      bound). Default ON via MCP_SCHEMA_CONSTRAINT_VALIDATION_ENABLED.
+        #   2. check_strict_unknown_fields — fallback for typo/unknown
+        #      detection with did_you_mean hints. Subsumed by (1) when
+        #      the tool's schema is well-formed; kept for the ambiguous-
+        #      schema case. Default ON via MCP_STRICT_UNKNOWN_FIELDS.
+        #
+        # Both fail OPEN on schema-lookup errors per
+        # feedback_fail_open_telemetry.md.
+        from ..middleware.schema_normalization import (
+            check_ad_product_caps,
+            check_schema_constraints,
+            check_strict_unknown_fields,
+        )
+
+        alias_exempt = self.alias_sources_for(tool_name)
+        fastmcp_ctx = getattr(context, "fastmcp_context", None)
+
+        await check_schema_constraints(
+            tool_name,
+            final_args,
+            fastmcp_context=fastmcp_ctx,
+            extra_known_fields=alias_exempt,
+        )
+
+        # R2: per-ad-product conditional maxResults cap. Runs AFTER R1's
+        # schema-constraint check (R1 catches schema-static violations
+        # like missing-required and the global max=5000) and uses the
+        # canonicalized adProductFilter to enforce Amazon's lower
+        # per-product cap (e.g. SPONSORED_PRODUCTS=1000). Default ON;
+        # fails open for ad products without a confirmed cap.
+        check_ad_product_caps(tool_name, final_args)
+
+        await check_strict_unknown_fields(
+            tool_name,
+            final_args,
+            fastmcp_context=fastmcp_ctx,
+            extra_known_fields=alias_exempt,
+        )
 
         return await call_next(context)
 

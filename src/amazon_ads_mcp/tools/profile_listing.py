@@ -10,6 +10,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from ..auth.manager import get_auth_manager
 from ..config.settings import Settings
+from ..utils.errors import ValidationError
 from ..utils.http import get_http_client
 
 logger = logging.getLogger(__name__)
@@ -78,16 +79,46 @@ def _get_cache_key() -> Tuple[str, str]:
     return identity_id, region
 
 
-def _apply_limit(limit: Optional[int], default: int, max_limit: int) -> int:
+def _apply_limit(
+    limit: Optional[int], default: int, max_limit: int
+) -> Tuple[int, Optional[str]]:
+    """Validate ``limit`` and return (effective_limit, optional_cap_message).
+
+    - ``None`` → returns ``(default, None)``.
+    - Non-integer / non-positive → raises :class:`ValidationError` so the
+      envelope translator classifies as ``mcp_input_validation`` (previously
+      these silently fell back to the default, masking caller mistakes).
+    - Over-cap → returns ``(max_limit, "limit clamped from N to maximum M")``
+      so callers see the cap rather than getting a smaller-than-expected page
+      with no explanation.
+    """
     if limit is None:
-        return default
+        return default, None
     try:
         value = int(limit)
     except (TypeError, ValueError):
-        return default
+        err = ValidationError(
+            f"limit must be an integer, got {limit!r}",
+            field="limit",
+        )
+        err.details["error_code"] = "INVALID_LIMIT"
+        raise err
     if value <= 0:
-        return default
-    return min(value, max_limit)
+        err = ValidationError(
+            f"limit must be > 0, got {value}",
+            field="limit",
+        )
+        err.details["error_code"] = "INVALID_LIMIT"
+        raise err
+    if value > max_limit:
+        return max_limit, f"limit clamped from {value} to maximum {max_limit}"
+    return value, None
+
+
+def _compose_message(*parts: Optional[str]) -> Optional[str]:
+    """Join non-empty message parts with a single space; return None if all empty."""
+    kept = [p for p in parts if p]
+    return " ".join(kept) if kept else None
 
 
 def _normalize_profile(profile: Dict[str, Any]) -> Dict[str, str]:
@@ -190,12 +221,23 @@ async def search_profiles(
         if _matches_filters(profile, query, country_code, account_type)
     ]
 
-    limit_value = _apply_limit(limit, DEFAULT_SEARCH_LIMIT, MAX_SEARCH_LIMIT)
+    limit_value, cap_msg = _apply_limit(limit, DEFAULT_SEARCH_LIMIT, MAX_SEARCH_LIMIT)
     items = [_normalize_profile(profile) for profile in filtered[:limit_value]]
 
-    message = None
-    if stale:
-        message = "Using cached profile list; data may be stale."
+    stale_msg = "Using cached profile list; data may be stale." if stale else None
+    # R3: pagination guidance — appended ONLY when the request actually
+    # exceeded the cap (cap_msg signals over-cap clamping). A normal
+    # 50-result call where total > 50 (has_more=true) does NOT get this
+    # noisy guidance — the caller asked for 50 and got 50; the has_more
+    # flag is the signal. This avoids false-positive nudges per reviewer
+    # feedback.
+    pagination_msg = (
+        "search_profiles is bounded; use page_profiles to paginate beyond "
+        f"{MAX_SEARCH_LIMIT} results."
+        if cap_msg
+        else None
+    )
+    message = _compose_message(stale_msg, cap_msg, pagination_msg)
 
     total_count = len(filtered)
     returned_count = len(items)
@@ -222,7 +264,7 @@ async def page_profiles(
         if _matches_filters(profile, None, country_code, account_type)
     ]
 
-    limit_value = _apply_limit(limit, DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT)
+    limit_value, cap_msg = _apply_limit(limit, DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT)
     try:
         offset_value = int(offset)
     except (TypeError, ValueError):
@@ -231,9 +273,8 @@ async def page_profiles(
     page = filtered[offset_value : offset_value + limit_value]
     items = [_normalize_profile(profile) for profile in page]
 
-    message = None
-    if stale:
-        message = "Using cached profile list; data may be stale."
+    stale_msg = "Using cached profile list; data may be stale." if stale else None
+    message = _compose_message(stale_msg, cap_msg)
 
     total_count = len(filtered)
     returned_count = len(items)

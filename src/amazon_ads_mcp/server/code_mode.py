@@ -162,7 +162,9 @@ def translate_to_sandbox_runtime_error(exc: BaseException) -> RuntimeError:
     handler. See ``openbridge-mcp/CONTRACT.md``.
     """
     import json as _json
+    import re as _re
 
+    from fastmcp.exceptions import NotFoundError as _NotFoundError
     from fastmcp.exceptions import ToolError as _ToolError
 
     if isinstance(exc, RuntimeError):
@@ -186,6 +188,29 @@ def translate_to_sandbox_runtime_error(exc: BaseException) -> RuntimeError:
         # Non-envelope ToolError — preserve type-name prefix for legacy
         # parsing patterns.
         return RuntimeError(f"ToolError: {text}")
+
+    if isinstance(exc, _NotFoundError):
+        # R5: wrap unknown-tool errors in v1 envelope JSON so defensive
+        # caller code can json.loads(str(e)) without a try/except for
+        # this special case. Cross-server symmetry — every error kind
+        # the caller might face is now envelope-shaped.
+        msg = str(exc)
+        match = _re.match(r"Unknown tool:\s*(\S+)", msg)
+        tool_name = match.group(1) if match else ""
+        envelope = {
+            "_envelope_version": 1,
+            "error_kind": "tool_not_found",
+            "tool": tool_name,
+            "summary": msg,
+            "details": [],
+            "hints": [
+                "Use list_tools or tool_search to discover available tools",
+            ],
+            "examples": [],
+            "error_code": "TOOL_NOT_FOUND",
+            "retryable": False,
+        }
+        return RuntimeError(_json.dumps(envelope))
 
     return RuntimeError(f"{type(exc).__name__}: {exc}")
 
