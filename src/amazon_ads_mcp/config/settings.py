@@ -188,17 +188,20 @@ class Settings(BaseSettings):
     )
 
     mcp_strict_unknown_fields: bool = Field(
-        False,
+        True,
         alias="MCP_STRICT_UNKNOWN_FIELDS",
         description=(
             "Reject tool calls that include fields not declared in the tool's "
             "input schema (after canonical-key normalization AND sidecar "
-            "alias rewrites). Default OFF for back-compat: pass-through is "
-            "useful when Amazon ships fields ahead of the spec. Set true in "
-            "production to surface typos like `maxResult` (vs `maxResults`) "
-            "as `mcp_input_validation` errors with `did_you_mean` hints "
-            "instead of silently letting Amazon defaults take over and "
-            "potentially returning wildly wrong result sizes."
+            "alias rewrites). Default ON: typo'd or unknown top-level fields "
+            "surface as `mcp_input_validation` errors with `did_you_mean` "
+            "hints instead of being silently dropped (which previously caused "
+            "Amazon defaults to apply — e.g. `stateFilte` typo silently "
+            "ignored, returning all states instead of filtering to ENABLED; "
+            "`maxResult` typo returns 1000 results instead of the intended "
+            "page size). Set false as an escape hatch when Amazon ships "
+            "fields ahead of our OpenAPI spec and strict rejection would "
+            "block valid calls."
         ),
     )
 

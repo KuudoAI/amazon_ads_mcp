@@ -228,6 +228,7 @@ async def check_strict_unknown_fields(
     *,
     server: Any | None = None,
     fastmcp_context: Any | None = None,
+    extra_known_fields: Optional[set] = None,
 ) -> None:
     """Raise :class:`ValidationError` if ``args`` contains keys not in the
     tool's schema. Run AFTER schema-key normalization AND sidecar alias
@@ -235,9 +236,15 @@ async def check_strict_unknown_fields(
     survive — only fields that are still unknown after both passes are
     rejected.
 
-    No-op when ``MCP_STRICT_UNKNOWN_FIELDS`` is false (default) or when
-    the tool has no resolvable schema. Generates ``did_you_mean`` hints
-    via ``difflib.get_close_matches`` against the schema's known properties.
+    ``extra_known_fields`` lets callers (typically the sidecar middleware)
+    pass an additional allowlist of legal field names — used to exempt
+    sidecar's additive ``arg_aliases`` source keys, which sit in args
+    alongside the canonical key after the rewrite.
+
+    No-op when ``MCP_STRICT_UNKNOWN_FIELDS`` is false (opt-out) or when
+    the tool has no resolvable schema. Default ON. Generates
+    ``did_you_mean`` hints via ``difflib.get_close_matches`` against the
+    schema's known properties.
     """
     if not settings.mcp_strict_unknown_fields:
         return
@@ -252,6 +259,8 @@ async def check_strict_unknown_fields(
         return
 
     known = set(properties.keys())
+    if extra_known_fields:
+        known = known | set(extra_known_fields)
     unknown = [k for k in args.keys() if k not in known]
     if not unknown:
         return

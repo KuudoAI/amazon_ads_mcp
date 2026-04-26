@@ -49,23 +49,51 @@ def server_with_known_tool():
 
 
 @pytest.mark.asyncio
-async def test_strict_off_passes_through_unknown_fields(
+async def test_strict_off_opt_out_passes_through_unknown_fields(
     monkeypatch, server_with_known_tool
 ):
-    """Default behavior: unknown fields are NOT rejected. Back-compat with
-    callers using fields that are valid at Amazon but not yet in our spec."""
+    """Opt-out path: when an operator explicitly sets
+    MCP_STRICT_UNKNOWN_FIELDS=false (e.g. they need to access Amazon
+    fields ahead of our spec), pass-through is preserved. Default is
+    ON; this test exercises the escape hatch."""
     monkeypatch.setenv("MCP_STRICT_UNKNOWN_FIELDS", "false")
     from amazon_ads_mcp.config.settings import Settings
     from amazon_ads_mcp.middleware import schema_normalization as sn_module
 
     monkeypatch.setattr(sn_module, "settings", Settings())
 
-    # Should NOT raise — strict mode off
+    # Should NOT raise — strict mode opted out
     await check_strict_unknown_fields(
         "known_tool",
         {"maxResult": 10, "totalNonsenseParam": "lol"},
         server=server_with_known_tool,
     )
+
+
+@pytest.mark.asyncio
+async def test_strict_default_on_rejects_unknown_fields_without_env(
+    monkeypatch, server_with_known_tool
+):
+    """The new default: with NO env override, strict mode is ON and
+    unknown fields raise. This is the safe-by-default contract that
+    closes #19/#20."""
+    # Explicitly clear any inherited env value so we test the field default
+    monkeypatch.delenv("MCP_STRICT_UNKNOWN_FIELDS", raising=False)
+    from amazon_ads_mcp.config.settings import Settings
+    from amazon_ads_mcp.middleware import schema_normalization as sn_module
+
+    fresh_settings = Settings()
+    assert fresh_settings.mcp_strict_unknown_fields is True, (
+        "default for mcp_strict_unknown_fields must be True (safe-by-default)"
+    )
+    monkeypatch.setattr(sn_module, "settings", fresh_settings)
+
+    with pytest.raises(ValidationError):
+        await check_strict_unknown_fields(
+            "known_tool",
+            {"maxResult": 10},
+            server=server_with_known_tool,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -232,6 +260,44 @@ async def test_strict_on_unresolvable_schema_no_op(monkeypatch):
     await check_strict_unknown_fields(
         "missing_tool", {"anything": 1}, server=server
     )
+
+
+@pytest.mark.asyncio
+async def test_strict_on_extra_known_fields_exempts_aliases(
+    monkeypatch, server_with_known_tool
+):
+    """Critical contract: extra_known_fields (passed by sidecar middleware
+    to exempt arg_aliases ``from`` keys) must allow those keys through
+    even though they're not in the tool's schema.
+
+    Real example: ``allv1_AdsApiv1RetrieveReport`` schema declares
+    ``reportIds`` (plural). Sidecar's arg_aliases additively rewrites
+    ``reportId`` (singular alias) → ``reportIds``, leaving BOTH keys in
+    args. The strict check must exempt ``reportId`` because it's a
+    documented alias path, not a typo."""
+    monkeypatch.setenv("MCP_STRICT_UNKNOWN_FIELDS", "true")
+    from amazon_ads_mcp.config.settings import Settings
+    from amazon_ads_mcp.middleware import schema_normalization as sn_module
+
+    monkeypatch.setattr(sn_module, "settings", Settings())
+
+    # ``aliasField`` is not in the schema; without exemption it would be
+    # rejected. With extra_known_fields={"aliasField"} it must pass.
+    await check_strict_unknown_fields(
+        "known_tool",
+        {"maxResults": 10, "aliasField": "abc"},
+        server=server_with_known_tool,
+        extra_known_fields={"aliasField"},
+    )
+
+    # And without the exemption, the same call DOES raise — confirms
+    # the exemption is what made the difference (not a no-op):
+    with pytest.raises(ValidationError):
+        await check_strict_unknown_fields(
+            "known_tool",
+            {"maxResults": 10, "aliasField": "abc"},
+            server=server_with_known_tool,
+        )
 
 
 @pytest.mark.asyncio

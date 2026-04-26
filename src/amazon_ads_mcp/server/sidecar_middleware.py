@@ -94,6 +94,13 @@ class SidecarTransformMiddleware(Middleware):
         overlays_dir: Optional[Path] = None,
     ) -> None:
         self._input_transforms: Dict[str, List[InputTransform]] = {}
+        # arg_aliases is intentionally additive (the rewrite leaves the
+        # source key in place; HTTP clients ignore unknown params, and
+        # callers may submit either form). Track the source keys per tool
+        # so the strict-unknown-fields check can exempt them — otherwise
+        # MCP_STRICT_UNKNOWN_FIELDS=true would reject legitimate alias
+        # callers like ``reportId`` for ``allv1_AdsApiv1RetrieveReport``.
+        self._arg_alias_sources: Dict[str, set[str]] = {}
         self._loaded_rules = 0
         self._loaded_transforms = 0
         self._loaded_overlays = 0
@@ -170,7 +177,30 @@ class SidecarTransformMiddleware(Middleware):
             keys.append(op_id)
         for key in keys:
             self._input_transforms.setdefault(key, []).append(input_tx)
+
+        # Record arg_aliases source keys so strict-unknown-fields can
+        # exempt them. arg_aliases lives under input_transform (most
+        # common) or directly on the rule (overlay convention).
+        cfg = (rule.get("input_transform") or {}) if isinstance(
+            rule.get("input_transform"), dict
+        ) else {}
+        aliases = cfg.get("arg_aliases") or rule.get("arg_aliases") or []
+        if isinstance(aliases, list):
+            for alias in aliases:
+                if not isinstance(alias, dict):
+                    continue
+                src = alias.get("from")
+                if isinstance(src, str) and src:
+                    for key in keys:
+                        self._arg_alias_sources.setdefault(key, set()).add(src)
         return True
+
+    def alias_sources_for(self, tool_name: str) -> set[str]:
+        """Return the set of arg_aliases ``from`` keys registered for
+        ``tool_name`` (or ``op_id``). Used by the strict-unknown-fields
+        check to exempt legitimate aliases that the additive rewrite
+        leaves in place. Empty set when no aliases registered."""
+        return self._arg_alias_sources.get(tool_name, set())
 
     def _load(self, resources_dir: Path) -> None:
         if not resources_dir.exists():
@@ -339,8 +369,11 @@ class SidecarTransformMiddleware(Middleware):
         # Strict unknown-field check runs AFTER both schema_normalization
         # (upstream middleware) AND sidecar alias rewrites (above), so it
         # only rejects fields that genuinely don't map to the tool's schema.
-        # Sidecar-aliased fields like ``reportId`` → ``reportIds`` survive.
-        # No-op when MCP_STRICT_UNKNOWN_FIELDS is false (default).
+        # Sidecar-aliased source keys (e.g. ``reportId`` for the
+        # ``reportId`` → ``reportIds`` rewrite) are explicitly exempted —
+        # arg_aliases is additive (the source key stays in args), and
+        # those callers are using a documented alias path, not making a typo.
+        # Default ON; set MCP_STRICT_UNKNOWN_FIELDS=false to opt out.
         from ..middleware.schema_normalization import (
             check_strict_unknown_fields,
         )
@@ -349,6 +382,7 @@ class SidecarTransformMiddleware(Middleware):
             tool_name,
             final_args,
             fastmcp_context=getattr(context, "fastmcp_context", None),
+            extra_known_fields=self.alias_sources_for(tool_name),
         )
 
         return await call_next(context)
