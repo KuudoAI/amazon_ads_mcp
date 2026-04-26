@@ -17,6 +17,42 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AudienceId",
+            "to": "audienceId"
+          },
+          {
+            "from": "AdType",
+            "to": "adType"
+          },
+          {
+            "from": "AdvertiserId",
+            "to": "advertiserId"
+          },
+          {
+            "from": "MinimumOverlapAffinity",
+            "to": "minimumOverlapAffinity"
+          },
+          {
+            "from": "MaximumOverlapAffinity",
+            "to": "maximumOverlapAffinity"
+          },
+          {
+            "from": "AudienceCategory",
+            "to": "audienceCategory"
+          },
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          }
+        ]
       }
     }
   ]

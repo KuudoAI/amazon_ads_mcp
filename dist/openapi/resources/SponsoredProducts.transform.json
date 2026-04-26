@@ -53,6 +53,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "PageSize",
+            "to": "pageSize"
+          }
+        ]
       }
     },
     {
@@ -62,6 +74,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "BudgetRulesDetails",
+            "to": "budgetRulesDetails"
+          }
+        ]
       }
     },
     {
@@ -71,6 +91,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "BudgetRulesDetails",
+            "to": "budgetRulesDetails"
+          }
+        ]
       }
     },
     {
@@ -80,6 +108,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "BudgetRuleId",
+            "to": "budgetRuleId"
+          }
+        ]
       }
     },
     {
@@ -96,6 +132,22 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "BudgetRuleId",
+            "to": "budgetRuleId"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "PageSize",
+            "to": "pageSize"
+          }
+        ]
       }
     },
     {
@@ -105,6 +157,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "BudgetRulesAssociations",
+            "to": "budgetRulesAssociations"
+          }
+        ]
       }
     },
     {
@@ -114,6 +174,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "BudgetRulesDisAssociations",
+            "to": "budgetRulesDisAssociations"
+          }
+        ]
       }
     },
     {
@@ -130,6 +198,22 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "CampaignIds",
+            "to": "campaignIds"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          }
+        ]
       }
     },
     {
@@ -283,6 +367,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "CampaignId",
+            "to": "campaignId"
+          }
+        ]
       }
     },
     {
@@ -292,6 +384,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "CampaignId",
+            "to": "campaignId"
+          },
+          {
+            "from": "BudgetRuleIds",
+            "to": "budgetRuleIds"
+          }
+        ]
       }
     },
     {
@@ -301,6 +405,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "CampaignId",
+            "to": "campaignId"
+          },
+          {
+            "from": "BudgetRuleId",
+            "to": "budgetRuleId"
+          }
+        ]
       }
     },
     {
@@ -310,6 +426,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "CampaignId",
+            "to": "campaignId"
+          }
+        ]
       }
     },
     {
@@ -535,6 +659,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "CampaignOptimizationId",
+            "to": "campaignOptimizationId"
+          }
+        ]
       }
     },
     {
@@ -544,6 +676,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "CampaignOptimizationId",
+            "to": "campaignOptimizationId"
+          }
+        ]
       }
     },
     {
@@ -625,6 +765,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "Locale",
+            "to": "locale"
+          }
+        ]
       }
     },
     {
@@ -661,6 +809,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "Locale",
+            "to": "locale"
+          }
+        ]
       }
     },
     {
@@ -670,6 +826,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "Locale",
+            "to": "locale"
+          }
+        ]
       }
     },
     {
@@ -679,6 +843,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "CategoryId",
+            "to": "categoryId"
+          },
+          {
+            "from": "Locale",
+            "to": "locale"
+          }
+        ]
       }
     },
     {

@@ -33,7 +33,7 @@ venv.bak/
 .Python
 pyvenv.cfg
 pip-selfcheck.json
-
+docs/audit/*
 # uv
 # uv.lock is tracked — CI uses `uv sync --frozen`
 

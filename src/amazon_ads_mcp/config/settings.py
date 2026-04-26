@@ -164,6 +164,29 @@ class Settings(BaseSettings):
         description="Enable FastMCP experimental OpenAPI parser for better performance",
     )
 
+    # Cross-server envelope contract — pre-flight schema-driven key normalization.
+    # See openbridge-mcp/CONTRACT.md for the canonical specification.
+    mcp_schema_key_normalization_enabled: bool = Field(
+        True,
+        alias="MCP_SCHEMA_KEY_NORMALIZATION_ENABLED",
+        description=(
+            "Master switch for schema-driven canonical-key normalization. "
+            "Set false as an escape hatch when Amazon ships fields ahead of the "
+            "OpenAPI spec and strict normalization would block valid calls."
+        ),
+    )
+    mcp_schema_key_normalization_meta: bool = Field(
+        True,
+        alias="MCP_SCHEMA_KEY_NORMALIZATION_META",
+        description=(
+            "Emit `_meta.normalized` events on responses when the middleware "
+            "attempted normalization. Default ON so agents always learn when "
+            "their input was rewritten (Phase 5 early flip per tester "
+            "feedback). Set to false to suppress the telemetry for "
+            "noise-sensitive deployments."
+        ),
+    )
+
     # OAuth Configuration (optional, for web-based authentication flows)
     oauth_client_id: Optional[str] = Field(
         None,

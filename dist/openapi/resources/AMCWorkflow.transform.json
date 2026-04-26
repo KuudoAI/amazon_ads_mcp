@@ -17,6 +17,22 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "Limit",
+            "to": "limit"
+          },
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          }
+        ]
       }
     },
     {
@@ -26,6 +42,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          },
+          {
+            "from": "DataSourceId",
+            "to": "dataSourceId"
+          }
+        ]
       }
     },
     {
@@ -42,6 +70,26 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "Limit",
+            "to": "limit"
+          },
+          {
+            "from": "MarketplaceId",
+            "to": "marketplaceId"
+          },
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          }
+        ]
       }
     },
     {
@@ -51,6 +99,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          }
+        ]
       }
     },
     {
@@ -60,6 +116,22 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          },
+          {
+            "from": "ScheduleId",
+            "to": "scheduleId"
+          },
+          {
+            "from": "MarketplaceId",
+            "to": "marketplaceId"
+          }
+        ]
       }
     },
     {
@@ -69,6 +141,22 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "MarketplaceId",
+            "to": "marketplaceId"
+          },
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          },
+          {
+            "from": "ScheduleId",
+            "to": "scheduleId"
+          }
+        ]
       }
     },
     {
@@ -78,6 +166,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          },
+          {
+            "from": "ScheduleId",
+            "to": "scheduleId"
+          }
+        ]
       }
     },
     {
@@ -94,6 +194,50 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "Limit",
+            "to": "limit"
+          },
+          {
+            "from": "SortAscending",
+            "to": "sortAscending"
+          },
+          {
+            "from": "IncludeCancelled",
+            "to": "includeCancelled"
+          },
+          {
+            "from": "MinCreationTime",
+            "to": "minCreationTime"
+          },
+          {
+            "from": "MaxCreationTime",
+            "to": "maxCreationTime"
+          },
+          {
+            "from": "TimeZone",
+            "to": "timeZone"
+          },
+          {
+            "from": "WorkflowId",
+            "to": "workflowId"
+          },
+          {
+            "from": "IncludeWorkflow",
+            "to": "includeWorkflow"
+          },
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          }
+        ]
       }
     },
     {
@@ -103,6 +247,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          }
+        ]
       }
     },
     {
@@ -112,6 +264,22 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          },
+          {
+            "from": "WorkflowExecutionId",
+            "to": "workflowExecutionId"
+          },
+          {
+            "from": "IncludeWorkflow",
+            "to": "includeWorkflow"
+          }
+        ]
       }
     },
     {
@@ -121,6 +289,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          },
+          {
+            "from": "WorkflowExecutionId",
+            "to": "workflowExecutionId"
+          }
+        ]
       }
     },
     {
@@ -130,6 +310,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          },
+          {
+            "from": "WorkflowExecutionId",
+            "to": "workflowExecutionId"
+          }
+        ]
       }
     },
     {
@@ -146,6 +338,22 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "Limit",
+            "to": "limit"
+          },
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          }
+        ]
       }
     },
     {
@@ -155,6 +363,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          }
+        ]
       }
     },
     {
@@ -164,6 +380,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          },
+          {
+            "from": "WorkflowId",
+            "to": "workflowId"
+          }
+        ]
       }
     },
     {
@@ -173,6 +401,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          },
+          {
+            "from": "WorkflowId",
+            "to": "workflowId"
+          }
+        ]
       }
     },
     {
@@ -182,6 +422,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          },
+          {
+            "from": "WorkflowId",
+            "to": "workflowId"
+          }
+        ]
       }
     }
   ]

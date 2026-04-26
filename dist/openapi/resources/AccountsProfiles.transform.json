@@ -10,6 +10,26 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "ApiProgram",
+            "to": "apiProgram"
+          },
+          {
+            "from": "AccessLevel",
+            "to": "accessLevel"
+          },
+          {
+            "from": "ProfileTypeFilter",
+            "to": "profileTypeFilter"
+          },
+          {
+            "from": "ValidPaymentMethodFilter",
+            "to": "validPaymentMethodFilter"
+          }
+        ]
       }
     },
     {
@@ -28,6 +48,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "ProfileId",
+            "to": "profileId"
+          }
+        ]
       }
     }
   ]

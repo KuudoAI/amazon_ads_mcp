@@ -10,6 +10,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AdvertiserId",
+            "to": "advertiserId"
+          }
+        ]
       }
     },
     {
@@ -19,6 +27,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AdvertiserId",
+            "to": "advertiserId"
+          }
+        ]
       }
     },
     {
@@ -28,6 +44,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AdvertiserId",
+            "to": "advertiserId"
+          }
+        ]
       }
     },
     {
@@ -44,6 +68,22 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AdvertiserId",
+            "to": "advertiserId"
+          },
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          }
+        ]
       }
     },
     {
@@ -60,6 +100,22 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AdvertiserId",
+            "to": "advertiserId"
+          },
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          }
+        ]
       }
     }
   ]

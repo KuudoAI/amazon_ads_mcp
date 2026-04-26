@@ -10,6 +10,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          },
+          {
+            "from": "StartingToken",
+            "to": "startingToken"
+          }
+        ]
       }
     },
     {
@@ -28,6 +40,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "SubscriptionId",
+            "to": "subscriptionId"
+          }
+        ]
       }
     },
     {
@@ -37,6 +57,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "SubscriptionId",
+            "to": "subscriptionId"
+          }
+        ]
       }
     },
     {
@@ -46,6 +74,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          },
+          {
+            "from": "StartingToken",
+            "to": "startingToken"
+          }
+        ]
       }
     },
     {
@@ -64,6 +104,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "SubscriptionId",
+            "to": "subscriptionId"
+          }
+        ]
       }
     },
     {
@@ -73,6 +121,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "SubscriptionId",
+            "to": "subscriptionId"
+          }
+        ]
       }
     }
   ]

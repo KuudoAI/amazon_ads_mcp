@@ -10,6 +10,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AssetId",
+            "to": "assetId"
+          },
+          {
+            "from": "Version",
+            "to": "version"
+          }
+        ]
       }
     },
     {
@@ -28,6 +40,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "RequestId",
+            "to": "requestId"
+          }
+        ]
       }
     },
     {
@@ -37,6 +57,50 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AsinList",
+            "to": "asinList"
+          },
+          {
+            "from": "AssetSubTypeList",
+            "to": "assetSubTypeList"
+          },
+          {
+            "from": "AssetType",
+            "to": "assetType"
+          },
+          {
+            "from": "AssociatedSubEntityList",
+            "to": "associatedSubEntityList"
+          },
+          {
+            "from": "Name",
+            "to": "name"
+          },
+          {
+            "from": "RegistrationContext",
+            "to": "registrationContext"
+          },
+          {
+            "from": "SkipAssetSubTypesDetection",
+            "to": "skipAssetSubTypesDetection"
+          },
+          {
+            "from": "Tags",
+            "to": "tags"
+          },
+          {
+            "from": "Url",
+            "to": "url"
+          },
+          {
+            "from": "VersionInfo",
+            "to": "versionInfo"
+          }
+        ]
       }
     },
     {
@@ -46,6 +110,26 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "FilterCriteria",
+            "to": "filterCriteria"
+          },
+          {
+            "from": "PageCriteria",
+            "to": "pageCriteria"
+          },
+          {
+            "from": "SortCriteria",
+            "to": "sortCriteria"
+          },
+          {
+            "from": "Text",
+            "to": "text"
+          }
+        ]
       }
     },
     {
@@ -55,6 +139,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "FileName",
+            "to": "fileName"
+          }
+        ]
       }
     }
   ]

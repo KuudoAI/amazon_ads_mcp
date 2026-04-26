@@ -10,6 +10,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "ConnectionId",
+            "to": "connectionId"
+          }
+        ]
       }
     },
     {
@@ -19,6 +27,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "ConnectionId",
+            "to": "connectionId"
+          },
+          {
+            "from": "IsDefault",
+            "to": "isDefault"
+          }
+        ]
       }
     },
     {
@@ -64,6 +84,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AudienceId",
+            "to": "audienceId"
+          }
+        ]
       }
     },
     {
@@ -73,6 +101,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AudienceId",
+            "to": "audienceId"
+          }
+        ]
       }
     },
     {
@@ -91,6 +127,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "JobRequestId",
+            "to": "jobRequestId"
+          }
+        ]
       }
     }
   ]

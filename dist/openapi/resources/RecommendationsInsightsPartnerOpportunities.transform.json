@@ -17,6 +17,46 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "Locale",
+            "to": "locale"
+          },
+          {
+            "from": "RetrieveTranslationKeys",
+            "to": "retrieveTranslationKeys"
+          },
+          {
+            "from": "AdvertiserId",
+            "to": "advertiserId"
+          },
+          {
+            "from": "ProfileId",
+            "to": "profileId"
+          },
+          {
+            "from": "Audience",
+            "to": "audience"
+          },
+          {
+            "from": "ObjectiveType",
+            "to": "objectiveType"
+          },
+          {
+            "from": "Product",
+            "to": "product"
+          }
+        ]
       }
     },
     {
@@ -26,6 +66,22 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "Audience",
+            "to": "audience"
+          },
+          {
+            "from": "ObjectiveType",
+            "to": "objectiveType"
+          },
+          {
+            "from": "Product",
+            "to": "product"
+          }
+        ]
       }
     },
     {
@@ -35,6 +91,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "PartnerOpportunityId",
+            "to": "partnerOpportunityId"
+          }
+        ]
       }
     },
     {
@@ -44,6 +108,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "PartnerOpportunityId",
+            "to": "partnerOpportunityId"
+          }
+        ]
       }
     },
     {
@@ -53,6 +125,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "PartnerOpportunityId",
+            "to": "partnerOpportunityId"
+          },
+          {
+            "from": "FileFormat",
+            "to": "fileFormat"
+          }
+        ]
       }
     }
   ]

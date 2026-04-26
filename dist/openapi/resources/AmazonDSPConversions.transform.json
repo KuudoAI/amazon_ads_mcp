@@ -17,6 +17,34 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AdTagId",
+            "to": "adTagId"
+          },
+          {
+            "from": "SearchTerm",
+            "to": "searchTerm"
+          },
+          {
+            "from": "StartDateTime",
+            "to": "startDateTime"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          },
+          {
+            "from": "EndDateTime",
+            "to": "endDateTime"
+          }
+        ]
       }
     },
     {
@@ -89,6 +117,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "ConversionDefinitionId",
+            "to": "conversionDefinitionId"
+          }
+        ]
       }
     },
     {
@@ -98,6 +134,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "ConversionDefinitionId",
+            "to": "conversionDefinitionId"
+          }
+        ]
       }
     },
     {
@@ -107,6 +151,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "ConversionDefinitionId",
+            "to": "conversionDefinitionId"
+          }
+        ]
       }
     },
     {
@@ -159,6 +211,22 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "OrderId",
+            "to": "orderId"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          }
+        ]
       }
     },
     {
@@ -168,6 +236,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "OrderId",
+            "to": "orderId"
+          }
+        ]
       }
     }
   ]

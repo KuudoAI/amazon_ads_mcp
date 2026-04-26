@@ -10,6 +10,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "DeduplicatedReachForecasts",
+            "to": "deduplicatedReachForecasts"
+          }
+        ]
       }
     },
     {
@@ -19,6 +27,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "CommonTargets",
+            "to": "commonTargets"
+          },
+          {
+            "from": "ReachForecasts",
+            "to": "reachForecasts"
+          }
+        ]
       }
     },
     {
@@ -28,6 +48,22 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "ReachForecastIds",
+            "to": "reachForecastIds"
+          }
+        ]
       }
     },
     {
@@ -37,6 +73,22 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "ReachForecastId",
+            "to": "reachForecastId"
+          }
+        ]
       }
     }
   ]

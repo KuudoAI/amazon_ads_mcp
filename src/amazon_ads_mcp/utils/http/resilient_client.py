@@ -119,6 +119,13 @@ class ResilientAuthenticatedClient(AuthenticatedClient):
                 breaker = get_circuit_breaker(endpoint)
                 breaker.record_success()
 
+            # Rate-limit telemetry capture moved to the parent class
+            # ``AuthenticatedClient.send`` (Round 4 #2) so every code
+            # path — including FastMCP-from-OpenAPI tools that don't
+            # route through this resilient client — populates the
+            # per-call context-var consistently. ``send_with_retry``
+            # above invokes ``super().send`` which now handles capture.
+
             return response
 
         except Exception:

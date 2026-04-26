@@ -10,6 +10,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "BrandTypeFilter",
+            "to": "brandTypeFilter"
+          }
+        ]
       }
     },
     {
@@ -19,6 +27,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "UploadLocation",
+            "to": "uploadLocation"
+          },
+          {
+            "from": "Version",
+            "to": "version"
+          }
+        ]
       }
     },
     {
@@ -28,6 +48,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "MediaId",
+            "to": "mediaId"
+          }
+        ]
       }
     },
     {
@@ -37,6 +65,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "PageUrl",
+            "to": "pageUrl"
+          }
+        ]
       }
     },
     {
@@ -55,6 +91,50 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "StartIndex",
+            "to": "startIndex"
+          },
+          {
+            "from": "Count",
+            "to": "count"
+          },
+          {
+            "from": "MatchTypeFilter",
+            "to": "matchTypeFilter"
+          },
+          {
+            "from": "KeywordText",
+            "to": "keywordText"
+          },
+          {
+            "from": "StateFilter",
+            "to": "stateFilter"
+          },
+          {
+            "from": "CampaignIdFilter",
+            "to": "campaignIdFilter"
+          },
+          {
+            "from": "AdGroupIdFilter",
+            "to": "adGroupIdFilter"
+          },
+          {
+            "from": "KeywordIdFilter",
+            "to": "keywordIdFilter"
+          },
+          {
+            "from": "CreativeType",
+            "to": "creativeType"
+          },
+          {
+            "from": "Locale",
+            "to": "locale"
+          }
+        ]
       }
     },
     {
@@ -82,6 +162,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "KeywordId",
+            "to": "keywordId"
+          }
+        ]
       }
     },
     {
@@ -91,6 +179,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "KeywordId",
+            "to": "keywordId"
+          },
+          {
+            "from": "Locale",
+            "to": "locale"
+          }
+        ]
       }
     },
     {
@@ -100,6 +200,46 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "StartIndex",
+            "to": "startIndex"
+          },
+          {
+            "from": "Count",
+            "to": "count"
+          },
+          {
+            "from": "MatchTypeFilter",
+            "to": "matchTypeFilter"
+          },
+          {
+            "from": "KeywordText",
+            "to": "keywordText"
+          },
+          {
+            "from": "StateFilter",
+            "to": "stateFilter"
+          },
+          {
+            "from": "CampaignIdFilter",
+            "to": "campaignIdFilter"
+          },
+          {
+            "from": "AdGroupIdFilter",
+            "to": "adGroupIdFilter"
+          },
+          {
+            "from": "KeywordIdFilter",
+            "to": "keywordIdFilter"
+          },
+          {
+            "from": "CreativeType",
+            "to": "creativeType"
+          }
+        ]
       }
     },
     {
@@ -127,6 +267,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "KeywordId",
+            "to": "keywordId"
+          }
+        ]
       }
     },
     {
@@ -136,6 +284,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "KeywordId",
+            "to": "keywordId"
+          }
+        ]
       }
     },
     {
@@ -145,6 +301,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "NegativeTargets",
+            "to": "negativeTargets"
+          }
+        ]
       }
     },
     {
@@ -154,6 +318,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "NegativeTargets",
+            "to": "negativeTargets"
+          }
+        ]
       }
     },
     {
@@ -172,6 +344,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "NegativeTargetId",
+            "to": "negativeTargetId"
+          }
+        ]
       }
     },
     {
@@ -181,6 +361,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "NegativeTargetId",
+            "to": "negativeTargetId"
+          }
+        ]
       }
     },
     {
@@ -190,6 +378,38 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AdFormat",
+            "to": "adFormat"
+          },
+          {
+            "from": "CampaignId",
+            "to": "campaignId"
+          },
+          {
+            "from": "CostType",
+            "to": "costType"
+          },
+          {
+            "from": "Goal",
+            "to": "goal"
+          },
+          {
+            "from": "Keywords",
+            "to": "keywords"
+          },
+          {
+            "from": "Targets",
+            "to": "targets"
+          },
+          {
+            "from": "ThemeTypes",
+            "to": "themeTypes"
+          }
+        ]
       }
     },
     {
@@ -217,6 +437,22 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "Locale",
+            "to": "locale"
+          },
+          {
+            "from": "Asins",
+            "to": "asins"
+          },
+          {
+            "from": "SupplySource",
+            "to": "supplySource"
+          }
+        ]
       }
     },
     {
@@ -235,6 +471,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "Targets",
+            "to": "targets"
+          }
+        ]
       }
     },
     {
@@ -244,6 +488,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "Targets",
+            "to": "targets"
+          }
+        ]
       }
     },
     {
@@ -262,6 +514,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "TargetId",
+            "to": "targetId"
+          }
+        ]
       }
     },
     {
@@ -271,6 +531,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "TargetId",
+            "to": "targetId"
+          }
+        ]
       }
     },
     {
@@ -280,6 +548,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "Themes",
+            "to": "themes"
+          }
+        ]
       }
     },
     {
@@ -289,6 +565,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "Themes",
+            "to": "themes"
+          }
+        ]
       }
     },
     {
@@ -307,6 +591,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "BrandEntityId",
+            "to": "brandEntityId"
+          },
+          {
+            "from": "MediaType",
+            "to": "mediaType"
+          }
+        ]
       }
     },
     {
@@ -325,6 +621,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "ReportId",
+            "to": "reportId"
+          }
+        ]
       }
     }
   ]

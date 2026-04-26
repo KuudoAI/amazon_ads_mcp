@@ -17,6 +17,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          }
+        ]
       }
     },
     {
@@ -33,6 +41,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "Limit",
+            "to": "limit"
+          }
+        ]
       }
     },
     {
@@ -51,6 +71,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          }
+        ]
       }
     },
     {
@@ -60,6 +88,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          }
+        ]
       }
     },
     {
@@ -69,6 +105,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          }
+        ]
       }
     },
     {
@@ -85,6 +129,26 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          },
+          {
+            "from": "Type",
+            "to": "type"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "Limit",
+            "to": "limit"
+          }
+        ]
       }
     },
     {
@@ -101,6 +165,22 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "Limit",
+            "to": "limit"
+          }
+        ]
       }
     },
     {
@@ -110,6 +190,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          }
+        ]
       }
     },
     {
@@ -119,6 +207,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          },
+          {
+            "from": "UpdateId",
+            "to": "updateId"
+          }
+        ]
       }
     },
     {
@@ -128,6 +228,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          }
+        ]
       }
     },
     {
@@ -137,6 +245,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          }
+        ]
       }
     },
     {
@@ -146,6 +262,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          }
+        ]
       }
     },
     {
@@ -155,6 +279,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          },
+          {
+            "from": "IdMappingTableId",
+            "to": "idMappingTableId"
+          }
+        ]
       }
     },
     {
@@ -164,6 +300,22 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          },
+          {
+            "from": "IdMappingTableId",
+            "to": "idMappingTableId"
+          },
+          {
+            "from": "TrackingId",
+            "to": "trackingId"
+          }
+        ]
       }
     },
     {
@@ -173,6 +325,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          },
+          {
+            "from": "IdMappingTableId",
+            "to": "idMappingTableId"
+          }
+        ]
       }
     },
     {
@@ -182,6 +346,22 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          },
+          {
+            "from": "IdMappingTableId",
+            "to": "idMappingTableId"
+          },
+          {
+            "from": "JobId",
+            "to": "jobId"
+          }
+        ]
       }
     },
     {
@@ -191,6 +371,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          },
+          {
+            "from": "IdMappingTableId",
+            "to": "idMappingTableId"
+          }
+        ]
       }
     },
     {
@@ -200,6 +392,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          }
+        ]
       }
     },
     {
@@ -209,6 +409,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InstanceId",
+            "to": "instanceId"
+          }
+        ]
       }
     }
   ]

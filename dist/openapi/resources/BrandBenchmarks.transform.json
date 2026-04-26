@@ -17,6 +17,26 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AdvertiserId",
+            "to": "advertiserId"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          },
+          {
+            "from": "LatestOnly",
+            "to": "latestOnly"
+          }
+        ]
       }
     },
     {
@@ -26,6 +46,22 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AdvertiserId",
+            "to": "advertiserId"
+          },
+          {
+            "from": "IndexDate",
+            "to": "indexDate"
+          },
+          {
+            "from": "ReportType",
+            "to": "reportType"
+          }
+        ]
       }
     }
   ]

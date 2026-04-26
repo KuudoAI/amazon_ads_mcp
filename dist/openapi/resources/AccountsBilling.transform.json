@@ -10,6 +10,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "DocumentId",
+            "to": "documentId"
+          },
+          {
+            "from": "DocType",
+            "to": "docType"
+          }
+        ]
       }
     },
     {
@@ -19,6 +31,22 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "IdempotenceId",
+            "to": "idempotenceId"
+          },
+          {
+            "from": "PaymentAgreementId",
+            "to": "paymentAgreementId"
+          },
+          {
+            "from": "ReasonLocale",
+            "to": "reasonLocale"
+          }
+        ]
       }
     },
     {
@@ -37,6 +65,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "PaymentAgreements",
+            "to": "paymentAgreements"
+          }
+        ]
       }
     },
     {
@@ -46,6 +82,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AgreementType",
+            "to": "agreementType"
+          }
+        ]
       }
     },
     {
@@ -55,6 +99,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "CriteriaType",
+            "to": "criteriaType"
+          }
+        ]
       }
     },
     {
@@ -64,6 +116,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "PaymentProfiles",
+            "to": "paymentProfiles"
+          }
+        ]
       }
     },
     {
@@ -82,6 +142,18 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "BillingProfileAgreementContentId",
+            "to": "billingProfileAgreementContentId"
+          },
+          {
+            "from": "LanguageOfPreference",
+            "to": "languageOfPreference"
+          }
+        ]
       }
     },
     {
@@ -109,6 +181,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "BillingProfiles",
+            "to": "billingProfiles"
+          }
+        ]
       }
     },
     {
@@ -118,6 +198,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "BillingProfiles",
+            "to": "billingProfiles"
+          }
+        ]
       }
     },
     {
@@ -145,6 +233,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "BillingStatementRequestId",
+            "to": "billingStatementRequestId"
+          }
+        ]
       }
     },
     {
@@ -170,6 +266,30 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InvoiceStatuses",
+            "to": "invoiceStatuses"
+          },
+          {
+            "from": "StartDate",
+            "to": "startDate"
+          },
+          {
+            "from": "EndDate",
+            "to": "endDate"
+          },
+          {
+            "from": "Count",
+            "to": "count"
+          },
+          {
+            "from": "Cursor",
+            "to": "cursor"
+          }
+        ]
       }
     },
     {
@@ -179,6 +299,14 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InvoiceId",
+            "to": "invoiceId"
+          }
+        ]
       }
     }
   ]

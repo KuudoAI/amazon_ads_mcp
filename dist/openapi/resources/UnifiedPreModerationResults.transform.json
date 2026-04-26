@@ -10,6 +10,42 @@
       "output_transform": {
         "sample_n": 10,
         "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AdProgram",
+            "to": "adProgram"
+          },
+          {
+            "from": "AsinComponents",
+            "to": "asinComponents"
+          },
+          {
+            "from": "DateComponents",
+            "to": "dateComponents"
+          },
+          {
+            "from": "ImageComponents",
+            "to": "imageComponents"
+          },
+          {
+            "from": "Locale",
+            "to": "locale"
+          },
+          {
+            "from": "RecordId",
+            "to": "recordId"
+          },
+          {
+            "from": "TextComponents",
+            "to": "textComponents"
+          },
+          {
+            "from": "VideoComponents",
+            "to": "videoComponents"
+          }
+        ]
       }
     }
   ]

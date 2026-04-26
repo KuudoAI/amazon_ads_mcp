@@ -186,11 +186,51 @@ class ServerBuilder:
         """Setup server middleware."""
         middleware_list = []
 
+        # v1 cross-server envelope translator MUST be the OUTERMOST middleware.
+        # Order matters in FastMCP: middleware appended first runs outermost
+        # for ``on_call_tool``. The envelope middleware catches every
+        # exception raised below it (including FastMCP ``ErrorHandlingMiddleware``
+        # transformations and tool-level guardrail rejections) and re-raises
+        # as a v1 envelope ``ToolError``. See openbridge-mcp/CONTRACT.md.
+        from ..middleware.error_envelope_middleware import (
+            create_error_envelope_middleware,
+        )
+
+        middleware_list.append(create_error_envelope_middleware())
+        logger.info(
+            "Added ErrorEnvelopeMiddleware (v1 contract) as the outermost middleware"
+        )
+
+        # Schema-driven pre-flight key normalization. Runs AFTER the envelope
+        # translator (so ambiguity / no-match events still emerge as v1
+        # envelopes if the call subsequently fails) and BEFORE any downstream
+        # guardrail or schema-validation middleware (so they see canonical
+        # keys, not legacy aliases).
+        from ..middleware.schema_normalization import (
+            SchemaKeyNormalizationMiddleware,
+        )
+
+        middleware_list.append(SchemaKeyNormalizationMiddleware())
+        logger.info("Added SchemaKeyNormalizationMiddleware")
+
+        # Inject upstream rate-limit telemetry into successful dict responses.
+        # Reads the per-call context-var populated by the resilient HTTP client
+        # and merges ``_meta.rate_limit`` / ``_meta.retry_after_seconds`` into
+        # the response. Errors are still handled by the envelope middleware
+        # registered above; this layer only touches the success path.
+        from ..middleware.meta_injection_middleware import MetaInjectionMiddleware
+
+        middleware_list.append(MetaInjectionMiddleware())
+        logger.info("Added MetaInjectionMiddleware (success-path rate-limit telemetry)")
+
         # Error callback for logging
         def error_callback(error: Exception, context=None) -> None:
             logger.error(f"Tool execution error: {type(error).__name__}: {error}")
 
-        # Add ErrorHandlingMiddleware FIRST to catch all errors from other middleware/tools
+        # FastMCP's ErrorHandlingMiddleware stays in place for non-tool error
+        # paths (resources, prompts) that the envelope middleware doesn't
+        # cover. Envelope translation for tool-call errors is owned by the
+        # ErrorEnvelopeMiddleware above.
         # Production config: no tracebacks exposed, consistent error transformation
         error_middleware = ErrorHandlingMiddleware(
             include_traceback=False,  # Don't expose internal details

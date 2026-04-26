@@ -89,8 +89,17 @@ EXECUTE_DESCRIPTION = (
     "\n"
     "Available in scope:\n"
     "- `await call_tool(name: str, params: dict) -> Any` — calls any backend tool.\n"
-    "  Failures raise `RuntimeError(\"<OriginalType>: <message>\")` and are\n"
-    "  catchable with `try/except RuntimeError:` inside the script.\n"
+    "  Failures raise `RuntimeError(<envelope_json>)` where the message body\n"
+    "  is the full v1 cross-server error envelope JSON. Inside the sandbox:\n"
+    "      try:\n"
+    "          await call_tool(name, params)\n"
+    "      except RuntimeError as e:\n"
+    "          env = json.loads(str(e))\n"
+    "          # env['error_kind'], env['hints'], env['error_code'],\n"
+    "          # env['retryable'], env.get('_meta', {}) all available.\n"
+    "  Non-envelope failures fall back to `RuntimeError(\"<OriginalType>: <message>\")`.\n"
+    "  Both forms are catchable with `try/except RuntimeError:`. The format matches\n"
+    "  Amazon SP MCP for cross-server symmetry.\n"
     "\n"
     "Sandbox guardrails (Monty interpreter):\n"
     "- No network: no `urllib`, `requests`, `httpx`, `socket`. Use `call_tool`.\n"
@@ -122,6 +131,63 @@ EXECUTE_DESCRIPTION = (
     "  `'session'` but you must re-establish context for the new tenant), and\n"
     "  `\"bridge_unavailable\"` (reserved; treat as `'request'`).\n"
 )
+
+
+def translate_to_sandbox_runtime_error(exc: BaseException) -> RuntimeError:
+    """Translate ``exc`` into a ``RuntimeError`` for the Monty sandbox.
+
+    The Code Mode auth bridge (``AuthBridgingSandboxProvider``) catches every
+    exception raised by ``call_tool`` and re-raises a ``RuntimeError`` so the
+    sandbox's ``try/except RuntimeError:`` can catch it. This helper
+    centralizes the translation rule so it stays aligned with the v1
+    contract documented in ``EXECUTE_DESCRIPTION``.
+
+    Translation rule (matches Amazon SP MCP for cross-server symmetry):
+
+    - ``ToolError`` whose body is a v1 envelope JSON →
+      ``RuntimeError(envelope_json_text)``. Inside-sandbox agents can do
+      ``json.loads(str(e))`` to access ``error_kind``, ``hints``,
+      ``error_code``, ``retryable``, ``_meta`` — the full envelope, not
+      a truncated summary.
+    - ``ToolError`` with non-envelope body →
+      ``RuntimeError(f"ToolError: {body_text}")``
+    - ``RuntimeError`` already → return as-is (no double-wrap)
+    - any other ``Exception`` →
+      ``RuntimeError(f"{type(exc).__name__}: {exc}")``
+
+    Rationale: the prior format ``RuntimeError("<error_kind>: <summary>")``
+    threw away the structured fields that agents need to make recovery
+    decisions inside ``execute`` blocks. Both servers now expose the full
+    envelope so cross-server agent code can write a single recovery
+    handler. See ``openbridge-mcp/CONTRACT.md``.
+    """
+    import json as _json
+
+    from fastmcp.exceptions import ToolError as _ToolError
+
+    if isinstance(exc, RuntimeError):
+        return exc
+
+    if isinstance(exc, _ToolError):
+        text = str(exc)
+        # Detect v1 envelope: pass through unchanged so agents can call
+        # json.loads(str(e)) and access the full structured fields.
+        try:
+            parsed = _json.loads(text)
+        except (TypeError, ValueError):
+            parsed = None
+        if (
+            isinstance(parsed, dict)
+            and "error_kind" in parsed
+            and "summary" in parsed
+            and parsed.get("_envelope_version") == 1
+        ):
+            return RuntimeError(text)
+        # Non-envelope ToolError — preserve type-name prefix for legacy
+        # parsing patterns.
+        return RuntimeError(f"ToolError: {text}")
+
+    return RuntimeError(f"{type(exc).__name__}: {exc}")
 
 
 def build_discovery_tools() -> list:
@@ -339,17 +405,16 @@ class AuthBridgingSandboxProvider:
                         try:
                             return await original_call_tool(name, rewritten)
                         except Exception as exc:
-                            # Re-raise as a builtin RuntimeError so Monty
-                            # marshals it cleanly back into the sandbox where
-                            # the LLM's `try/except RuntimeError:` can catch
-                            # it. Without this normalization, ToolError /
-                            # NotFoundError types aren't reliably reified
-                            # inside the sandbox and the script aborts.
-                            # Original type name is preserved in the message
-                            # so callers can pattern-match on it.
-                            raise RuntimeError(
-                                f"{type(exc).__name__}: {exc}"
-                            ) from None
+                            # Translate via the v1 envelope-aware helper so
+                            # ToolErrors carrying envelope JSON surface in the
+                            # sandbox as ``RuntimeError("<error_kind>: <summary>")``
+                            # rather than nesting the full envelope JSON
+                            # inside a generic RuntimeError. Non-envelope
+                            # exceptions keep the legacy
+                            # ``RuntimeError("<OriginalType>: <message>")`` form.
+                            # See ``EXECUTE_DESCRIPTION`` and the contract at
+                            # openbridge-mcp/CONTRACT.md.
+                            raise translate_to_sandbox_runtime_error(exc) from None
                     finally:
                         await persist_auth_to_mcp_session(
                             parent_ctx, logger_instance=logger
