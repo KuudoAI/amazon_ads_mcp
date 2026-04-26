@@ -225,7 +225,19 @@ async def search_profiles(
     items = [_normalize_profile(profile) for profile in filtered[:limit_value]]
 
     stale_msg = "Using cached profile list; data may be stale." if stale else None
-    message = _compose_message(stale_msg, cap_msg)
+    # R3: pagination guidance — appended ONLY when the request actually
+    # exceeded the cap (cap_msg signals over-cap clamping). A normal
+    # 50-result call where total > 50 (has_more=true) does NOT get this
+    # noisy guidance — the caller asked for 50 and got 50; the has_more
+    # flag is the signal. This avoids false-positive nudges per reviewer
+    # feedback.
+    pagination_msg = (
+        "search_profiles is bounded; use page_profiles to paginate beyond "
+        f"{MAX_SEARCH_LIMIT} results."
+        if cap_msg
+        else None
+    )
+    message = _compose_message(stale_msg, cap_msg, pagination_msg)
 
     total_count = len(filtered)
     returned_count = len(items)

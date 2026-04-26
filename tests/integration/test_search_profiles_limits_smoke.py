@@ -93,7 +93,9 @@ async def test_search_profiles_over_cap_returns_clamped_with_cap_notice(
     mcp_server_with_many_profiles,
 ):
     """Wire-path: limit=200 returns exactly 50 items with a cap notice in the
-    response message field. No silent clamping — the caller sees the cap."""
+    response message field. No silent clamping — the caller sees the cap.
+    R3: the cap message also includes pagination guidance pointing at
+    page_profiles."""
     from fastmcp import Client
 
     async with Client(mcp_server_with_many_profiles) as client:
@@ -106,6 +108,32 @@ async def test_search_profiles_over_cap_returns_clamped_with_cap_notice(
     msg = payload["message"]
     assert "200" in msg and "50" in msg, (
         f"expected cap notice with 200/50 in message, got {msg!r}"
+    )
+    # R3 contract: over-cap message includes pagination guidance
+    assert "page_profiles" in msg, (
+        f"expected pagination guidance in over-cap message, got {msg!r}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_search_profiles_at_cap_no_pagination_nudge(
+    mcp_server_with_many_profiles,
+):
+    """R3 narrowing: caller asked for limit=50 (at the cap), got 50 with
+    has_more=true. Must NOT include pagination guidance — the caller
+    isn't being clamped, they got exactly what they asked for. The
+    has_more flag is the signal; no noisy nudge needed."""
+    from fastmcp import Client
+
+    async with Client(mcp_server_with_many_profiles) as client:
+        result = await client.call_tool("search_profiles", {"limit": 50})
+
+    payload = _payload(result)
+    assert payload["returned_count"] == 50
+    assert payload["has_more"] is True  # 100 mocked profiles, 50 returned
+    msg = payload.get("message") or ""
+    assert "page_profiles" not in msg, (
+        f"unexpected pagination nudge for at-cap call: {msg!r}"
     )
 
 

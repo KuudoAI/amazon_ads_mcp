@@ -111,6 +111,76 @@ async def test_search_profiles_negative_limit_raises_through_tool(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_search_profiles_over_cap_includes_pagination_guidance(monkeypatch):
+    """R3: when limit > MAX_SEARCH_LIMIT, the response message includes
+    explicit guidance to use page_profiles for paginating beyond the cap."""
+    big_profiles = [
+        {"profileId": i, "accountInfo": {"name": f"acc-{i}", "type": "seller"}}
+        for i in range(100)
+    ]
+    monkeypatch.setattr(
+        listing_tools,
+        "_get_profiles_cached",
+        AsyncMock(return_value=(big_profiles, False)),
+    )
+
+    result = await listing_tools.search_profiles(limit=200)
+
+    assert result["returned_count"] == listing_tools.MAX_SEARCH_LIMIT
+    msg = result["message"]
+    assert "page_profiles" in msg, (
+        f"expected pagination guidance in over-cap message, got {msg!r}"
+    )
+    assert "paginate" in msg.lower() or "beyond" in msg.lower()
+
+
+@pytest.mark.asyncio
+async def test_search_profiles_normal_50_call_no_pagination_guidance(monkeypatch):
+    """R3 narrowing per reviewer feedback: a normal at-cap call (user
+    asked for 50, total is more, has_more=true) does NOT get the noisy
+    pagination nudge. Guidance fires ONLY when the cap actually clamped
+    the request (i.e. limit > 50). Avoids false-positive nudges."""
+    big_profiles = [
+        {"profileId": i, "accountInfo": {"name": f"acc-{i}", "type": "seller"}}
+        for i in range(88)
+    ]
+    monkeypatch.setattr(
+        listing_tools,
+        "_get_profiles_cached",
+        AsyncMock(return_value=(big_profiles, False)),
+    )
+
+    result = await listing_tools.search_profiles(limit=50)
+    assert result["returned_count"] == 50
+    assert result["has_more"] is True  # 50 < 88
+    # Critical: no pagination guidance. Caller asked for 50, got 50.
+    msg = result["message"] or ""
+    assert "page_profiles" not in msg, (
+        f"unexpected pagination nudge for at-cap call (no clamp): {msg!r}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_search_profiles_default_limit_no_pagination_guidance(monkeypatch):
+    """R3: omitting limit (uses default of 50) also doesn't trigger
+    pagination guidance. Same reasoning as the explicit-50 case."""
+    big_profiles = [
+        {"profileId": i, "accountInfo": {"name": f"acc-{i}", "type": "seller"}}
+        for i in range(88)
+    ]
+    monkeypatch.setattr(
+        listing_tools,
+        "_get_profiles_cached",
+        AsyncMock(return_value=(big_profiles, False)),
+    )
+
+    result = await listing_tools.search_profiles()
+    assert result["returned_count"] == 50
+    msg = result["message"] or ""
+    assert "page_profiles" not in msg
+
+
+@pytest.mark.asyncio
 async def test_page_profiles_over_cap_includes_cap_notice(monkeypatch):
     """Same cap-message contract on page_profiles (uses MAX_PAGE_LIMIT=100)."""
     big_profiles = [
