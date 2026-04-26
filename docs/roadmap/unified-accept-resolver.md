@@ -272,24 +272,55 @@ The resolver must make zero assumptions about how the registry was populated. Al
 
 Test setup convention: pass `spec_accepts` as an explicit list literal in every unit test. Do NOT instantiate `MediaTypeRegistry` in resolver unit tests. The integration test below is the only place where the resolver runs against a real registry, and that test is allowed to source data from `add_from_spec` (today) or `add_from_sidecar` (post-Phase 2) — the assertions are the same either way.
 
-### New integration test against real spec data
+### Spec-contract integration tests against real spec data
 
-`tests/unit/test_accept_resolver_against_spec.py` — loads `dist/openapi/resources/SponsoredProducts.json`, builds a real `MediaTypeRegistry`, and asserts:
+`tests/unit/test_accept_resolver_against_spec.py` — loads multiple specs from `dist/openapi/resources/`, builds real `MediaTypeRegistry` instances, and asserts the resolver's behavior across the full surface that the resolver actually affects:
 
-- `getRankedKeywordRecommendation` resolves to `application/vnd.spkeywordsrecommendation.v5+json` (the headline fix; accepts list is `[v3+json, v4+json, v5+json]` after registry's lexical sort, single base, picker returns highest)
-- `GetThemeBasedBidRecommendationForAdGroup_v1` resolves to `v5+json`
-- `getTargetableCategories` resolves to `v5+json`
-- `getCategoryRecommendationsForASINs` resolves to `v5+json`
-- `getRefinementsForCategory` resolves to `v4+json` (declared `[v3+json, v4+json]`)
-- `CreateTargetPromotionGroups` resolves to `v2+json` (was v1 pre-refactor)
-- All SP v3 entity CRUD operations resolve to `v3+json` (PR #68's contract — only one version declared, so highest is unchanged)
-- **Mixed-base guard test**: any operation in current spec that declares multiple bases in one accepts list resolves via rule 4 first-listed (picker abstains). At plan time, no SP operation does this — but the test should iterate every operation in the spec and assert that mixed-base ops fall through to first-listed without crashing. Catches the moment Amazon ships a multi-base operation.
+**SponsoredProducts.json (12 multi-version + PR #68 contract):**
+- `getRankedKeywordRecommendation` → `application/vnd.spkeywordsrecommendation.v5+json` (the headline fix)
+- `GetThemeBasedBidRecommendationForAdGroup_v1` → `v5+json`
+- `getTargetableCategories` → `v5+json`
+- `getCategoryRecommendationsForASINs` → `v5+json`
+- `getRefinementsForCategory` → `v4+json`
+- `CreateOptimizationRules` / `UpdateOptimizationRules` / `SearchOptimizationRules` → `v2+json`
+- `CreateTargetPromotionGroups` / `ListTargetPromotionGroups` / `CreateTargetPromotionGroupTargets` / `ListTargetPromotionGroupTargets` → `v2+json`
+- PR #68 contract: SP v3 entity CRUD ops (campaigns, adGroups, keywords, productAds, etc.) → `v3+json`
 
-This test catches future regressions where:
-- A new spec introduces a v6 and we need to confirm we pick it up automatically.
-- Someone "fixes" the version logic in a way that breaks the spec contract.
-- The spec extraction in `build_media_maps_from_spec` changes shape (e.g. drops the lexical sort).
-- Amazon adds a multi-base accepts list and the mixed-base guard catches the silent abstention.
+**AmazonDSPConversions.json (2 multi-version + 1 mixed-base):**
+- `dspAmazonListConversionDefinitions` → `vnd.dspconversiondefinition.v2+json`
+- `dspAmazonGetAssociatedConversionDefinitionsForOrder` → `vnd.dsporderconversionassociation.v2+json`
+- `dspAmazonGetAssociatedMobileAppForConversionDefinition` (mixed-base) → first-listed via rule 4 abstention
+
+**AmazonDSPMeasurement.json (20 multi-version single-base ops):**
+- All 20 ops across measurement eligibility, study management, study results, surveys, vendor products
+- Bases: `measurementeligibility` (v1.1, v1.3), `studymanagement` (up to v1.3), `measurementresult`, `measurementvendor`, `ocmbrands`
+- Test rows derived from a one-shot spec walk; concrete strings committed verbatim. After spec regen, re-walk the spec by hand and update any rows whose highest-version expectation has shifted.
+
+**BrandMetrics.json (2 mixed-base ops, current contract):**
+- Both ops declare `insightsbrandmetrics.v1+json`, `insightsbrandmetrics.v1.1+json`, AND `insightsbrandmetricserror.v1+json`
+- Picker abstains on mixed bases → resolver returns lexical-first (`insightsbrandmetrics.v1+json`)
+- Documented contract: callers needing v1.1 specifically must pin Accept at the call site (preserved by resolver rule 1). Bucket-by-base or special-casing "error" base names rejected per design discipline.
+
+**ReportingVersion3.json (0 multi-version, sanity scan):**
+- One parameterized assertion walks every op; resolver must return a value present in declared accepts. Avoids per-op identity-coverage bloat for single-version specs.
+
+**Generalized spec-walk crash test:**
+- Parametrized across `sp_spec`, `dsp_conversions_spec`, `dsp_measurement_spec`, `brandmetrics_spec`, `reporting_v3_spec`
+- For each operation in each spec, asserts the resolver returns `str | None` (never crashes) for `existing` ∈ {None, "*/*", "application/json"}
+- This is the future-proofing test that catches Amazon shipping new multi-base shapes in any service.
+
+**Wire-path regression test** (`tests/integration/test_authenticated_client_dsp_wire.py`):
+- Real `AuthenticatedClient`, real `MediaTypeRegistry` from `AmazonDSPConversions.json`, fully mocked auth (no env credentials)
+- Intercepts `httpx.AsyncClient.send`, asserts the wire `Accept` value is `vnd.dspconversiondefinition.v2+json`
+- Plus a caller-pinned-vendored test that confirms rule 1 holds on the wire
+- Provides CI regression protection on a DSP endpoint, not just SP
+
+This test layer catches:
+- A new spec version introducing a v6 — picker auto-upgrades; spec-contract test surfaces the change loudly
+- Someone "fixing" the version logic in a way that breaks the spec contract
+- Spec extraction in `build_media_maps_from_spec` changing shape (e.g. dropping the lexical sort)
+- Amazon shipping a multi-base accepts list in any service — generalized crash walk catches it
+- A regression in `_inject_headers` no longer calling the resolver — wire-path test catches it
 
 ### Live-wire smoke (manual, not in CI)
 

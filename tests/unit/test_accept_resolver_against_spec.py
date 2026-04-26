@@ -29,6 +29,7 @@ import pytest
 
 from amazon_ads_mcp.utils.media import MediaTypeRegistry
 from amazon_ads_mcp.utils.media.accept_resolver import (
+    parse_vendored_json,
     pick_highest_vendored_json,
     resolve_accept,
 )
@@ -36,35 +37,76 @@ from amazon_ads_mcp.utils.media.accept_resolver import (
 # Path policy: tests reference dist/openapi/resources/, never .build/ or
 # openapi/resources/. dist/ is the only OpenAPI asset tree that ships.
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-_SP_SPEC_PATH = _REPO_ROOT / "dist" / "openapi" / "resources" / "SponsoredProducts.json"
+_DIST_RESOURCES = _REPO_ROOT / "dist" / "openapi" / "resources"
+_SP_SPEC_PATH = _DIST_RESOURCES / "SponsoredProducts.json"
+_DSP_CONVERSIONS_PATH = _DIST_RESOURCES / "AmazonDSPConversions.json"
+_DSP_MEASUREMENT_PATH = _DIST_RESOURCES / "AmazonDSPMeasurement.json"
+_BRANDMETRICS_PATH = _DIST_RESOURCES / "BrandMetrics.json"
+_REPORTING_V3_PATH = _DIST_RESOURCES / "ReportingVersion3.json"
 
 
-@pytest.fixture(scope="module")
-def sp_registry() -> MediaTypeRegistry:
-    """Load SponsoredProducts.json into a real MediaTypeRegistry.
+def _load_spec(path: Path) -> dict:
+    if not path.exists():
+        pytest.skip(f"Spec not found at {path}; build the dist/ tree first.")
+    with open(path) as f:
+        return json.load(f)
 
-    Module-scoped to amortize the ~50ms spec parse across every test in the
-    file. The registry is treated as read-only.
-    """
-    if not _SP_SPEC_PATH.exists():
-        pytest.skip(
-            f"SponsoredProducts spec not found at {_SP_SPEC_PATH}; "
-            "build the dist/ tree before running this test."
-        )
-    with open(_SP_SPEC_PATH) as f:
-        spec = json.load(f)
+
+def _load_registry(path: Path) -> MediaTypeRegistry:
+    spec = _load_spec(path)
     reg = MediaTypeRegistry()
     reg.add_from_spec(spec)
     return reg
 
 
 @pytest.fixture(scope="module")
+def sp_registry() -> MediaTypeRegistry:
+    return _load_registry(_SP_SPEC_PATH)
+
+
+@pytest.fixture(scope="module")
 def sp_spec() -> dict:
-    """Raw SponsoredProducts spec for tests that walk paths directly."""
-    if not _SP_SPEC_PATH.exists():
-        pytest.skip(f"SponsoredProducts spec not found at {_SP_SPEC_PATH}")
-    with open(_SP_SPEC_PATH) as f:
-        return json.load(f)
+    return _load_spec(_SP_SPEC_PATH)
+
+
+@pytest.fixture(scope="module")
+def dsp_conversions_registry() -> MediaTypeRegistry:
+    return _load_registry(_DSP_CONVERSIONS_PATH)
+
+
+@pytest.fixture(scope="module")
+def dsp_conversions_spec() -> dict:
+    return _load_spec(_DSP_CONVERSIONS_PATH)
+
+
+@pytest.fixture(scope="module")
+def dsp_measurement_registry() -> MediaTypeRegistry:
+    return _load_registry(_DSP_MEASUREMENT_PATH)
+
+
+@pytest.fixture(scope="module")
+def dsp_measurement_spec() -> dict:
+    return _load_spec(_DSP_MEASUREMENT_PATH)
+
+
+@pytest.fixture(scope="module")
+def brandmetrics_registry() -> MediaTypeRegistry:
+    return _load_registry(_BRANDMETRICS_PATH)
+
+
+@pytest.fixture(scope="module")
+def brandmetrics_spec() -> dict:
+    return _load_spec(_BRANDMETRICS_PATH)
+
+
+@pytest.fixture(scope="module")
+def reporting_v3_registry() -> MediaTypeRegistry:
+    return _load_registry(_REPORTING_V3_PATH)
+
+
+@pytest.fixture(scope="module")
+def reporting_v3_spec() -> dict:
+    return _load_spec(_REPORTING_V3_PATH)
 
 
 # ---------------------------------------------------------------------------
@@ -213,17 +255,32 @@ def test_pr68_single_version_endpoints_unchanged(
 
 
 # ---------------------------------------------------------------------------
-# Mixed-base guard — iterate every op, never crash
+# Generalized spec-walk crash test — runs across every supported spec
 # ---------------------------------------------------------------------------
 
 
-def test_no_operation_in_spec_crashes_resolver(sp_spec: dict) -> None:
-    """Walk every operation in the SponsoredProducts spec and confirm the
-    resolver returns SOMETHING (a string or None) for every one — never
-    crashes. Catches: malformed accepts lists, mixed-base ops we don't know
-    about yet, parser regressions on real-world content types.
+@pytest.mark.parametrize(
+    "spec_fixture_name",
+    [
+        "sp_spec",
+        "dsp_conversions_spec",
+        "dsp_measurement_spec",
+        "brandmetrics_spec",
+        "reporting_v3_spec",
+    ],
+)
+def test_no_operation_in_spec_crashes_resolver(
+    spec_fixture_name: str, request: pytest.FixtureRequest
+) -> None:
+    """Walk every operation in the named spec and confirm the resolver
+    returns SOMETHING (a string or None) — never crashes. Catches:
+    malformed accepts lists, mixed-base ops we don't know about yet,
+    parser regressions on real-world content types. Runs across every
+    spec we explicitly support, so future Amazon spec changes that
+    introduce a new mixed-base shape get surfaced loudly.
     """
-    for path, ops in (sp_spec.get("paths") or {}).items():
+    spec = request.getfixturevalue(spec_fixture_name)
+    for path, ops in (spec.get("paths") or {}).items():
         if not isinstance(ops, dict):
             continue
         for method, op in ops.items():
@@ -236,19 +293,16 @@ def test_no_operation_in_spec_crashes_resolver(sp_spec: dict) -> None:
             if not cts:
                 continue
             accepts = sorted(cts)
-            # Every reasonable existing value should produce SOMETHING (str|None)
             for existing in (None, "*/*", "application/json"):
-                result = resolve_accept(
-                    spec_accepts=accepts, existing=existing
-                )
+                result = resolve_accept(spec_accepts=accepts, existing=existing)
                 assert result is None or isinstance(result, str), (
-                    f"{method.upper()} {path} existing={existing!r}: "
-                    f"got {type(result).__name__}"
+                    f"{spec_fixture_name} {method.upper()} {path} "
+                    f"existing={existing!r}: got {type(result).__name__}"
                 )
 
 
 def test_mixed_base_operations_fall_back_to_first_listed(sp_spec: dict) -> None:
-    """Find every operation in the spec whose accepts list contains more
+    """Find every operation in the SP spec whose accepts list contains more
     than one distinct base. Today: at least the
     `spproductrecommendationresponse.asins` / `…themes` op exists. Assert
     the picker abstains and rule 4 returns first-listed (after registry's
@@ -268,11 +322,6 @@ def test_mixed_base_operations_fall_back_to_first_listed(sp_spec: dict) -> None:
                     cts.update((resp.get("content") or {}).keys())
             accepts = sorted(cts)
 
-            # Bucket parsed accepts by base
-            from amazon_ads_mcp.utils.media.accept_resolver import (
-                parse_vendored_json,
-            )
-
             bases = set()
             for ct in accepts:
                 p = parse_vendored_json(ct)
@@ -282,12 +331,10 @@ def test_mixed_base_operations_fall_back_to_first_listed(sp_spec: dict) -> None:
                 continue
 
             found_any = True
-            # Picker abstains
             assert pick_highest_vendored_json(accepts) is None, (
                 f"{method.upper()} {path}: picker should abstain on "
                 f"{len(bases)} bases ({bases}), but returned a value"
             )
-            # Resolver falls back to first-listed
             resolved = resolve_accept(spec_accepts=accepts, existing="*/*")
             assert resolved == accepts[0], (
                 f"{method.upper()} {path}: expected first-listed "
@@ -298,4 +345,306 @@ def test_mixed_base_operations_fall_back_to_first_listed(sp_spec: dict) -> None:
         "expected at least one mixed-base operation in current SP spec "
         "(e.g. spproductrecommendationresponse.asins/themes); spec may have "
         "changed shape — re-verify before relaxing this assertion"
+    )
+
+
+# ---------------------------------------------------------------------------
+# AmazonDSPConversions — 2 multi-version + 1 mixed-base
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "method,path,expected_accept",
+    [
+        # dspAmazonListConversionDefinitions: v1 + v2 declared, picker -> v2
+        (
+            "POST",
+            "/accounts/{accountId}/dsp/conversionDefinitions/list",
+            "application/vnd.dspconversiondefinition.v2+json",
+        ),
+        # dspAmazonGetAssociatedConversionDefinitionsForOrder: v1 + v2 declared, picker -> v2
+        (
+            "GET",
+            "/accounts/{accountId}/dsp/orders/{orderId}/conversionDefinitionAssociations",
+            "application/vnd.dsporderconversionassociation.v2+json",
+        ),
+    ],
+)
+def test_dsp_conversions_multi_version_resolves_to_highest(
+    dsp_conversions_registry: MediaTypeRegistry,
+    method: str,
+    path: str,
+    expected_accept: str,
+) -> None:
+    """DSP Conversions has 2 single-base ops declaring v1 and v2. Resolver
+    must pick v2. Same regression class as SP keywords v3->v5; without this
+    test, a DSP regression would ship silently."""
+    url = f"https://advertising-api.amazon.com{path}"
+    _, accepts = dsp_conversions_registry.resolve(method, url)
+    assert accepts is not None, f"registry has no accepts for {method} {path}"
+    resolved = resolve_accept(spec_accepts=accepts, existing="*/*")
+    assert resolved == expected_accept, (
+        f"{method} {path}: resolved {resolved!r}, expected {expected_accept!r}\n"
+        f"  spec accepts: {accepts}"
+    )
+
+
+def test_dsp_conversions_mixed_base_falls_back_to_first_listed(
+    dsp_conversions_registry: MediaTypeRegistry,
+) -> None:
+    """`dspAmazonGetAssociatedMobileAppForConversionDefinition` declares
+    two distinct vendored bases (`dspconversionadtageventassociation` and
+    `dspassociatedmobilemeasurementpartnerappregistration`). Picker abstains;
+    rule 4 returns lexical-first."""
+    _, accepts = dsp_conversions_registry.resolve(
+        "GET",
+        "https://advertising-api.amazon.com/accounts/123/dsp/conversionDefinitions/456/mobileMeasurementPartnerAppRegistration",
+    )
+    assert accepts is not None
+    assert pick_highest_vendored_json(accepts) is None, (
+        f"picker should abstain on mixed bases, got {pick_highest_vendored_json(accepts)!r}"
+    )
+    resolved = resolve_accept(spec_accepts=accepts, existing="*/*")
+    assert resolved == accepts[0], (
+        f"expected first-listed {accepts[0]!r}, got {resolved!r}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# AmazonDSPMeasurement — 20 multi-version single-base ops
+# ---------------------------------------------------------------------------
+#
+# Test rows below are derived from dist/openapi/resources/AmazonDSPMeasurement.json
+# via a one-shot spec walk. After spec regeneration, re-walk the spec by hand
+# and update any rows whose highest-version expectation has shifted.
+
+
+@pytest.mark.parametrize(
+    "method,path,expected_accept",
+    [
+        # CheckDSPBrandLiftEligibility: v1, v1.1
+        (
+            "POST",
+            "/dsp/measurement/eligibility/brandLift",
+            "application/vnd.measurementeligibility.v1.1+json",
+        ),
+        # CheckDSPOmnichannelMetricsEligibility: v1.2, v1.3
+        (
+            "POST",
+            "/dsp/measurement/eligibility/omnichannelMetrics",
+            "application/vnd.measurementeligibility.v1.3+json",
+        ),
+        # GetDSPBrandLiftStudies: v1, v1.1, v1.2, v1.3
+        (
+            "GET",
+            "/dsp/measurement/studies/brandLift",
+            "application/vnd.studymanagement.v1.3+json",
+        ),
+        # CreateDSPBrandLiftStudies: v1, v1.1, v1.2, v1.3
+        (
+            "POST",
+            "/dsp/measurement/studies/brandLift",
+            "application/vnd.studymanagement.v1.3+json",
+        ),
+        # UpdateDSPBrandLiftStudies: v1, v1.1, v1.2, v1.3
+        (
+            "PUT",
+            "/dsp/measurement/studies/brandLift",
+            "application/vnd.studymanagement.v1.3+json",
+        ),
+        # GetDSPOmnichannelMetricsStudies: v1.2, v1.3
+        (
+            "GET",
+            "/dsp/measurement/studies/omnichannelMetrics",
+            "application/vnd.studymanagement.v1.3+json",
+        ),
+        # CreateDSPOmnichannelMetricsStudies: v1.2, v1.3
+        (
+            "POST",
+            "/dsp/measurement/studies/omnichannelMetrics",
+            "application/vnd.studymanagement.v1.3+json",
+        ),
+        # UpdateDSPOmnichannelMetricsStudies: v1.2, v1.3
+        (
+            "PUT",
+            "/dsp/measurement/studies/omnichannelMetrics",
+            "application/vnd.studymanagement.v1.3+json",
+        ),
+        # GetDSPOmnichannelMetricsStudyResult: v1.2, v1.3
+        (
+            "GET",
+            "/dsp/measurement/studies/omnichannelMetrics/{studyId}/result",
+            "application/vnd.measurementresult.v1.3+json",
+        ),
+        # CheckPlanningEligibility: v1.1, v1.3
+        (
+            "POST",
+            "/measurement/planning/eligibility",
+            "application/vnd.measurementeligibility.v1.3+json",
+        ),
+        # CancelMeasurementStudies: v1, v1.1, v1.2, v1.3
+        (
+            "DELETE",
+            "/measurement/studies",
+            "application/vnd.studymanagement.v1.3+json",
+        ),
+        # GetStudies: v1, v1.1, v1.2, v1.3
+        (
+            "GET",
+            "/measurement/studies",
+            "application/vnd.studymanagement.v1.3+json",
+        ),
+        # GetDSPBrandLiftStudyResult: v1, v1.1
+        (
+            "GET",
+            "/measurement/studies/brandLift/{studyId}/result",
+            "application/vnd.measurementresult.v1.1+json",
+        ),
+        # GetSurveys: v1, v1.1, v1.2, v1.3
+        (
+            "GET",
+            "/measurement/studies/surveys",
+            "application/vnd.studymanagement.v1.3+json",
+        ),
+        # CreateSurveys: v1, v1.1, v1.2, v1.3
+        (
+            "POST",
+            "/measurement/studies/surveys",
+            "application/vnd.studymanagement.v1.3+json",
+        ),
+        # UpdateSurveys: v1, v1.1, v1.2, v1.3
+        (
+            "PUT",
+            "/measurement/studies/surveys",
+            "application/vnd.studymanagement.v1.3+json",
+        ),
+        # vendorProduct: v1, v1.1
+        (
+            "POST",
+            "/measurement/vendorProducts/list",
+            "application/vnd.measurementvendor.v1.1+json",
+        ),
+        # omnichannelMetricsBrandSearch: v1.2, v1.3
+        (
+            "POST",
+            "/measurement/vendorProducts/omnichannelMetrics/brands/list",
+            "application/vnd.ocmbrands.v1.3+json",
+        ),
+        # vendorProductPolicy: v1, v1.1
+        (
+            "GET",
+            "/measurement/vendorProducts/policies",
+            "application/vnd.measurementvendor.v1.1+json",
+        ),
+        # vendorProductSurveyQuestionTemplates: v1, v1.1
+        (
+            "GET",
+            "/measurement/vendorProducts/surveyQuestionTemplates",
+            "application/vnd.measurementvendor.v1.1+json",
+        ),
+    ],
+)
+def test_dsp_measurement_multi_version_resolves_to_highest(
+    dsp_measurement_registry: MediaTypeRegistry,
+    method: str,
+    path: str,
+    expected_accept: str,
+) -> None:
+    """All 20 DSP Measurement multi-version ops must resolve to highest
+    declared (major, minor). Locks the wire contract for measurement
+    eligibility, study management, study results, survey management, and
+    vendor product endpoints. Registry returns lexically-sorted accepts;
+    picker reorders by parsed (major, minor)."""
+    url = f"https://advertising-api.amazon.com{path}"
+    _, accepts = dsp_measurement_registry.resolve(method, url)
+    assert accepts is not None, f"registry has no accepts for {method} {path}"
+    resolved = resolve_accept(spec_accepts=accepts, existing="*/*")
+    assert resolved == expected_accept, (
+        f"{method} {path}: resolved {resolved!r}, expected {expected_accept!r}\n"
+        f"  spec accepts: {accepts}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# BrandMetrics — 2 mixed-base multi-version ops (documented contract)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "method,path",
+    [
+        ("POST", "/insights/brandMetrics/report"),
+        ("GET", "/insights/brandMetrics/report/{reportId}"),
+    ],
+)
+def test_brandmetrics_mixed_base_returns_first_listed(
+    brandmetrics_registry: MediaTypeRegistry,
+    method: str,
+    path: str,
+) -> None:
+    """Both BrandMetrics ops declare insightsbrandmetrics (v1, v1.1) AND
+    insightsbrandmetricserror (v1) in one accepts list. Picker abstains
+    on mixed bases (`insightsbrandmetrics` vs `insightsbrandmetricserror`);
+    rule 4 returns lexical-first.
+
+    Lexical sort places `insightsbrandmetrics.v1+json` before
+    `insightsbrandmetrics.v1.1+json` (because '+' (0x2B) < '.' (0x2E)),
+    and both before `insightsbrandmetricserror.*` (because `.` (0x2E) <
+    `e` (0x65)).
+
+    This is the current contract per the design discipline: callers
+    needing v1.1 specifically must pin Accept at the call site (preserved
+    by resolver rule 1). Rejected alternatives: bucket-by-base, special-case
+    "error" base names — both violate spec-driven design.
+    """
+    url = f"https://advertising-api.amazon.com{path}"
+    _, accepts = brandmetrics_registry.resolve(method, url)
+    assert accepts is not None
+    assert pick_highest_vendored_json(accepts) is None, (
+        f"picker should abstain on mixed bases, got "
+        f"{pick_highest_vendored_json(accepts)!r}"
+    )
+    resolved = resolve_accept(spec_accepts=accepts, existing="*/*")
+    assert resolved == "application/vnd.insightsbrandmetrics.v1+json", (
+        f"expected lexical-first 'insightsbrandmetrics.v1+json', got {resolved!r}\n"
+        f"  spec accepts: {accepts}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# ReportingVersion3 — 0 multi-version ops; minimal sanity scan
+# ---------------------------------------------------------------------------
+
+
+def test_reporting_v3_single_version_ops_resolve_to_declared(
+    reporting_v3_spec: dict,
+    reporting_v3_registry: MediaTypeRegistry,
+) -> None:
+    """ReportingVersion3 declares one version per operation. Walk every
+    op; for each that has any vendored type declared, assert the resolver
+    returns a value that is in the declared set (i.e. doesn't invent or
+    drop content types). One assertion across the whole spec rather than
+    per-op rows — avoids verifying identity behavior 30 times for
+    single-version specs.
+    """
+    checked = 0
+    for path, ops in (reporting_v3_spec.get("paths") or {}).items():
+        if not isinstance(ops, dict):
+            continue
+        for method, op in ops.items():
+            if not isinstance(op, dict):
+                continue
+            url = f"https://advertising-api.amazon.com{path}"
+            _, accepts = reporting_v3_registry.resolve(method, url)
+            if not accepts:
+                continue
+            resolved = resolve_accept(spec_accepts=accepts, existing="*/*")
+            assert resolved in accepts, (
+                f"{method.upper()} {path}: resolved {resolved!r} not in "
+                f"declared accepts {accepts}"
+            )
+            checked += 1
+    assert checked > 0, (
+        "ReportingVersion3 should have at least one operation with a "
+        "vendored content type — fixture may be empty or spec changed shape"
     )
