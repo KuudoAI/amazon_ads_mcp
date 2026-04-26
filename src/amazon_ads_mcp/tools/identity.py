@@ -167,8 +167,16 @@ async def set_active_identity(
         )
 
     except ValueError as e:
+        # auth_manager.set_active_identity raises ValueError("Identity X not
+        # found") for bad IDs. Re-raise as typed ValidationError so the
+        # envelope translator classifies as mcp_input_validation, not the
+        # default internal_error bucket.
+        from ..utils.errors import ValidationError
+
         logger.error(f"Invalid identity: {e}")
-        raise
+        err = ValidationError(str(e), field="identity_id")
+        err.details["error_code"] = "IDENTITY_NOT_FOUND"
+        raise err from e
     except Exception as e:
         logger.error(f"Failed to set active identity: {e}")
         raise

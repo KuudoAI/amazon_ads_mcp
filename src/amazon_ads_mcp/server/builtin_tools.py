@@ -1207,7 +1207,16 @@ async def register_report_catalog_tools(server: FastMCP):
                     _apply_drop_to_payload(payload, set(drop))
                 return payload
             except ReportFieldsToolError as exc:
-                raise ValueError(str(exc)) from exc
+                # Re-raise as typed ValidationError so the envelope translator
+                # classifies as mcp_input_validation (not internal_error).
+                # ReportFieldsToolError carries a stable .code from
+                # ReportFieldsErrorCode — preserve it in details so callers can
+                # branch on it.
+                from ..utils.errors import ValidationError as _ValidationError
+
+                err = _ValidationError(str(exc), field=None)
+                err.details["error_code"] = exc.code.value
+                raise err from exc
 
     if settings.amazon_ads_debug_tools:
         from ..tools import report_fields_v1_catalog as _rf_catalog
