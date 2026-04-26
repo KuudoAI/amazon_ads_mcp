@@ -125,39 +125,13 @@ async def test_sponsored_products_at_cap_passes_validator(
 
 
 @pytest.mark.asyncio
-async def test_sponsored_brands_at_schema_max_fails_open_through_wire(
+async def test_sponsored_brands_severe_overshoot_rejected_on_wire(
     mcp_server_with_test_query_campaign,
 ):
-    """SPONSORED_BRANDS has no confirmed cap → fail-open. maxResults
-    at the schema's max=5000 must NOT be rejected by the per-ad-product
-    cap validator. R1's schema check (max=5000) is the only upper bound
-    for this ad product."""
-    from fastmcp import Client
-
-    async with Client(mcp_server_with_test_query_campaign) as client:
-        result = await client.call_tool(
-            "test_QueryCampaign",
-            {
-                "adProductFilter": {"include": ["SPONSORED_BRANDS"]},
-                "maxResults": 5000,
-            },
-        )
-
-    payload = result.structured_content or result.data
-    if hasattr(payload, "model_dump"):
-        payload = payload.model_dump()
-    assert payload.get("received") is True
-    assert payload.get("max_results") == 5000
-
-
-@pytest.mark.asyncio
-async def test_sponsored_brands_above_schema_max_caught_by_r1(
-    mcp_server_with_test_query_campaign,
-):
-    """SPONSORED_BRANDS with maxResults=5001 (above schema max=5000) must
-    be caught — by R1's schema-constraint check, not R2. Confirms the
-    two checks compose correctly when the unknown-cap fail-open of R2
-    falls back to the schema's hard ceiling."""
+    """The 50x mismatch case: SB schema says max=5000 but real cap is 100.
+    A user thinking ``let me grab everything in one call`` with SB hits
+    this every time. R2 v2: now caught locally with the same envelope
+    shape as the SP case."""
     from fastmcp import Client
     from fastmcp.exceptions import ToolError
 
@@ -167,15 +141,109 @@ async def test_sponsored_brands_above_schema_max_caught_by_r1(
                 "test_QueryCampaign",
                 {
                     "adProductFilter": {"include": ["SPONSORED_BRANDS"]},
-                    "maxResults": 5001,
+                    "maxResults": 5000,
                 },
             )
 
-    msg = str(excinfo.value).lower()
-    # Either R1 or pydantic rejects (5001 > schema max=5000)
-    assert "5000" in msg or "validation" in msg or "5001" in msg or "less" in msg, (
-        f"expected validation error for over-schema-max, got {excinfo.value!r}"
-    )
+    msg = str(excinfo.value)
+    assert "SPONSORED_BRANDS" in msg
+    assert "100" in msg  # the cap
+    assert "5000" in msg  # the requested value
+
+
+@pytest.mark.asyncio
+async def test_sponsored_brands_at_cap_passes_validator(
+    mcp_server_with_test_query_campaign,
+):
+    """SB at exactly its cap (100) reaches the tool — boundary regression."""
+    from fastmcp import Client
+
+    async with Client(mcp_server_with_test_query_campaign) as client:
+        result = await client.call_tool(
+            "test_QueryCampaign",
+            {
+                "adProductFilter": {"include": ["SPONSORED_BRANDS"]},
+                "maxResults": 100,
+            },
+        )
+
+    payload = result.structured_content or result.data
+    if hasattr(payload, "model_dump"):
+        payload = payload.model_dump()
+    assert payload.get("received") is True
+    assert payload.get("max_results") == 100
+
+
+@pytest.mark.asyncio
+async def test_sponsored_display_over_cap_rejected_on_wire(
+    mcp_server_with_test_query_campaign,
+):
+    """SPONSORED_DISPLAY cap=1000 (same as SP). Over-cap rejected locally."""
+    from fastmcp import Client
+    from fastmcp.exceptions import ToolError
+
+    async with Client(mcp_server_with_test_query_campaign) as client:
+        with pytest.raises(ToolError) as excinfo:
+            await client.call_tool(
+                "test_QueryCampaign",
+                {
+                    "adProductFilter": {"include": ["SPONSORED_DISPLAY"]},
+                    "maxResults": 1500,
+                },
+            )
+
+    msg = str(excinfo.value)
+    assert "SPONSORED_DISPLAY" in msg
+    assert "1000" in msg
+
+
+@pytest.mark.asyncio
+async def test_sponsored_television_over_cap_rejected_on_wire(
+    mcp_server_with_test_query_campaign,
+):
+    """SPONSORED_TELEVISION cap=1000. Over-cap rejected locally."""
+    from fastmcp import Client
+    from fastmcp.exceptions import ToolError
+
+    async with Client(mcp_server_with_test_query_campaign) as client:
+        with pytest.raises(ToolError) as excinfo:
+            await client.call_tool(
+                "test_QueryCampaign",
+                {
+                    "adProductFilter": {"include": ["SPONSORED_TELEVISION"]},
+                    "maxResults": 1500,
+                },
+            )
+
+    msg = str(excinfo.value)
+    assert "SPONSORED_TELEVISION" in msg
+    assert "1000" in msg
+
+
+@pytest.mark.asyncio
+async def test_amazon_dsp_still_fails_open_through_wire(
+    mcp_server_with_test_query_campaign,
+):
+    """AMAZON_DSP cap remains unknown (needs DSP-eligible profile to
+    characterize). Fail-open contract preserved: at schema's max=5000
+    the call reaches the tool. R1's schema check is the only upper
+    bound for this ad product until its cap is confirmed."""
+    from fastmcp import Client
+
+    async with Client(mcp_server_with_test_query_campaign) as client:
+        result = await client.call_tool(
+            "test_QueryCampaign",
+            {
+                "adProductFilter": {"include": ["AMAZON_DSP"]},
+                "maxResults": 5000,
+            },
+        )
+
+    payload = result.structured_content or result.data
+    if hasattr(payload, "model_dump"):
+        payload = payload.model_dump()
+    assert payload.get("received") is True
+    assert payload.get("max_results") == 5000
 
 
 @pytest.mark.asyncio

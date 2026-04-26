@@ -104,21 +104,74 @@ def test_sponsored_products_well_above_cap_raises():
 
 
 @pytest.mark.parametrize(
-    "ad_product",
+    "ad_product,cap",
     [
-        "SPONSORED_BRANDS",
-        "SPONSORED_DISPLAY",
-        "SPONSORED_TELEVISION",
-        "AMAZON_DSP",
+        # Wire-trace confirmed caps from client R2 follow-up report
+        ("SPONSORED_BRANDS", 100),
+        ("SPONSORED_DISPLAY", 1000),
+        ("SPONSORED_TELEVISION", 1000),
     ],
 )
-def test_unknown_ad_product_fails_open(ad_product):
-    """Ad products without a confirmed cap pass through. Schema's
-    max=5000 still applies via R1's schema-constraint validator."""
+def test_other_ad_product_caps_enforced_at_boundary(ad_product, cap):
+    """SB / SD / TV caps now confirmed via wire trace. Validate at the
+    boundary (cap value passes; cap+1 raises)."""
+    # At-cap passes
     check_ad_product_caps(
         "QueryCampaign",
         {
             "adProductFilter": {"include": [ad_product]},
+            "maxResults": cap,
+        },
+    )
+    # Below cap passes
+    check_ad_product_caps(
+        "QueryCampaign",
+        {
+            "adProductFilter": {"include": [ad_product]},
+            "maxResults": max(1, cap // 2),
+        },
+    )
+    # Over-cap raises with cap value + ad product in message
+    with pytest.raises(ValidationError) as excinfo:
+        check_ad_product_caps(
+            "QueryCampaign",
+            {
+                "adProductFilter": {"include": [ad_product]},
+                "maxResults": cap + 1,
+            },
+        )
+    msg = str(excinfo.value)
+    assert ad_product in msg
+    assert str(cap) in msg
+    assert str(cap + 1) in msg
+
+
+def test_sponsored_brands_50x_overshoot_caught():
+    """The most severe mismatch: schema declares max=5000 but real cap
+    is 100 (50x). Most likely to surprise SB users. Locked at this
+    extreme to make the regression visible if SB's cap changes."""
+    with pytest.raises(ValidationError) as excinfo:
+        check_ad_product_caps(
+            "QueryCampaign",
+            {
+                "adProductFilter": {"include": ["SPONSORED_BRANDS"]},
+                "maxResults": 5000,  # the schema max
+            },
+        )
+    msg = str(excinfo.value)
+    assert "SPONSORED_BRANDS" in msg
+    assert "100" in msg
+    assert "5000" in msg
+
+
+def test_amazon_dsp_still_fails_open():
+    """AMAZON_DSP cap remains unknown (different error path; needs
+    DSP-eligible profile to characterize). Fail-open contract preserved
+    for unconfirmed-cap ad products: schema's max=5000 applies via R1."""
+    check_ad_product_caps(
+        "QueryCampaign",
+        {
+            "adProductFilter": {"include": ["AMAZON_DSP"]},
             "maxResults": 5000,
         },
     )

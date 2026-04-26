@@ -336,14 +336,21 @@ async def _get_tool_properties(
 # (plus prefixed variants like allv1_QueryCampaign that the sidecar
 # registers under both forms).
 
-#: Conservative per-ad-product cap table. Only enforce caps we have
-#: confirmed evidence for. Adding entries here is a one-line change as
-#: more cap data becomes available. The schema's max=5000 still applies
-#: via R1's check_schema_constraints for any ad product not in this table.
+#: Per-ad-product cap table. Only enforce caps we have confirmed evidence
+#: for. Adding entries is a one-line change as more cap data becomes
+#: available. The schema's max=5000 still applies via R1's
+#: check_schema_constraints for any ad product not in this table.
+#:
+#: Most surprising entry: SPONSORED_BRANDS=100 — schema declares 5000
+#: but real cap is 100 (50x mismatch). Catching SB locally is the
+#: highest-leverage entry in the table by user-impact.
 _AD_PRODUCT_MAX_RESULTS_CAPS: Dict[str, int] = {
-    "SPONSORED_PRODUCTS": 1000,  # confirmed via wire trace (R2 report)
-    # SPONSORED_BRANDS, SPONSORED_DISPLAY, SPONSORED_TELEVISION, AMAZON_DSP:
-    # caps unknown — fail open. Schema's max=5000 still applies.
+    "SPONSORED_PRODUCTS": 1000,  # confirmed via wire trace (R2 report v1)
+    "SPONSORED_BRANDS": 100,  # confirmed via wire trace (R2 report v2) — 50x lower than schema!
+    "SPONSORED_DISPLAY": 1000,  # confirmed via wire trace (R2 report v2)
+    "SPONSORED_TELEVISION": 1000,  # confirmed via wire trace (R2 report v2)
+    # AMAZON_DSP: cap unknown — different error path; needs DSP-eligible
+    # profile to characterize. Fails open. Schema's max=5000 still applies.
 }
 
 #: Tool-name suffixes that this validator targets. The sidecar registers
