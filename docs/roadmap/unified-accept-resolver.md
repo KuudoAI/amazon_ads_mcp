@@ -14,6 +14,15 @@ PR #68 fixed the immediate 415 errors on Sponsored Products v3 entity CRUD (36 t
 
 This roadmap item is the principled refactor that consolidates Accept resolution into one testable surface AND fixes the multi-version bug at the same time. PR #68's wire contract is preserved; only the internal shape changes.
 
+## Design discipline
+
+**Spec-driven, not hand-curated.** New helpers must justify why the OpenAPI spec can't drive the behavior.
+
+- **Build-time decomposition of spec data is spec-driven.** Splitting one spec into `<ns>.json` (paths/schemas), `<ns>.media.json` (per-op content types), `<ns>.manifest.json`, and `<ns>.transform.json` (genuinely spec-orphaned overrides) is not a wrapper — it's the same spec data, partitioned for context efficiency. Generators read the canonical spec; loaders consume the partitions.
+- **Hand-curated per-operation overrides are not spec-driven.** A `transform.json.accept_override` field that names specific operationIds and pins specific versions would create maintenance debt and break silently when Amazon renames operations or ships new versions. Rejected.
+- **The runtime resolver picks "highest declared version"** as a spec-driven heuristic. If a tool genuinely needs a specific version, it pins Accept at the call site (preserved by PR #68's caller-pinned contract) — the requirement lives where it's known, not in a side file where it goes stale.
+- **`transform.json` carries only what the spec genuinely cannot express** — pagination param names, batch behavior, output projections, arg_aliases for fields that resist clean OpenAPI representation. Accept resolution does NOT belong there because the spec already declares which versions exist.
+
 ## Motivating examples (from `dist/openapi/resources/SponsoredProducts.json`)
 
 Operations that declare more than one versioned vendored content type today (extracted from the spec, not invented):
@@ -51,7 +60,7 @@ For all of these, `MediaTypeRegistry.resolve(method, url)` returns an `accepts` 
 - No change to `build_media_maps_from_spec` extraction logic — the resolver consumes what the registry already exposes.
 - No change to download endpoint semantics — `resolve_download_accept_headers` keeps its current contract.
 - No change to header-resolver (`HeaderNameResolver`) — it doesn't touch Accept.
-- No `*.media.json` sidecar work (that's a separate dead-data issue PR #68's author flagged; track it elsewhere).
+- No `*.media.json` sidecar work in PR 1 (resolver). Sidecar restoration is Phase 2 (separate PR after PR 1 lands) — see "Phase 2: Media sidecar restoration" below.
 
 ## Proposed shape
 
@@ -257,6 +266,12 @@ Pure-function tests, no httpx mocking. Each row is one assertion:
 
 These exercise the full `AuthenticatedClient.send` path with a mocked `MediaTypeRegistry`. They lock the wire contract PR #68 shipped. The refactor must not change their assertions. If we need to update the mocks because the resolver moved, that's fine — assertions stay identical.
 
+### Source-agnosticism guarantee (PR 1 acceptance criterion)
+
+The resolver must make zero assumptions about how the registry was populated. All pure-function unit tests inject `accepts` directly as a list of strings; no test depends on whether the data came from `MediaTypeRegistry.add_from_spec(spec)` or `MediaTypeRegistry.add_from_sidecar(sidecar)`. This guarantee is what makes Phase 1 (resolver) and Phase 2 (sidecar restoration) independent — the resolver works against either data source, and Phase 2 can land later without resolver changes.
+
+Test setup convention: pass `spec_accepts` as an explicit list literal in every unit test. Do NOT instantiate `MediaTypeRegistry` in resolver unit tests. The integration test below is the only place where the resolver runs against a real registry, and that test is allowed to source data from `add_from_spec` (today) or `add_from_sidecar` (post-Phase 2) — the assertions are the same either way.
+
 ### New integration test against real spec data
 
 `tests/unit/test_accept_resolver_against_spec.py` — loads `dist/openapi/resources/SponsoredProducts.json`, builds a real `MediaTypeRegistry`, and asserts:
@@ -332,8 +347,31 @@ No version bump triggered by this alone (it's a `fix:` per Conventional Commits,
 
 4. **`Content-Type` parity.** PR #68 only patched Accept. `MediaTypeRegistry.resolve` returns `content_type` as a single string (already-picked first via `sorted(rb_content.keys())[0]` at `utils/media/types.py:201`), not a list. Re-scan `dist/openapi/resources/` for any operation whose `requestBody.content` declares more than one vendored content type. If any exist with multi-version, expand the resolver to cover Content-Type with the same algorithm and add a Content-Type write inside `resolve_accept` (or a sibling). Likely none exist — most Amazon Ads operations request a single Content-Type even when they offer multiple response media types — but verify before locking the implementation.
 
+## Phase 2: Media sidecar restoration (separate PR, after PR 1 lands)
+
+The `*.media.json` sidecars exist as part of the build-time decomposition strategy that splits each spec into smaller artifacts for context efficiency. Today the strategy is half-implemented: the generator emits the wrong shape (`{namespace, content_types: [flat union]}`) and the loader calls `add_from_spec(media_spec)` instead of `add_from_sidecar(media_spec)`, so the sidecar contributes zero data and routing only works because `add_from_spec(spec)` is called separately on the unslimmed spec. The moment slimming strips response content from the spec, routing breaks.
+
+This is a fix-in-place, not a deletion. Sidecar restoration is fully spec-driven (the sidecar is build-time generated from the canonical spec, just decomposed) and is the precondition for future aggressive spec slimming.
+
+**PR 2 acceptance criteria:**
+
+1. **Generator** (`.build/scripts/process_openapi_specs.py:generate_media_sidecar`) rewritten to emit per-operation shape matching the contract `MediaTypeRegistry.add_from_sidecar()` already accepts:
+   ```json
+   {
+     "version": "1.0",
+     "namespace": "SponsoredProducts",
+     "requests": {"POST /sp/campaigns/list": "application/vnd.spCampaign.v3+json", ...},
+     "responses": {"POST /sp/campaigns/list": ["application/vnd.spCampaign.v3+json", ...], ...}
+   }
+   ```
+2. **Loader** (`server_builder.py:638`) switches from `add_from_spec(media_spec)` to `add_from_sidecar(media_spec)`. The redundant `add_from_spec(spec)` call directly above can be left in place during PR 2 (both paths populate the registry); evaluate removal in a follow-up only when slimming is actually enabled.
+3. **Parity test suite (the drift guardrail).** For each spec in `dist/openapi/resources/`, build two registries — one populated from the spec only via `add_from_spec(spec)`, one populated from the sidecar only via `add_from_sidecar(media_spec)` — and assert `resolve(method, url)` returns identical `(content_type, accepts)` for every operation in the spec. Catches: generator drift, loader bugs, regression in either pipeline. This is the single test that prevents the two halves from drifting again.
+4. **No new sidecar consumers.** Phase 2 fixes the existing consumer; it does not add new ones. If a future spec-slimming PR strips response content from runtime specs, the existing sidecar consumer continues to work because its data is already populated at startup.
+
+**(b)-fallback condition.** If aggressive slimming (e.g. `SLIM_OPENAPI_AGGRESSIVE=true` or `SLIM_OPENAPI_STRIP_RESPONSES=true` becoming default) is about to be enabled in the same release window as PR 1, flip the order: ship sidecar restoration first so the resolver lands on a clean data layer. As of this writing the slimming env vars are off by default (per CLAUDE.md), so order (a) — resolver first, sidecar second — is the faster and still safe path.
+
 ## Out of scope (track separately)
 
-- Dead `*.media.json` sidecar files in `dist/openapi/resources/` (PR #68 author flagged the shape mismatch with `MediaTypeRegistry.add_from_sidecar`). Open a separate cleanup issue.
 - Cross-server error envelope contract work (separate roadmap, separate branch).
 - Code Mode-side surfacing of the new resolver decisions (none needed; resolver runs at the transport layer below code mode).
+- Aggressive spec slimming follow-up. Once Phase 2 lands and parity tests are green, a separate PR can strip response content from runtime specs to claim the context-bloat win that motivated the sidecar split in the first place. Track as its own roadmap item.
