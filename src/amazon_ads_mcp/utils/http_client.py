@@ -523,13 +523,30 @@ class AuthenticatedClient(httpx.AsyncClient):
             content_type, accepts = self.media_registry.resolve(method, url)
             if content_type and method.lower() != "get":
                 request.headers["Content-Type"] = content_type
-            # Respect pre-existing Accept header from upstream transforms/tools
-            if accepts and "Accept" not in request.headers:
+            if accepts:
                 preferred = next(
                     (a for a in accepts if a.startswith("application/vnd.")),
                     accepts[0],
                 )
-                request.headers["Accept"] = preferred
+                existing = (request.headers.get("Accept") or "").strip()
+                # Amazon's v3 gateway strictly enforces per-operation media
+                # types. Override generic fallbacks (missing, "*/*",
+                # non-vendored) with the spec-declared vendored type when
+                # one exists. httpx defaults Accept to "*/*", which the
+                # previous "not in headers" guard treated as caller-set
+                # and skipped — causing 415s on SP v3 + TPG v1 endpoints.
+                # Respect callers who explicitly pass a vendored Accept
+                # (e.g. pinning TargetPromotionGroups v2).
+                should_override = (
+                    not existing
+                    or existing == "*/*"
+                    or (
+                        preferred.startswith("application/vnd.")
+                        and not existing.startswith("application/vnd.")
+                    )
+                )
+                if should_override:
+                    request.headers["Accept"] = preferred
 
         # Heuristic Accept override for known download/report endpoints
         if (
