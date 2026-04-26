@@ -321,6 +321,121 @@ async def _get_tool_properties(
     return props
 
 
+# ---------------------------------------------------------------------------
+# Per-ad-product conditional maxResults cap validator (R2)
+# ---------------------------------------------------------------------------
+#
+# Amazon enforces per-ad-product caps on `maxResults` for QueryCampaign /
+# QueryTarget endpoints that are LOWER than the schema's declared
+# maximum=5000. Confirmed via wire trace: SPONSORED_PRODUCTS=1000.
+# Other ad products' caps are unknown — the validator fails open for
+# them so we don't manufacture false positives.
+#
+# Tools surface (verified by enumeration of dist/openapi/resources/):
+# QueryCampaign, QueryTarget, DSPQueryTarget, SBQueryTarget, SDQueryTarget
+# (plus prefixed variants like allv1_QueryCampaign that the sidecar
+# registers under both forms).
+
+#: Conservative per-ad-product cap table. Only enforce caps we have
+#: confirmed evidence for. Adding entries here is a one-line change as
+#: more cap data becomes available. The schema's max=5000 still applies
+#: via R1's check_schema_constraints for any ad product not in this table.
+_AD_PRODUCT_MAX_RESULTS_CAPS: Dict[str, int] = {
+    "SPONSORED_PRODUCTS": 1000,  # confirmed via wire trace (R2 report)
+    # SPONSORED_BRANDS, SPONSORED_DISPLAY, SPONSORED_TELEVISION, AMAZON_DSP:
+    # caps unknown — fail open. Schema's max=5000 still applies.
+}
+
+#: Tool-name suffixes that this validator targets. The sidecar registers
+#: tools under both prefixed (allv1_QueryCampaign) and bare (QueryCampaign)
+#: forms; match either by suffix.
+_AD_PRODUCT_CAP_TOOL_SUFFIXES = (
+    "QueryCampaign",
+    "QueryTarget",
+    "DSPQueryTarget",
+    "SBQueryTarget",
+    "SDQueryTarget",
+)
+
+
+def check_ad_product_caps(
+    tool_name: str,
+    args: Optional[Dict[str, Any]],
+) -> None:
+    """Enforce per-ad-product ``maxResults`` caps for the affected
+    QueryCampaign / QueryTarget operations.
+
+    Reads ``args.adProductFilter.include[0]``, looks up the cap in the
+    conservative table, and raises :class:`ValidationError` (envelope
+    classified as ``mcp_input_validation`` / ``INPUT_VALIDATION_FAILED``)
+    when ``args.maxResults`` exceeds it.
+
+    Default ON via ``MCP_AD_PRODUCT_CAP_VALIDATION_ENABLED``.
+
+    Fails open on:
+    - Tool not in the targeted operation surface
+    - Missing or malformed ``adProductFilter`` (R1 catches the schema error)
+    - Missing ``maxResults`` (Amazon's default applies)
+    - Non-integer ``maxResults`` (R1 catches the type error)
+    - Ad product not in the cap table (cap unknown — schema's max=5000
+      still enforces an upper bound via R1)
+    """
+    if not settings.mcp_ad_product_cap_validation_enabled:
+        return
+    if not args:
+        return
+    if not any(tool_name.endswith(s) for s in _AD_PRODUCT_CAP_TOOL_SUFFIXES):
+        return
+
+    ad_filter = args.get("adProductFilter")
+    if not isinstance(ad_filter, dict):
+        return
+    include = ad_filter.get("include")
+    if not isinstance(include, list) or not include:
+        return
+    ad_product = include[0]
+    if not isinstance(ad_product, str):
+        return
+
+    cap = _AD_PRODUCT_MAX_RESULTS_CAPS.get(ad_product)
+    if cap is None:
+        # Unknown cap — fail open
+        return
+
+    raw_max = args.get("maxResults")
+    if raw_max is None:
+        return
+    try:
+        max_results = int(raw_max)
+    except (TypeError, ValueError):
+        return
+
+    if max_results <= cap:
+        return
+
+    from ..utils.errors import ValidationError
+
+    msg = (
+        f"maxResults={max_results} exceeds Amazon's per-ad-product cap "
+        f"of {cap} for {ad_product}. Schema declares max=5000 but Amazon "
+        f"enforces a lower cap conditional on adProductFilter.include. "
+        f"Set maxResults <= {cap} or use a different ad product."
+    )
+    err = ValidationError(msg, field="maxResults")
+    err.details["error_code"] = "INPUT_VALIDATION_FAILED"
+    err.details["violations"] = [
+        {
+            "path": "maxResults",
+            "issue": (
+                f"maxResults={max_results} exceeds per-ad-product cap "
+                f"{cap} for {ad_product}"
+            ),
+            "validator": "ad_product_cap",
+        }
+    ]
+    raise err
+
+
 async def _get_tool_input_schema(
     tool_name: str,
     *,

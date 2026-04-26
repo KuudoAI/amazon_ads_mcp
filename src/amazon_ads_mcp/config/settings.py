@@ -204,6 +204,25 @@ class Settings(BaseSettings):
         ),
     )
 
+    mcp_ad_product_cap_validation_enabled: bool = Field(
+        True,
+        alias="MCP_AD_PRODUCT_CAP_VALIDATION_ENABLED",
+        description=(
+            "Enforce per-ad-product `maxResults` caps that Amazon imposes "
+            "below the schema's declared maximum. Default ON: e.g. "
+            "QueryCampaign with `adProductFilter: SPONSORED_PRODUCTS` is "
+            "capped at 1000 even though the schema says 5000 — Amazon "
+            "would 400 with a per-ad-product cap message; we surface it "
+            "locally as `mcp_input_validation` / `INPUT_VALIDATION_FAILED` "
+            "with the offending ad product, the cap, and the requested "
+            "value. Conservative table: only confirmed caps are enforced "
+            "(SPONSORED_PRODUCTS=1000); other ad products fail open until "
+            "their caps are confirmed via wire trace or Amazon docs. Set "
+            "false to skip the check (e.g. when testing new ad-product "
+            "behavior or if Amazon raises a cap)."
+        ),
+    )
+
     mcp_strict_unknown_fields: bool = Field(
         True,
         alias="MCP_STRICT_UNKNOWN_FIELDS",

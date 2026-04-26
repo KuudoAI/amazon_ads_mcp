@@ -386,6 +386,7 @@ class SidecarTransformMiddleware(Middleware):
         # Both fail OPEN on schema-lookup errors per
         # feedback_fail_open_telemetry.md.
         from ..middleware.schema_normalization import (
+            check_ad_product_caps,
             check_schema_constraints,
             check_strict_unknown_fields,
         )
@@ -399,6 +400,14 @@ class SidecarTransformMiddleware(Middleware):
             fastmcp_context=fastmcp_ctx,
             extra_known_fields=alias_exempt,
         )
+
+        # R2: per-ad-product conditional maxResults cap. Runs AFTER R1's
+        # schema-constraint check (R1 catches schema-static violations
+        # like missing-required and the global max=5000) and uses the
+        # canonicalized adProductFilter to enforce Amazon's lower
+        # per-product cap (e.g. SPONSORED_PRODUCTS=1000). Default ON;
+        # fails open for ad products without a confirmed cap.
+        check_ad_product_caps(tool_name, final_args)
 
         await check_strict_unknown_fields(
             tool_name,
