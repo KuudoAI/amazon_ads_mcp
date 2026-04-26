@@ -294,7 +294,7 @@ Test setup convention: pass `spec_accepts` as an explicit list literal in every 
 **AmazonDSPMeasurement.json (20 multi-version single-base ops):**
 - All 20 ops across measurement eligibility, study management, study results, surveys, vendor products
 - Bases: `measurementeligibility` (v1.1, v1.3), `studymanagement` (up to v1.3), `measurementresult`, `measurementvendor`, `ocmbrands`
-- Test rows derived via `scripts/dump_multi_version_ops.py`; concrete strings committed verbatim, script is a re-runnable audit aid for spec regen
+- Test rows derived from a one-shot spec walk; concrete strings committed verbatim. After spec regen, re-walk the spec by hand and update any rows whose highest-version expectation has shifted.
 
 **BrandMetrics.json (2 mixed-base ops, current contract):**
 - Both ops declare `insightsbrandmetrics.v1+json`, `insightsbrandmetrics.v1.1+json`, AND `insightsbrandmetricserror.v1+json`
@@ -314,11 +314,6 @@ Test setup convention: pass `spec_accepts` as an explicit list literal in every 
 - Intercepts `httpx.AsyncClient.send`, asserts the wire `Accept` value is `vnd.dspconversiondefinition.v2+json`
 - Plus a caller-pinned-vendored test that confirms rule 1 holds on the wire
 - Provides CI regression protection on a DSP endpoint, not just SP
-
-**Authoring helper** (`scripts/dump_multi_version_ops.py`):
-- Standalone script (not pytest-imported) that walks `dist/openapi/resources/*.json`, identifies multi-version single-base + mixed-base ops, and prints `(method, path, expected_accept)` rows
-- Used to author initial test rows AND to refresh expectations after spec regen
-- Test rows in the test files are the source of truth; this script is the audit aid
 
 This test layer catches:
 - A new spec version introducing a v6 — picker auto-upgrades; spec-contract test surfaces the change loudly

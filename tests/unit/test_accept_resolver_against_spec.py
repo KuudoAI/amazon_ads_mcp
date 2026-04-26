@@ -415,8 +415,8 @@ def test_dsp_conversions_mixed_base_falls_back_to_first_listed(
 # ---------------------------------------------------------------------------
 #
 # Test rows below are derived from dist/openapi/resources/AmazonDSPMeasurement.json
-# via the helper script `scripts/dump_multi_version_ops.py`. Re-run that script
-# after spec regeneration to refresh the expected values; commit any changes.
+# via a one-shot spec walk. After spec regeneration, re-walk the spec by hand
+# and update any rows whose highest-version expectation has shifted.
 
 
 @pytest.mark.parametrize(
