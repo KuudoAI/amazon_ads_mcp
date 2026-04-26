@@ -309,28 +309,47 @@ class SidecarTransformMiddleware(Middleware):
         if not tool_name:
             return await call_next(context)
 
-        transforms = self._input_transforms.get(tool_name)
-        if not transforms:
-            return await call_next(context)
-
+        # Capture starting args (after schema_normalization, before sidecar)
         raw_args: Dict[str, Any] = dict(getattr(message, "arguments", None) or {})
-        rewritten = await self.rewrite_args(tool_name, raw_args)
+        final_args = raw_args
 
-        # Only mutate the payload if the rewrite actually changed anything.
-        if rewritten != raw_args:
-            try:
-                message.arguments = rewritten
-            except Exception:
-                # Some pydantic versions make arguments frozen; rebuild.
+        transforms = self._input_transforms.get(tool_name)
+        if transforms:
+            rewritten = await self.rewrite_args(tool_name, raw_args)
+            # Only mutate the payload if the rewrite actually changed anything.
+            if rewritten != raw_args:
                 try:
-                    new_message = message.model_copy(update={"arguments": rewritten})
-                    context.message = new_message  # type: ignore[assignment]
-                except Exception as exc:  # pragma: no cover - defensive
-                    logger.warning(
-                        "SidecarTransformMiddleware: could not replace arguments on %s: %s",
-                        tool_name,
-                        exc,
-                    )
+                    message.arguments = rewritten
+                except Exception:
+                    # Some pydantic versions make arguments frozen; rebuild.
+                    try:
+                        new_message = message.model_copy(
+                            update={"arguments": rewritten}
+                        )
+                        context.message = new_message  # type: ignore[assignment]
+                    except Exception as exc:  # pragma: no cover - defensive
+                        logger.warning(
+                            "SidecarTransformMiddleware: could not replace "
+                            "arguments on %s: %s",
+                            tool_name,
+                            exc,
+                        )
+            final_args = rewritten
+
+        # Strict unknown-field check runs AFTER both schema_normalization
+        # (upstream middleware) AND sidecar alias rewrites (above), so it
+        # only rejects fields that genuinely don't map to the tool's schema.
+        # Sidecar-aliased fields like ``reportId`` → ``reportIds`` survive.
+        # No-op when MCP_STRICT_UNKNOWN_FIELDS is false (default).
+        from ..middleware.schema_normalization import (
+            check_strict_unknown_fields,
+        )
+
+        await check_strict_unknown_fields(
+            tool_name,
+            final_args,
+            fastmcp_context=getattr(context, "fastmcp_context", None),
+        )
 
         return await call_next(context)
 

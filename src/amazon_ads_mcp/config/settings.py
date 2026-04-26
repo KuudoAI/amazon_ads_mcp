@@ -187,6 +187,21 @@ class Settings(BaseSettings):
         ),
     )
 
+    mcp_strict_unknown_fields: bool = Field(
+        False,
+        alias="MCP_STRICT_UNKNOWN_FIELDS",
+        description=(
+            "Reject tool calls that include fields not declared in the tool's "
+            "input schema (after canonical-key normalization AND sidecar "
+            "alias rewrites). Default OFF for back-compat: pass-through is "
+            "useful when Amazon ships fields ahead of the spec. Set true in "
+            "production to surface typos like `maxResult` (vs `maxResults`) "
+            "as `mcp_input_validation` errors with `did_you_mean` hints "
+            "instead of silently letting Amazon defaults take over and "
+            "potentially returning wildly wrong result sizes."
+        ),
+    )
+
     # OAuth Configuration (optional, for web-based authentication flows)
     oauth_client_id: Optional[str] = Field(
         None,

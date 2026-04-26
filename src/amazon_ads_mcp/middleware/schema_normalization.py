@@ -222,6 +222,64 @@ def _normalize_args_with_schema(
     return (rewritten if changed else args), events
 
 
+async def check_strict_unknown_fields(
+    tool_name: str,
+    args: Optional[Dict[str, Any]],
+    *,
+    server: Any | None = None,
+    fastmcp_context: Any | None = None,
+) -> None:
+    """Raise :class:`ValidationError` if ``args`` contains keys not in the
+    tool's schema. Run AFTER schema-key normalization AND sidecar alias
+    rewrites, so legitimate aliases (e.g. ``reportId`` → ``reportIds``)
+    survive — only fields that are still unknown after both passes are
+    rejected.
+
+    No-op when ``MCP_STRICT_UNKNOWN_FIELDS`` is false (default) or when
+    the tool has no resolvable schema. Generates ``did_you_mean`` hints
+    via ``difflib.get_close_matches`` against the schema's known properties.
+    """
+    if not settings.mcp_strict_unknown_fields:
+        return
+    if not args:
+        return
+
+    properties = await _get_tool_properties(
+        tool_name, server=server, fastmcp_context=fastmcp_context
+    )
+    if not properties:
+        # No schema to validate against — can't be strict
+        return
+
+    known = set(properties.keys())
+    unknown = [k for k in args.keys() if k not in known]
+    if not unknown:
+        return
+
+    from difflib import get_close_matches
+
+    from ..utils.errors import ValidationError
+
+    hints = []
+    for field in unknown:
+        suggestions = get_close_matches(field, list(known), n=3, cutoff=0.5)
+        hint = {"kind": "did_you_mean", "field": field}
+        if suggestions:
+            hint["suggestions"] = suggestions
+        hints.append(hint)
+
+    err = ValidationError(
+        f"Unknown field(s) in tool {tool_name!r}: {sorted(unknown)}. "
+        f"Set MCP_STRICT_UNKNOWN_FIELDS=false to allow pass-through.",
+        field=unknown[0] if len(unknown) == 1 else None,
+    )
+    err.details["error_code"] = "UNKNOWN_FIELD"
+    err.details["unknown_fields"] = sorted(unknown)
+    if hints:
+        err.details["hints"] = hints
+    raise err
+
+
 async def _get_tool_properties(
     tool_name: str,
     *,
