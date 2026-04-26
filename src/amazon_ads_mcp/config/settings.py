@@ -187,6 +187,23 @@ class Settings(BaseSettings):
         ),
     )
 
+    mcp_schema_constraint_validation_enabled: bool = Field(
+        True,
+        alias="MCP_SCHEMA_CONSTRAINT_VALIDATION_ENABLED",
+        description=(
+            "Run jsonschema constraint validation against the tool's input "
+            "schema before dispatch (types, enums, required, numeric/array "
+            "bounds). Default ON: invalid args surface as "
+            "`mcp_input_validation` errors with `INPUT_VALIDATION_FAILED` "
+            "and the full error path/message preserved (no Amazon "
+            "round-trip, no truncation of helpful enum lists). Set false "
+            "to skip the check — useful when Amazon ships fields ahead of "
+            "the spec or when the spec is malformed. The validator fails "
+            "OPEN on schema-lookup errors (logs telemetry, doesn't break "
+            "tool execution); see feedback_fail_open_telemetry.md."
+        ),
+    )
+
     mcp_strict_unknown_fields: bool = Field(
         True,
         alias="MCP_STRICT_UNKNOWN_FIELDS",

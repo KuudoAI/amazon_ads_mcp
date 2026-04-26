@@ -366,23 +366,45 @@ class SidecarTransformMiddleware(Middleware):
                         )
             final_args = rewritten
 
-        # Strict unknown-field check runs AFTER both schema_normalization
-        # (upstream middleware) AND sidecar alias rewrites (above), so it
-        # only rejects fields that genuinely don't map to the tool's schema.
-        # Sidecar-aliased source keys (e.g. ``reportId`` for the
-        # ``reportId`` → ``reportIds`` rewrite) are explicitly exempted —
-        # arg_aliases is additive (the source key stays in args), and
-        # those callers are using a documented alias path, not making a typo.
-        # Default ON; set MCP_STRICT_UNKNOWN_FIELDS=false to opt out.
+        # Two pre-flight checks run AFTER schema_normalization (upstream
+        # middleware) AND sidecar alias rewrites (above), BEFORE tool
+        # dispatch. Both share the same alias-exemption set so legitimate
+        # arg_aliases source keys survive (additive rewrite leaves them
+        # in args alongside the canonical key).
+        #
+        # Order matters:
+        #   1. check_schema_constraints — full jsonschema validation
+        #      (types, enums, required, numeric/array bounds). Catches
+        #      the most specific class of error and returns the most
+        #      actionable message (e.g. full enum list, exact numeric
+        #      bound). Default ON via MCP_SCHEMA_CONSTRAINT_VALIDATION_ENABLED.
+        #   2. check_strict_unknown_fields — fallback for typo/unknown
+        #      detection with did_you_mean hints. Subsumed by (1) when
+        #      the tool's schema is well-formed; kept for the ambiguous-
+        #      schema case. Default ON via MCP_STRICT_UNKNOWN_FIELDS.
+        #
+        # Both fail OPEN on schema-lookup errors per
+        # feedback_fail_open_telemetry.md.
         from ..middleware.schema_normalization import (
+            check_schema_constraints,
             check_strict_unknown_fields,
+        )
+
+        alias_exempt = self.alias_sources_for(tool_name)
+        fastmcp_ctx = getattr(context, "fastmcp_context", None)
+
+        await check_schema_constraints(
+            tool_name,
+            final_args,
+            fastmcp_context=fastmcp_ctx,
+            extra_known_fields=alias_exempt,
         )
 
         await check_strict_unknown_fields(
             tool_name,
             final_args,
-            fastmcp_context=getattr(context, "fastmcp_context", None),
-            extra_known_fields=self.alias_sources_for(tool_name),
+            fastmcp_context=fastmcp_ctx,
+            extra_known_fields=alias_exempt,
         )
 
         return await call_next(context)

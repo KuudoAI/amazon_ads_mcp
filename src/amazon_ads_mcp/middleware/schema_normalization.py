@@ -321,6 +321,189 @@ async def _get_tool_properties(
     return props
 
 
+async def _get_tool_input_schema(
+    tool_name: str,
+    *,
+    server: Any | None = None,
+    fastmcp_context: Any | None = None,
+) -> Dict[str, Any]:
+    """Resolve the tool's FULL input schema (with ``type``, ``required``,
+    etc.) from the FastMCP server. Sibling of ``_get_tool_properties``
+    which returns only the inner ``properties`` dict.
+
+    Returns ``{}`` (empty schema) when the tool has no resolvable schema —
+    callers should treat this as "skip validation, no schema to check
+    against" per the fail-open contract.
+    """
+    fastmcp_server = server
+    if fastmcp_server is None:
+        fastmcp_server = getattr(fastmcp_context, "fastmcp", None)
+    if fastmcp_server is None:
+        return {}
+    try:
+        tool = await fastmcp_server.get_tool(tool_name)
+    except Exception:
+        return {}
+    if tool is None:
+        return {}
+
+    params = getattr(tool, "parameters", None)
+    if not isinstance(params, dict):
+        return {}
+    return params
+
+
+def _format_jsonschema_path(path) -> str:
+    """Format a jsonschema error ``path`` deque as ``a.b[0].c``.
+
+    String elements join with dots; integer elements use bracket notation
+    so callers can distinguish array indices from property names. Empty
+    path → empty string (top-level error).
+    """
+    parts: List[str] = []
+    for elem in path:
+        if isinstance(elem, int):
+            parts.append(f"[{elem}]")
+        else:
+            if parts:
+                parts.append(f".{elem}")
+            else:
+                parts.append(str(elem))
+    return "".join(parts)
+
+
+async def check_schema_constraints(
+    tool_name: str,
+    args: Optional[Dict[str, Any]],
+    *,
+    server: Any | None = None,
+    fastmcp_context: Any | None = None,
+    extra_known_fields: Optional[set] = None,
+) -> None:
+    """Run jsonschema validation against the tool's input schema, raising
+    :class:`ValidationError` on any constraint violation (type, enum,
+    required, numeric/array bounds).
+
+    This is the dispatcher-level pre-flight check that closes the
+    "schema-violations round-trip to Amazon" footgun. Runs AFTER
+    schema-key normalization and sidecar alias rewrites, BEFORE
+    ``check_strict_unknown_fields`` and tool dispatch.
+
+    ``extra_known_fields`` exempts caller-known additional property names
+    from the additionalProperties enforcement (used by sidecar middleware
+    to allow ``arg_aliases`` source keys to survive — see
+    ``alias_sources_for`` in ``server/sidecar_middleware.py``).
+
+    Behavior:
+    - Default ON via ``MCP_SCHEMA_CONSTRAINT_VALIDATION_ENABLED``
+    - Multi-error: surfaces ALL violations in ``details["violations"]`` so
+      callers can fix everything in one round-trip
+    - Path format: ``a.b[0].c`` (dotted keys, bracketed indices)
+    - additionalProperties enforced by the validator regardless of whether
+      the schema declares it (most $ref-using schemas don't)
+    - Fails OPEN on schema-lookup errors (logs telemetry, doesn't break
+      tool execution) — see feedback_fail_open_telemetry.md
+    """
+    if not settings.mcp_schema_constraint_validation_enabled:
+        return
+    if args is None:
+        args = {}
+
+    try:
+        schema = await _get_tool_input_schema(
+            tool_name, server=server, fastmcp_context=fastmcp_context
+        )
+    except Exception as exc:
+        # Fail-open: a schema-lookup failure must NOT break tool execution.
+        # Log telemetry so operators can spot drift.
+        logger.warning(
+            "schema_lookup_failed for tool=%s error_type=%s error=%s",
+            tool_name,
+            type(exc).__name__,
+            exc,
+        )
+        return
+
+    if not schema or not isinstance(schema, dict):
+        return
+
+    # Lazy import — jsonschema is a declared dep but heavy enough we don't
+    # want it loaded just for the module-import path.
+    try:
+        from jsonschema import Draft202012Validator
+        from jsonschema import ValidationError as _JSValidationError
+    except Exception as exc:  # pragma: no cover - jsonschema is a hard dep
+        logger.warning(
+            "jsonschema unavailable; skipping constraint validation: %s", exc
+        )
+        return
+
+    # Strip additionalProperties from a SHALLOW copy of the schema so we
+    # can enforce it ourselves with extra_known_fields applied. Most $ref
+    # schemas don't declare it, but Pydantic-generated schemas often do
+    # (model_config extra="forbid"); without stripping, the validator
+    # would reject sidecar alias source keys before our exemption applies.
+    schema_for_validator = dict(schema)
+    schema_for_validator.pop("additionalProperties", None)
+
+    try:
+        validator = Draft202012Validator(schema_for_validator)
+        errors = list(validator.iter_errors(args))
+    except Exception as exc:
+        # Schema-build failure (e.g. unresolvable $ref). Fail-open.
+        logger.warning(
+            "schema_lookup_failed (validator-build) for tool=%s error_type=%s "
+            "error=%s",
+            tool_name,
+            type(exc).__name__,
+            exc,
+        )
+        return
+
+    # Manual additionalProperties enforcement (always, regardless of whether
+    # the schema declared it) so extra_known_fields exemptions apply uniformly.
+    declared = set((schema.get("properties") or {}).keys())
+    if extra_known_fields:
+        declared |= set(extra_known_fields)
+    for key in args.keys():
+        if key not in declared:
+            synthetic = _JSValidationError(
+                f"Additional properties are not allowed ({key!r} was unexpected)",
+                path=[key],
+                validator="additionalProperties",
+                validator_value=False,
+            )
+            errors.append(synthetic)
+
+    if not errors:
+        return
+
+    # Translate jsonschema errors into the v1 envelope shape.
+    from ..utils.errors import ValidationError
+
+    violations = []
+    for e in errors:
+        violations.append(
+            {
+                "path": _format_jsonschema_path(e.absolute_path or e.path),
+                "issue": e.message,
+                "validator": e.validator,
+            }
+        )
+
+    first = violations[0]
+    summary_path = first["path"] or "<root>"
+    err = ValidationError(
+        f"Schema validation failed for tool {tool_name!r}: "
+        f"{first['issue']} (path: {summary_path}). "
+        f"{len(violations)} violation(s) total.",
+        field=first["path"] or None,
+    )
+    err.details["error_code"] = "INPUT_VALIDATION_FAILED"
+    err.details["violations"] = violations
+    raise err
+
+
 def _normalize_key(name: str) -> str:
     return "".join(ch.lower() for ch in name if ch.isalnum())
 
