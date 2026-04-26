@@ -34,6 +34,7 @@ from ..utils.export_content_type_resolver import (
 )
 from ..utils.header_resolver import HeaderNameResolver
 from ..utils.media import MediaTypeRegistry
+from ..utils.media.accept_resolver import resolve_accept
 from ..utils.region_config import RegionConfig
 
 logger = logging.getLogger(__name__)
@@ -519,59 +520,31 @@ class AuthenticatedClient(httpx.AsyncClient):
         path = urlparse(url).path
 
         # 1) MEDIA NEGOTIATION
+        # Content-Type stays inline (single-valued from the registry).
+        # Accept is delegated to the unified resolver — see
+        # ``utils/media/accept_resolver.py`` for the locked policy. The two
+        # parallel Accept blocks that lived here pre-refactor (PR #68 era)
+        # are now collapsed into one resolve_accept() call so the policy
+        # has one home and one test surface.
+        accepts = None
         if self.media_registry:
             content_type, accepts = self.media_registry.resolve(method, url)
             if content_type and method.lower() != "get":
                 request.headers["Content-Type"] = content_type
-            if accepts:
-                preferred = next(
-                    (a for a in accepts if a.startswith("application/vnd.")),
-                    accepts[0],
-                )
-                existing = (request.headers.get("Accept") or "").strip()
-                # Amazon's v3 gateway strictly enforces per-operation media
-                # types. Override generic fallbacks (missing, "*/*",
-                # non-vendored) with the spec-declared vendored type when
-                # one exists. httpx defaults Accept to "*/*", which the
-                # previous "not in headers" guard treated as caller-set
-                # and skipped — causing 415s on SP v3 + TPG v1 endpoints.
-                # Respect callers who explicitly pass a vendored Accept
-                # (e.g. pinning TargetPromotionGroups v2).
-                should_override = (
-                    not existing
-                    or existing == "*/*"
-                    or (
-                        preferred.startswith("application/vnd.")
-                        and not existing.startswith("application/vnd.")
-                    )
-                )
-                if should_override:
-                    request.headers["Accept"] = preferred
 
-        # Heuristic Accept override for known download/report endpoints
-        if (
-            "Accept" not in request.headers
-            or (request.headers.get("Accept") or "").strip() == "*/*"
-        ):
-            try:
-                overrides = resolve_download_accept_headers(method, url)
-                if overrides:
-                    if self.media_registry:
-                        # Intersect with available accepts if we have them
-                        _, accepts = self.media_registry.resolve(method, url)
-                        if accepts:
-                            for ct in overrides:
-                                if ct in accepts:
-                                    request.headers["Accept"] = ct
-                                    break
-                            else:
-                                request.headers["Accept"] = overrides[0]
-                        else:
-                            request.headers["Accept"] = overrides[0]
-                    else:
-                        request.headers["Accept"] = overrides[0]
-            except Exception as e:
-                logger.debug("Accept override skipped: %s", e)
+        try:
+            download_overrides = resolve_download_accept_headers(method, url) or None
+        except Exception as e:
+            logger.debug("Download Accept resolver skipped: %s", e)
+            download_overrides = None
+
+        new_accept = resolve_accept(
+            spec_accepts=accepts,
+            existing=request.headers.get("Accept"),
+            download_overrides=download_overrides,
+        )
+        if new_accept:
+            request.headers["Accept"] = new_accept
 
         # 2) STRIP POLLUTED HEADERS
         removed = []
