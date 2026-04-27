@@ -211,15 +211,19 @@ class TokenBucket:
                     metrics.record_queue_wait(self.endpoint, wait_time)
                 return True
 
+            # Check queue depth for back-pressure FIRST. Overload should
+            # fail fast regardless of remaining timeout — if the deadline
+            # check ran first, slow callers under heavy load could return
+            # False (timeout) instead of raising (overload), masking the
+            # real cause. Tested by ``test_queue_back_pressure``.
+            if len(self.queue) > 100:
+                logger.error(f"Queue depth exceeded for {self.endpoint}, failing fast")
+                raise Exception(f"Rate limit queue full for {self.endpoint}")
+
             # Check deadline
             if deadline and self.clock() >= deadline:
                 logger.warning(f"Token acquisition timeout for {self.endpoint}")
                 return False
-
-            # Check queue depth for back-pressure
-            if len(self.queue) > 100:
-                logger.error(f"Queue depth exceeded for {self.endpoint}, failing fast")
-                raise Exception(f"Rate limit queue full for {self.endpoint}")
 
             # Wait with jitter
             wait_time = (1.0 / self.capacity) * random.uniform(0.5, 1.5)

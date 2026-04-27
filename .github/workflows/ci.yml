@@ -67,14 +67,30 @@ jobs:
         run: |
           python -W error::SyntaxWarning -m compileall -q src tests
 
-      # Coverage ratchet:
-      #   - Baseline at the time this gate landed: 69% (11668 stmts).
-      #   - Floor is set 4 points below baseline to catch sudden drops
-      #     without locking the current number in forever.
-      #   - Ratchet up by 1-2 points whenever new code lands with tests
-      #     until we reach the long-term target of 80%.
+      # Coverage ratchet history:
+      #   - Baseline (round 8): 69% (11668 stmts), floor at 65.
+      #   - Round 11: ratcheted to 67.
+      #   - Round 13: ratcheted to 68 (property tests pushed to 69.02%).
+      #   - Round 15: ratcheted to 70 (sampling+security pushed to 70.47%).
+      #   - Round 17: ratcheted to 72 (openapi loader, media negotiator,
+      #     response wrapper, http/request pushed to 72.04%). Latent prod
+      #     bug fixed in TokenBucket.acquire (back-pressure ordering)
+      #     surfaced when round-16 tests pushed full-suite runtime past
+      #     deadline-race threshold.
+      #   - Round 18: ratcheted to 76 after auth-middleware helpers,
+      #     token_store extras, resilient_client + scope-cleanup omit
+      #     list (tool_audit/, __main__.py, html_templates.py — pure dev
+      #     tooling and non-functional scope). Measured 76.42%. Latent
+      #     bug pinned in test_auth_middleware_helpers: openbridge
+      #     load_from_env clobbers verify_signature/iss/aud.
+      #   - Round 19: ratcheted to 77 after transform_executor_helpers
+      #     (62 tests, 45%→~75% on that module). Measured 77.20%.
+      #     Surfaced 4th latent issue: _coerce_iso_to_epoch_ms YYYYMMDD
+      #     branch is dead code. All 6 latent issues now consolidated in
+      #     docs/audit/latent-issues.md (don't lose them in test comments).
       #   - Threshold lives ONLY in CI; local TDD addopts intentionally
       #     do not enforce coverage so the dev loop stays fast.
+      #   - Long-term target: 80%.
       - name: Run tests (fast suite + coverage)
         env:
           MCP_TEST_COMPAT: "true"
@@ -83,7 +99,7 @@ jobs:
             --cov=src/amazon_ads_mcp \
             --cov-report=term-missing:skip-covered \
             --cov-report=xml:coverage.xml \
-            --cov-fail-under=65
+            --cov-fail-under=77
 
       - name: Upload coverage artifact
         if: matrix.python-version == '3.12'

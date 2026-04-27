@@ -9,29 +9,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
-from amazon_ads_mcp.auth.base import BaseAmazonAdsProvider
-from amazon_ads_mcp.auth.manager import AuthManager
 from amazon_ads_mcp.utils.http_client import AuthenticatedClient
 from amazon_ads_mcp.utils.media import MediaTypeRegistry
 
-
-def _build_direct_auth_manager(headers=None):
-    """Spec'd AuthManager + provider for accept-resolver tests.
-
-    Both manager and provider are spec'd so attribute typos and API renames
-    fail at test time. Defaults match a non-routing direct provider.
-    """
-    manager = MagicMock(spec=AuthManager)
-    manager.get_headers = AsyncMock(
-        return_value=headers or {"Authorization": "Bearer test"}
-    )
-    manager.provider = MagicMock(spec=BaseAmazonAdsProvider)
-    manager.provider.requires_identity_region_routing = MagicMock(return_value=False)
-    manager.provider.headers_are_identity_specific = MagicMock(return_value=False)
-    manager.provider.region_controlled_by_identity = MagicMock(return_value=False)
-    manager.provider.provider_type = "direct"
-    manager.get_active_identity = MagicMock(return_value=None)
-    return manager
+# Local alias preserves the existing call sites' name; the factory itself
+# now lives in tests/conftest.py and is shared with three other files.
+from tests.conftest import make_direct_auth_manager as _build_direct_auth_manager
 
 
 @pytest.mark.asyncio

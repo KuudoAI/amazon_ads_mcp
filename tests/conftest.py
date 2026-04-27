@@ -101,6 +101,44 @@ def mock_auth_manager():
     return manager
 
 
+def make_direct_auth_manager(headers=None):
+    """Build a fully-spec'd AuthManager mock for the direct (non-OpenBridge)
+    provider. Centralizes the pattern that previously duplicated across
+    ``test_authenticated_client.py``, ``test_client_accept_resolver.py``,
+    ``test_authenticated_client_dsp_wire.py``, and
+    ``test_auth_header_propagation.py``.
+
+    Both manager and provider are spec'd:
+    - ``manager`` uses ``spec=AuthManager`` so attribute drift on the real
+      class fails at test time.
+    - ``provider`` uses ``spec=BaseAmazonAdsProvider`` for the same reason.
+
+    The default ``headers`` mimic a typical successful auth response.
+    Callers can pass a custom dict to override.
+
+    This is a *factory function*, not a fixture: callers can build N
+    independent managers in a single test (e.g., to simulate concurrent
+    clients) without fixture-scope shenanigans.
+    """
+    from amazon_ads_mcp.auth.base import BaseAmazonAdsProvider
+    from amazon_ads_mcp.auth.manager import AuthManager
+
+    manager = MagicMock(spec=AuthManager)
+    manager.get_headers = AsyncMock(
+        return_value=headers or {
+            "Authorization": "Bearer test",
+            "Amazon-Advertising-API-ClientId": "test-client-id",
+        }
+    )
+    manager.provider = MagicMock(spec=BaseAmazonAdsProvider)
+    manager.provider.requires_identity_region_routing = MagicMock(return_value=False)
+    manager.provider.headers_are_identity_specific = MagicMock(return_value=False)
+    manager.provider.region_controlled_by_identity = MagicMock(return_value=False)
+    manager.provider.provider_type = "direct"
+    manager.get_active_identity = MagicMock(return_value=None)
+    return manager
+
+
 @pytest.fixture
 def sample_oauth_token():
     """Sample OAuth token response."""

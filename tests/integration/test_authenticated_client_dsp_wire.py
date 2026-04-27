@@ -25,10 +25,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
-from amazon_ads_mcp.auth.base import BaseAmazonAdsProvider
-from amazon_ads_mcp.auth.manager import AuthManager
 from amazon_ads_mcp.utils.http_client import AuthenticatedClient
 from amazon_ads_mcp.utils.media import MediaTypeRegistry
+
+from tests.conftest import make_direct_auth_manager
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _DSP_CONVERSIONS_SPEC = (
@@ -55,26 +55,10 @@ def mocked_auth_manager() -> MagicMock:
     wire-path test stays consistent with the existing wire-path tests.
     Both manager and provider are spec'd so attribute typos and API renames
     fail at test time rather than producing silent child Mocks."""
-    auth_manager = MagicMock(spec=AuthManager)
-    auth_manager.get_headers = AsyncMock(
-        return_value={
-            "Authorization": "Bearer test",
-            "Amazon-Advertising-API-ClientId": "test-client-id",
-        }
-    )
-    auth_manager.provider = MagicMock(spec=BaseAmazonAdsProvider)
-    auth_manager.provider.requires_identity_region_routing = MagicMock(
-        return_value=False
-    )
-    auth_manager.provider.headers_are_identity_specific = MagicMock(
-        return_value=False
-    )
-    auth_manager.provider.region_controlled_by_identity = MagicMock(
-        return_value=False
-    )
-    auth_manager.provider.provider_type = "direct"
-    auth_manager.get_active_identity = MagicMock(return_value=None)
-    return auth_manager
+    return make_direct_auth_manager(headers={
+        "Authorization": "Bearer test",
+        "Amazon-Advertising-API-ClientId": "test-client-id",
+    })
 
 
 @pytest.mark.asyncio
