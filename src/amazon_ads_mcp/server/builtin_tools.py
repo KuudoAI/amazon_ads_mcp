@@ -1582,6 +1582,7 @@ async def register_envelope_contract_tools(server: FastMCP) -> None:
                 "dropped_alias",
                 "coerced",
                 "unknown_field_passed_through",
+                "unknown_field_rejected",
             ],
             "env_vars": {
                 "MCP_SCHEMA_KEY_NORMALIZATION_ENABLED": "default true; master switch for pre-flight key normalization",

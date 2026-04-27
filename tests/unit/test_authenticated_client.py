@@ -8,29 +8,27 @@ import pytest
 import pytest_asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
+import respx
 
 from amazon_ads_mcp.utils.http_client import AuthenticatedClient
 from amazon_ads_mcp.utils.header_resolver import HeaderNameResolver
 from amazon_ads_mcp.utils.media import MediaTypeRegistry
 
+from tests.conftest import make_direct_auth_manager
+
 
 @pytest.fixture
 def mock_auth_manager():
-    """Create a mock auth manager."""
-    manager = AsyncMock()
-    manager.get_headers = AsyncMock(return_value={
+    """Spec'd direct-provider AuthManager from the shared factory.
+
+    Headers tweaked from the factory default to include this file's
+    historical Scope value (``test-profile-id``).
+    """
+    return make_direct_auth_manager(headers={
         "Authorization": "Bearer test-token",
         "Amazon-Advertising-API-ClientId": "test-client-id",
-        "Amazon-Advertising-API-Scope": "test-profile-id"
+        "Amazon-Advertising-API-Scope": "test-profile-id",
     })
-    # Mock provider capabilities (default to False for non-OpenBridge provider)
-    manager.provider = MagicMock()
-    manager.provider.requires_identity_region_routing = MagicMock(return_value=False)
-    manager.provider.headers_are_identity_specific = MagicMock(return_value=False)
-    manager.provider.region_controlled_by_identity = MagicMock(return_value=False)
-    manager.provider.provider_type = "direct"
-    manager.get_active_identity = MagicMock(return_value=None)
-    return manager
 
 
 @pytest.fixture
@@ -77,19 +75,21 @@ class TestAuthenticatedClient:
             }
         )
         
-        # Mock the parent send method
-        with patch.object(httpx.AsyncClient, 'send', new_callable=AsyncMock) as mock_send:
-            mock_response = httpx.Response(200, json={"success": True})
-            mock_send.return_value = mock_response
-            
-            # Send the request
+        # respx intercepts at the transport layer — sees the wire request
+        # exactly as httpx serializes it, including the case-folded header
+        # forms produced by httpx's own normalization.
+        with respx.mock(assert_all_called=True) as respx_mock:
+            route = respx_mock.get(
+                "https://advertising-api.amazon.com/test"
+            ).mock(return_value=httpx.Response(200, json={"success": True}))
+
             await authenticated_client.send(request)
-            
-            # Verify headers were scrubbed and replaced
-            sent_request = mock_send.call_args[0][0]
-            assert "authorization" in sent_request.headers
-            assert sent_request.headers["authorization"] == "Bearer test-token"
-            assert sent_request.headers.get("Amazon-Advertising-API-ClientId") == "test-client-id"
+
+            sent_request = route.calls.last.request
+
+        assert "authorization" in sent_request.headers
+        assert sent_request.headers["authorization"] == "Bearer test-token"
+        assert sent_request.headers.get("Amazon-Advertising-API-ClientId") == "test-client-id"
     
     async def test_header_injection(self, authenticated_client, mock_auth_manager):
         """Test that auth headers are properly injected."""
@@ -102,19 +102,20 @@ class TestAuthenticatedClient:
             }
         )
         
-        with patch.object(httpx.AsyncClient, 'send', new_callable=AsyncMock) as mock_send:
-            mock_response = httpx.Response(200, json={"id": "123"})
-            mock_send.return_value = mock_response
-            
+        with respx.mock(assert_all_called=True) as respx_mock:
+            route = respx_mock.post(
+                "https://advertising-api.amazon.com/campaigns"
+            ).mock(return_value=httpx.Response(200, json={"id": "123"}))
+
             await authenticated_client.send(request)
-            
-            # Verify auth manager was called
-            mock_auth_manager.get_headers.assert_called_once()
-            
-            # Verify headers were injected
-            sent_request = mock_send.call_args[0][0]
-            assert sent_request.headers.get("authorization") == "Bearer test-token"
-            assert sent_request.headers.get("Amazon-Advertising-API-ClientId") is not None
+
+            sent_request = route.calls.last.request
+
+        # Verify auth manager was called
+        mock_auth_manager.get_headers.assert_called_once()
+        # Verify headers were injected on the wire
+        assert sent_request.headers.get("authorization") == "Bearer test-token"
+        assert sent_request.headers.get("Amazon-Advertising-API-ClientId") is not None
     
     async def test_headers_reinjected_on_every_send(self, authenticated_client):
         """Headers must be (re-)injected on every ``send`` so retry attempts
@@ -125,8 +126,8 @@ class TestAuthenticatedClient:
             url="https://advertising-api.amazon.com/test"
         )
 
-        with patch.object(authenticated_client, '_inject_headers', new_callable=AsyncMock) as mock_inject:
-            with patch.object(httpx.AsyncClient, 'send', new_callable=AsyncMock) as mock_send:
+        with patch.object(authenticated_client, '_inject_headers', autospec=True) as mock_inject:
+            with patch.object(httpx.AsyncClient, 'send', autospec=True) as mock_send:
                 mock_send.return_value = httpx.Response(200)
                 await authenticated_client.send(request)
                 await authenticated_client.send(request)
@@ -149,15 +150,16 @@ class TestAuthenticatedClient:
             ],
         )
         
-        with patch.object(httpx.AsyncClient, 'send', new_callable=AsyncMock) as mock_send:
-            mock_response = httpx.Response(200)
-            mock_send.return_value = mock_response
-            
+        with respx.mock(assert_all_called=True) as respx_mock:
+            route = respx_mock.get(
+                "https://advertising-api.amazon.com/reports/12345/download"
+            ).mock(return_value=httpx.Response(200))
+
             await authenticated_client.send(request)
-            
-            # Verify media type was set
-            sent_request = mock_send.call_args[0][0]
-            assert sent_request.headers.get("accept") == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+            sent_request = route.calls.last.request
+
+        assert sent_request.headers.get("accept") == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     
     async def test_region_routing(self, authenticated_client):
         """Test that region-specific routing is applied."""
@@ -169,33 +171,55 @@ class TestAuthenticatedClient:
         
         from amazon_ads_mcp.utils.http_client import set_region_override
         set_region_override("eu")
-        with patch.object(httpx.AsyncClient, 'send', new_callable=AsyncMock) as mock_send:
-            mock_response = httpx.Response(200, json=[])
-            mock_send.return_value = mock_response
-            
-            await authenticated_client.send(request)
-            
-            # Verify URL was updated to EU endpoint
-            sent_request = mock_send.call_args[0][0]
+        try:
+            # The region override rewrites the URL host before send().
+            # respx must be set up on the EU host (where the request
+            # actually goes), not the original NA host. If the rewrite
+            # ever stops working, respx returns "no matching route" rather
+            # than silently letting NA pass through.
+            with respx.mock(assert_all_called=True) as respx_mock:
+                route = respx_mock.get(
+                    "https://advertising-api-eu.amazon.com/profiles"
+                ).mock(return_value=httpx.Response(200, json=[]))
+
+                await authenticated_client.send(request)
+
+                sent_request = route.calls.last.request
+
             assert sent_request.url.host == "advertising-api-eu.amazon.com"
-        set_region_override(None)
+        finally:
+            set_region_override(None)
     
     async def test_error_handling(self, authenticated_client):
-        """Test error handling when auth headers are missing."""
+        """Missing auth headers must raise BEFORE reaching the wire.
+
+        The client policy refuses to send a request without auth headers,
+        so we don't need a transport mock — if the assertion fires, send()
+        was never called. Using ``respx.mock(assert_all_called=False)`` to
+        document that no upstream call should happen on this path.
+        """
         request = httpx.Request(
             method="GET",
             url="https://advertising-api.amazon.com/test"
         )
-        
+
         # Make auth manager return None to simulate missing headers
         authenticated_client.auth_manager.get_headers = AsyncMock(return_value=None)
-        
-        with patch.object(httpx.AsyncClient, 'send', new_callable=AsyncMock) as mock_send:
-            mock_response = httpx.Response(401, json={"error": "Unauthorized"})
-            mock_send.return_value = mock_response
-            
-            # Missing auth must raise a request error according to client policy
-            import pytest
-            import httpx as _httpx
-            with pytest.raises(_httpx.RequestError):
+
+        with respx.mock(assert_all_called=False) as respx_mock:
+            # Set up a route that should NEVER fire on this code path.
+            # If the policy regresses and a request slips through without
+            # auth, this route catches it (call_count == 1) and the
+            # follow-up assertion in the test exposes the regression.
+            route = respx_mock.get(
+                "https://advertising-api.amazon.com/test"
+            ).mock(return_value=httpx.Response(401))
+
+            with pytest.raises(httpx.RequestError):
                 await authenticated_client.send(request)
+
+            # Critical: no wire request should have happened.
+            assert route.call_count == 0, (
+                "AuthenticatedClient sent a request despite missing auth "
+                "headers — policy regression."
+            )

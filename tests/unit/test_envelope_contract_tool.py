@@ -33,6 +33,7 @@ async def test_envelope_contract_tool_returns_v1_metadata():
         "dropped_alias",
         "coerced",
         "unknown_field_passed_through",
+        "unknown_field_rejected",
     }
     assert "MCP_SCHEMA_KEY_NORMALIZATION_ENABLED" in result["env_vars"]
     assert "MCP_SCHEMA_KEY_NORMALIZATION_META" in result["env_vars"]

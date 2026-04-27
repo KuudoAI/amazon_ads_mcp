@@ -8,9 +8,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
+import respx
 
 from amazon_ads_mcp.utils.http_client import AuthenticatedClient
 from amazon_ads_mcp.utils.media import MediaTypeRegistry
+
+# Local alias preserves the existing call sites' name; the factory itself
+# now lives in tests/conftest.py and is shared with three other files.
+from tests.conftest import make_direct_auth_manager as _build_direct_auth_manager
 
 
 @pytest.mark.asyncio
@@ -59,22 +64,7 @@ async def test_httpx_default_accept_is_overridden_with_vendored_type():
     HTTP 415 on Sponsored Products v3 and Target Promotion Groups v1
     endpoints.
     """
-    auth_manager = AsyncMock()
-    auth_manager.get_headers = AsyncMock(
-        return_value={"Authorization": "Bearer test"}
-    )
-    auth_manager.provider = MagicMock()
-    auth_manager.provider.requires_identity_region_routing = MagicMock(
-        return_value=False
-    )
-    auth_manager.provider.headers_are_identity_specific = MagicMock(
-        return_value=False
-    )
-    auth_manager.provider.region_controlled_by_identity = MagicMock(
-        return_value=False
-    )
-    auth_manager.provider.provider_type = "direct"
-    auth_manager.get_active_identity = MagicMock(return_value=None)
+    auth_manager = _build_direct_auth_manager()
 
     registry = MagicMock(spec=MediaTypeRegistry)
     registry.resolve = MagicMock(
@@ -98,13 +88,16 @@ async def test_httpx_default_accept_is_overridden_with_vendored_type():
     )
     assert request.headers.get("accept") == "*/*"
 
-    with patch.object(
-        httpx.AsyncClient, "send", new_callable=AsyncMock
-    ) as mock_send:
-        mock_send.return_value = httpx.Response(200, request=request)
+    # respx intercepts at the transport layer — observes the wire request
+    # exactly as httpx would emit it, including any header overrides done
+    # by ``_inject_headers`` between build_request and the wire.
+    with respx.mock(assert_all_called=True) as respx_mock:
+        route = respx_mock.post(
+            "https://advertising-api-eu.amazon.com/sp/campaigns/list"
+        ).mock(return_value=httpx.Response(200))
         await client.send(request)
+        sent = route.calls.last.request
 
-    sent = mock_send.call_args[0][0]
     assert sent.headers.get("accept") == "application/vnd.spCampaign.v3+json"
     assert (
         sent.headers.get("content-type") == "application/vnd.spCampaign.v3+json"
@@ -116,22 +109,7 @@ async def test_explicit_vendored_accept_is_preserved():
     """Callers pinning a specific vendored Accept (e.g. TPG v2) must not
     be overridden by the registry's first-listed vendored type.
     """
-    auth_manager = AsyncMock()
-    auth_manager.get_headers = AsyncMock(
-        return_value={"Authorization": "Bearer test"}
-    )
-    auth_manager.provider = MagicMock()
-    auth_manager.provider.requires_identity_region_routing = MagicMock(
-        return_value=False
-    )
-    auth_manager.provider.headers_are_identity_specific = MagicMock(
-        return_value=False
-    )
-    auth_manager.provider.region_controlled_by_identity = MagicMock(
-        return_value=False
-    )
-    auth_manager.provider.provider_type = "direct"
-    auth_manager.get_active_identity = MagicMock(return_value=None)
+    auth_manager = _build_direct_auth_manager()
 
     registry = MagicMock(spec=MediaTypeRegistry)
     registry.resolve = MagicMock(
@@ -156,13 +134,13 @@ async def test_explicit_vendored_accept_is_preserved():
         json={},
     )
 
-    with patch.object(
-        httpx.AsyncClient, "send", new_callable=AsyncMock
-    ) as mock_send:
-        mock_send.return_value = httpx.Response(200, request=request)
+    with respx.mock(assert_all_called=True) as respx_mock:
+        route = respx_mock.post(
+            "https://advertising-api-eu.amazon.com/sp/targetPromotionGroups"
+        ).mock(return_value=httpx.Response(200))
         await client.send(request)
+        sent = route.calls.last.request
 
-    sent = mock_send.call_args[0][0]
     assert (
         sent.headers.get("accept")
         == "application/vnd.sptargetpromotiongroup.v2+json"

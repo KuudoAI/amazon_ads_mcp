@@ -7,7 +7,6 @@ other HTTP-related utility functions.
 import asyncio
 
 import httpx
-import os
 import asyncio as _asyncio
 from unittest.mock import patch
 
@@ -133,13 +132,13 @@ def test_retry_jitter_applied():
     assert 0.8 <= sleeps[0] <= 1.2
 
 
-def test_http2_env_toggle_does_not_crash_without_h2():
+def test_http2_env_toggle_does_not_crash_without_h2(monkeypatch):
     m = HTTPClientManager()
     # First with HTTP/2 disabled
-    os.environ["HTTP_ENABLE_HTTP2"] = "false"
+    monkeypatch.setenv("HTTP_ENABLE_HTTP2", "false")
     _ = asyncio.run(m.get_client(base_url="https://ex2.com"))
     # Then enable and request again; should not crash even if h2 missing
-    os.environ["HTTP_ENABLE_HTTP2"] = "true"
+    monkeypatch.setenv("HTTP_ENABLE_HTTP2", "true")
     c2 = asyncio.run(m.get_client(base_url="https://ex2.com"))
     assert c2 is not None
     _asyncio.run(m.close_all())

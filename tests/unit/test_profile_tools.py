@@ -7,6 +7,14 @@ from amazon_ads_mcp.tools import profile as profile_tools
 from amazon_ads_mcp.utils.errors import ErrorCategory, ValidationError
 
 
+# Note on test design: these tests deliberately use SimpleNamespace as a
+# *whitelist* for AuthManager methods. Any access to a method NOT explicitly
+# stubbed AttributeErrors immediately — stricter than spec=AuthManager. The
+# inner MagicMock() stubs intentionally don't carry signature specs because
+# spec'ing against AuthManager's unbound methods introduces a phantom `self`
+# arg that breaks `assert_called_once_with(...)` on caller-supplied args.
+
+
 def _mock_cached_profiles(monkeypatch, profile_ids):
     """Patch get_profiles_cached to return the given profile IDs (no live API)."""
     profiles = [{"profileId": int(pid) if pid.isdigit() else pid} for pid in profile_ids]

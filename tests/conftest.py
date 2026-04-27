@@ -8,21 +8,8 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 
-def pytest_configure(config):
-    # Register the asyncio marker so pytest doesn't warn when it's used.
-    config.addinivalue_line(
-        "markers", "asyncio: mark test to run in an asyncio event loop"
-    )
-    # Add custom markers for test organization
-    config.addinivalue_line(
-        "markers", "unit: mark test as a unit test"
-    )
-    config.addinivalue_line(
-        "markers", "integration: mark test as an integration test"
-    )
-    config.addinivalue_line(
-        "markers", "auth: mark test as testing authentication"
-    )
+# Markers are registered centrally in pyproject.toml [tool.pytest.ini_options]
+# with --strict-markers to catch typos. Don't duplicate here.
 
 
 @pytest.fixture(autouse=True)
@@ -94,8 +81,15 @@ def mock_env_vars(monkeypatch):
 
 @pytest.fixture
 def mock_auth_manager():
-    """Mock authentication manager."""
-    manager = MagicMock()
+    """Mock authentication manager.
+
+    Uses ``spec=AuthManager`` so unknown attribute access fails at test time
+    instead of silently returning a child Mock — this catches drift when
+    AuthManager renames or removes methods.
+    """
+    from amazon_ads_mcp.auth.manager import AuthManager
+
+    manager = MagicMock(spec=AuthManager)
     manager.get_headers = AsyncMock(return_value={
         "Authorization": "Bearer test-token",
         "Amazon-Advertising-API-ClientId": "test-client-id",
@@ -104,6 +98,44 @@ def mock_auth_manager():
     manager.get_active_identity = MagicMock(return_value=None)
     manager.get_active_profile_id = MagicMock(return_value="test-profile-123")
     manager.get_active_region = MagicMock(return_value="na")
+    return manager
+
+
+def make_direct_auth_manager(headers=None):
+    """Build a fully-spec'd AuthManager mock for the direct (non-OpenBridge)
+    provider. Centralizes the pattern that previously duplicated across
+    ``test_authenticated_client.py``, ``test_client_accept_resolver.py``,
+    ``test_authenticated_client_dsp_wire.py``, and
+    ``test_auth_header_propagation.py``.
+
+    Both manager and provider are spec'd:
+    - ``manager`` uses ``spec=AuthManager`` so attribute drift on the real
+      class fails at test time.
+    - ``provider`` uses ``spec=BaseAmazonAdsProvider`` for the same reason.
+
+    The default ``headers`` mimic a typical successful auth response.
+    Callers can pass a custom dict to override.
+
+    This is a *factory function*, not a fixture: callers can build N
+    independent managers in a single test (e.g., to simulate concurrent
+    clients) without fixture-scope shenanigans.
+    """
+    from amazon_ads_mcp.auth.base import BaseAmazonAdsProvider
+    from amazon_ads_mcp.auth.manager import AuthManager
+
+    manager = MagicMock(spec=AuthManager)
+    manager.get_headers = AsyncMock(
+        return_value=headers or {
+            "Authorization": "Bearer test",
+            "Amazon-Advertising-API-ClientId": "test-client-id",
+        }
+    )
+    manager.provider = MagicMock(spec=BaseAmazonAdsProvider)
+    manager.provider.requires_identity_region_routing = MagicMock(return_value=False)
+    manager.provider.headers_are_identity_specific = MagicMock(return_value=False)
+    manager.provider.region_controlled_by_identity = MagicMock(return_value=False)
+    manager.provider.provider_type = "direct"
+    manager.get_active_identity = MagicMock(return_value=None)
     return manager
 
 

@@ -92,7 +92,12 @@ class CircuitState(Enum):
 
 @dataclass
 class CircuitBreaker:
-    """Enhanced circuit breaker with metrics and per-endpoint tracking."""
+    """Enhanced circuit breaker with metrics and per-endpoint tracking.
+
+    The ``clock`` field is a swappable monotonic-ish time source (defaults to
+    ``time.time``). Tests inject a deterministic stub to avoid wallclock
+    sleeps; production behavior is unchanged.
+    """
 
     failure_threshold: int = 5
     recovery_timeout: float = 60.0
@@ -102,13 +107,16 @@ class CircuitBreaker:
     success_count: int = 0
     last_failure_time: Optional[float] = None
     endpoint: str = ""
+    clock: Callable[[], float] = field(default=time.time, repr=False, compare=False)
 
     def is_open(self) -> bool:
         """Check if circuit should block requests."""
         if self.state == CircuitState.OPEN:
+            # Use explicit None-check; injected clocks may return 0.0 which
+            # would otherwise be treated as falsy and skip the recovery path.
             if (
-                self.last_failure_time
-                and (time.time() - self.last_failure_time) >= self.recovery_timeout
+                self.last_failure_time is not None
+                and (self.clock() - self.last_failure_time) >= self.recovery_timeout
             ):
                 self.state = CircuitState.HALF_OPEN
                 self.success_count = 0
@@ -133,7 +141,7 @@ class CircuitBreaker:
     def record_failure(self) -> None:
         """Record failed request."""
         self.failure_count += 1
-        self.last_failure_time = time.time()
+        self.last_failure_time = self.clock()
 
         if self.state == CircuitState.HALF_OPEN:
             self.state = CircuitState.OPEN
@@ -158,18 +166,31 @@ def get_circuit_breaker(endpoint: str) -> CircuitBreaker:
 
 @dataclass
 class TokenBucket:
-    """Token bucket for rate limiting with per-endpoint TPS."""
+    """Token bucket for rate limiting with per-endpoint TPS.
+
+    The ``clock`` field defaults to ``time.time`` for production parity. Tests
+    inject a deterministic stub to drive ``refill`` and ``acquire`` without
+    real sleeps.
+    """
 
     capacity: float  # TPS for this endpoint
     tokens: float
-    last_refill: float = field(default_factory=time.time)
+    last_refill: Optional[float] = None
     queue: List[asyncio.Future] = field(default_factory=list)
     endpoint: str = ""
     region: str = ""
+    clock: Callable[[], float] = field(default=time.time, repr=False, compare=False)
+
+    def __post_init__(self) -> None:
+        if self.last_refill is None:
+            self.last_refill = self.clock()
 
     def refill(self) -> None:
         """Refill tokens based on elapsed time."""
-        now = time.time()
+        now = self.clock()
+        # __post_init__ guarantees last_refill is not None; don't use `or` —
+        # it short-circuits on legitimate 0.0 timestamps from injected clocks.
+        assert self.last_refill is not None
         elapsed = now - self.last_refill
         tokens_to_add = elapsed * self.capacity
         self.tokens = min(self.capacity, self.tokens + tokens_to_add)
@@ -177,7 +198,7 @@ class TokenBucket:
 
     async def acquire(self, timeout: Optional[float] = None) -> bool:
         """Acquire a token, waiting if necessary."""
-        start_time = time.time()
+        start_time = self.clock()
         deadline = start_time + timeout if timeout else None
 
         while True:
@@ -185,27 +206,31 @@ class TokenBucket:
 
             if self.tokens >= 1:
                 self.tokens -= 1
-                wait_time = time.time() - start_time
+                wait_time = self.clock() - start_time
                 if wait_time > 0.01:  # Only record meaningful waits
                     metrics.record_queue_wait(self.endpoint, wait_time)
                 return True
 
-            # Check deadline
-            if deadline and time.time() >= deadline:
-                logger.warning(f"Token acquisition timeout for {self.endpoint}")
-                return False
-
-            # Check queue depth for back-pressure
+            # Check queue depth for back-pressure FIRST. Overload should
+            # fail fast regardless of remaining timeout — if the deadline
+            # check ran first, slow callers under heavy load could return
+            # False (timeout) instead of raising (overload), masking the
+            # real cause. Tested by ``test_queue_back_pressure``.
             if len(self.queue) > 100:
                 logger.error(f"Queue depth exceeded for {self.endpoint}, failing fast")
                 raise Exception(f"Rate limit queue full for {self.endpoint}")
+
+            # Check deadline
+            if deadline and self.clock() >= deadline:
+                logger.warning(f"Token acquisition timeout for {self.endpoint}")
+                return False
 
             # Wait with jitter
             wait_time = (1.0 / self.capacity) * random.uniform(0.5, 1.5)
             wait_time = min(wait_time, 1.0)  # Cap at 1 second
 
             if deadline:
-                wait_time = min(wait_time, max(0, deadline - time.time()))
+                wait_time = min(wait_time, max(0, deadline - self.clock()))
 
             await asyncio.sleep(wait_time)
 

@@ -87,61 +87,67 @@ class TestCircuitBreaker:
     
     def test_half_open_after_timeout(self):
         """Test circuit enters half-open after recovery timeout."""
+        now = [0.0]
         breaker = CircuitBreaker(
             failure_threshold=1,
             recovery_timeout=0.1,
-            endpoint="/v2/campaigns"
+            endpoint="/v2/campaigns",
+            clock=lambda: now[0],
         )
-        
+
         breaker.record_failure()
         assert breaker.state == CircuitState.OPEN
         assert breaker.is_open()
-        
-        # Wait for recovery timeout
-        time.sleep(0.15)
+
+        # Advance fake clock past recovery timeout
+        now[0] = 0.15
         assert not breaker.is_open()  # Should transition to HALF_OPEN
         assert breaker.state == CircuitState.HALF_OPEN
-    
+
     def test_closes_after_success_in_half_open(self):
         """Test circuit closes after successful requests in half-open."""
+        now = [0.0]
         breaker = CircuitBreaker(
             failure_threshold=1,
             recovery_timeout=0.1,
             half_open_requests=2,
-            endpoint="/v2/campaigns"
+            endpoint="/v2/campaigns",
+            clock=lambda: now[0],
         )
-        
+
         # Open the circuit
         breaker.record_failure()
-        time.sleep(0.15)
-        
+        now[0] = 0.15
+
         # Enter half-open
         assert not breaker.is_open()
         assert breaker.state == CircuitState.HALF_OPEN
-        
+
         # Record successes
         breaker.record_success()
         assert breaker.state == CircuitState.HALF_OPEN
-        
+
         breaker.record_success()
         assert breaker.state == CircuitState.CLOSED
-    
+
     def test_reopens_on_failure_in_half_open(self):
         """Test circuit reopens on failure during half-open."""
+        now = [0.0]
         breaker = CircuitBreaker(
             failure_threshold=1,
             recovery_timeout=0.1,
-            endpoint="/v2/campaigns"
+            endpoint="/v2/campaigns",
+            clock=lambda: now[0],
         )
-        
+
         # Open the circuit
         breaker.record_failure()
-        time.sleep(0.15)
-        
+        now[0] = 0.15
+
         # Enter half-open
         assert not breaker.is_open()
         assert breaker.state == CircuitState.HALF_OPEN
-        
+
         # Fail in half-open
         breaker.record_failure()
         assert breaker.state == CircuitState.OPEN
@@ -158,23 +164,30 @@ class TestTokenBucket:
     
     def test_refill_rate(self):
         """Test token refill at correct rate."""
-        bucket = TokenBucket(capacity=10, tokens=0, endpoint="/v2/campaigns", region="na")
-        
-        # Wait 0.1 seconds (should refill 1 token at 10 TPS)
-        time.sleep(0.1)
+        now = [0.0]
+        bucket = TokenBucket(
+            capacity=10, tokens=0, endpoint="/v2/campaigns", region="na",
+            clock=lambda: now[0],
+        )
+
+        # Advance 0.1s of fake time → exactly 1 token at 10 TPS, no jitter.
+        now[0] = 0.1
         bucket.refill()
-        
-        # Should have approximately 1 token (allowing for timing variance)
-        assert 0.8 <= bucket.tokens <= 1.2
-    
+
+        assert bucket.tokens == pytest.approx(1.0)
+
     def test_capacity_limit(self):
         """Test tokens don't exceed capacity."""
-        bucket = TokenBucket(capacity=10, tokens=10, endpoint="/v2/campaigns", region="na")
-        
-        # Wait to accumulate tokens
-        time.sleep(0.5)
+        now = [0.0]
+        bucket = TokenBucket(
+            capacity=10, tokens=10, endpoint="/v2/campaigns", region="na",
+            clock=lambda: now[0],
+        )
+
+        # Advance fake time well past saturation
+        now[0] = 0.5
         bucket.refill()
-        
+
         # Should still be at capacity
         assert bucket.tokens == 10
     

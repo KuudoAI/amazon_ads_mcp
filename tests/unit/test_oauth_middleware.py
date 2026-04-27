@@ -8,6 +8,17 @@ from amazon_ads_mcp.auth.token_store import TokenKind
 from amazon_ads_mcp.middleware.oauth import OAuthTokenMiddleware
 
 
+# Mock-discipline notes for this file:
+#  - ``call_next = AsyncMock(return_value="ok")`` is a generic FastMCP
+#    middleware callback — no concrete spec target.
+#  - ``auth_manager = SimpleNamespace(...)`` is a deliberate whitelist:
+#    accessing any AuthManager method NOT explicitly stubbed here
+#    AttributeErrors immediately, which is stricter than spec=AuthManager.
+#  - ``middleware.refresh_token = AsyncMock(...)`` is an instance-attribute
+#    monkey-patch; spec'ing against the unbound class method introduces a
+#    phantom ``self`` arg that breaks call assertions, so we leave it bare.
+
+
 class DummyFastMCPContext:
     def __init__(self, tokens_data=None, auth_manager=object()):
         self._tokens_data = tokens_data

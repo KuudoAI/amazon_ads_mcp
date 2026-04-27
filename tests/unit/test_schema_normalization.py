@@ -101,8 +101,45 @@ async def test_unique_match_rewrite_pascal_to_camel():
 
 
 @pytest.mark.asyncio
-async def test_no_match_passes_through_with_event():
+async def test_no_match_passes_through_with_event(monkeypatch):
+    """Round 12 follow-up: with strict-unknown ON (default), the event
+    kind is ``unknown_field_rejected``. The original
+    ``unknown_field_passed_through`` only fires when the flag is off —
+    covered by the parallel test below."""
     from amazon_ads_mcp.middleware.schema_normalization import rewrite_args
+
+    server = FastMCP("test")
+    await _register_canonical_tool(server)
+
+    args = {"unknownField": "x"}
+    rewritten, events = await rewrite_args("adsv1_list_campaigns", args, server=server)
+
+    # Schema-key normalization itself does not drop the field — the
+    # downstream SchemaValidationMiddleware does the rejection.
+    assert rewritten == {"unknownField": "x"}
+    assert events == [
+        {
+            "kind": "unknown_field_rejected",
+            "field": "unknownField",
+            "reason": "no_schema_match",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_no_match_emits_passed_through_when_strict_off(monkeypatch):
+    """When MCP_STRICT_UNKNOWN_FIELDS=false, the event kind retains the
+    original ``unknown_field_passed_through`` label because the field
+    really is forwarded to the upstream API."""
+    from amazon_ads_mcp.middleware import schema_normalization as sn_mod
+    from amazon_ads_mcp.middleware.schema_normalization import rewrite_args
+
+    class _FakeSettings:
+        mcp_strict_unknown_fields = False
+        mcp_schema_key_normalization_enabled = True
+        mcp_schema_key_normalization_meta = True
+
+    monkeypatch.setattr(sn_mod, "settings", _FakeSettings())
 
     server = FastMCP("test")
     await _register_canonical_tool(server)
@@ -134,7 +171,13 @@ def test_ambiguous_match_leaves_unchanged():
     rewritten, events = _normalize_args_with_schema(args, _ambiguous_schema_properties())
 
     assert rewritten == args
-    assert any(e.get("kind") == "unknown_field_passed_through" for e in events)
+    # Round 12 follow-up: kind depends on MCP_STRICT_UNKNOWN_FIELDS
+    # (default True → unknown_field_rejected). Accept either label so
+    # the test is robust to the flag.
+    assert any(
+        e.get("kind") in ("unknown_field_passed_through", "unknown_field_rejected")
+        for e in events
+    )
 
 
 @pytest.mark.asyncio
@@ -203,7 +246,11 @@ async def test_attempted_normalization_emits_on_unknown_field():
     _, events = await rewrite_args("adsv1_list_campaigns", args, server=server)
 
     assert events, "attempted_normalization semantics: must emit even on no-match"
-    assert events[0]["kind"] == "unknown_field_passed_through"
+    # Round 12 follow-up: kind reflects strict-unknown setting.
+    assert events[0]["kind"] in (
+        "unknown_field_passed_through",
+        "unknown_field_rejected",
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -6,6 +6,15 @@ from amazon_ads_mcp.tools import profile_listing as listing_tools
 from amazon_ads_mcp.utils.errors import ErrorCategory, ValidationError
 
 
+def _spec_cached_fetcher(return_value):
+    """Build an AsyncMock spec'd against the real ``_get_profiles_cached``.
+
+    Signature drift in the production fetcher (e.g., a renamed kwarg) will
+    surface here as a TypeError at the call site instead of silently passing.
+    """
+    return AsyncMock(spec=listing_tools._get_profiles_cached, return_value=return_value)
+
+
 # ---------------------------------------------------------------------------
 # _apply_limit — typed validation errors for non-positive, cap message for over-cap
 # ---------------------------------------------------------------------------
@@ -66,7 +75,7 @@ async def test_search_profiles_over_cap_includes_cap_notice_in_message(monkeypat
     monkeypatch.setattr(
         listing_tools,
         "_get_profiles_cached",
-        AsyncMock(return_value=(big_profiles, False)),
+        _spec_cached_fetcher((big_profiles, False)),
     )
 
     result = await listing_tools.search_profiles(limit=200)
@@ -86,7 +95,7 @@ async def test_search_profiles_over_cap_with_stale_message_combines_both(monkeyp
     monkeypatch.setattr(
         listing_tools,
         "_get_profiles_cached",
-        AsyncMock(return_value=(big_profiles, True)),  # stale=True
+        _spec_cached_fetcher((big_profiles, True)),  # stale=True
     )
 
     result = await listing_tools.search_profiles(limit=200)
@@ -103,7 +112,7 @@ async def test_search_profiles_negative_limit_raises_through_tool(monkeypatch):
     monkeypatch.setattr(
         listing_tools,
         "_get_profiles_cached",
-        AsyncMock(return_value=([], False)),
+        _spec_cached_fetcher(([], False)),
     )
 
     with pytest.raises(ValidationError):
@@ -121,7 +130,7 @@ async def test_search_profiles_over_cap_includes_pagination_guidance(monkeypatch
     monkeypatch.setattr(
         listing_tools,
         "_get_profiles_cached",
-        AsyncMock(return_value=(big_profiles, False)),
+        _spec_cached_fetcher((big_profiles, False)),
     )
 
     result = await listing_tools.search_profiles(limit=200)
@@ -147,7 +156,7 @@ async def test_search_profiles_normal_50_call_no_pagination_guidance(monkeypatch
     monkeypatch.setattr(
         listing_tools,
         "_get_profiles_cached",
-        AsyncMock(return_value=(big_profiles, False)),
+        _spec_cached_fetcher((big_profiles, False)),
     )
 
     result = await listing_tools.search_profiles(limit=50)
@@ -171,7 +180,7 @@ async def test_search_profiles_default_limit_no_pagination_guidance(monkeypatch)
     monkeypatch.setattr(
         listing_tools,
         "_get_profiles_cached",
-        AsyncMock(return_value=(big_profiles, False)),
+        _spec_cached_fetcher((big_profiles, False)),
     )
 
     result = await listing_tools.search_profiles()
@@ -190,7 +199,7 @@ async def test_page_profiles_over_cap_includes_cap_notice(monkeypatch):
     monkeypatch.setattr(
         listing_tools,
         "_get_profiles_cached",
-        AsyncMock(return_value=(big_profiles, False)),
+        _spec_cached_fetcher((big_profiles, False)),
     )
 
     result = await listing_tools.page_profiles(limit=500)
@@ -205,7 +214,7 @@ async def test_page_profiles_negative_limit_raises(monkeypatch):
     monkeypatch.setattr(
         listing_tools,
         "_get_profiles_cached",
-        AsyncMock(return_value=([], False)),
+        _spec_cached_fetcher(([], False)),
     )
 
     with pytest.raises(ValidationError):
@@ -236,7 +245,7 @@ async def test_summarize_profiles_counts(monkeypatch):
     monkeypatch.setattr(
         listing_tools,
         "_get_profiles_cached",
-        AsyncMock(return_value=(SAMPLE_PROFILES, False)),
+        _spec_cached_fetcher((SAMPLE_PROFILES, False)),
     )
 
     result = await listing_tools.summarize_profiles()
@@ -254,7 +263,7 @@ async def test_search_profiles_filters(monkeypatch):
     monkeypatch.setattr(
         listing_tools,
         "_get_profiles_cached",
-        AsyncMock(return_value=(SAMPLE_PROFILES, False)),
+        _spec_cached_fetcher((SAMPLE_PROFILES, False)),
     )
 
     result = await listing_tools.search_profiles(
@@ -272,7 +281,7 @@ async def test_page_profiles_offset(monkeypatch):
     monkeypatch.setattr(
         listing_tools,
         "_get_profiles_cached",
-        AsyncMock(return_value=(SAMPLE_PROFILES, False)),
+        _spec_cached_fetcher((SAMPLE_PROFILES, False)),
     )
 
     result = await listing_tools.page_profiles(offset=1, limit=1)
@@ -331,7 +340,7 @@ async def test_refresh_profiles_cache_success(monkeypatch):
     monkeypatch.setattr(
         listing_tools,
         "_get_profiles_cached",
-        AsyncMock(return_value=(SAMPLE_PROFILES, False)),
+        _spec_cached_fetcher((SAMPLE_PROFILES, False)),
     )
     monkeypatch.setattr(
         listing_tools._profile_cache,
@@ -360,7 +369,7 @@ async def test_refresh_profiles_cache_stale(monkeypatch):
     monkeypatch.setattr(
         listing_tools,
         "_get_profiles_cached",
-        AsyncMock(return_value=(SAMPLE_PROFILES, True)),
+        _spec_cached_fetcher((SAMPLE_PROFILES, True)),
     )
     monkeypatch.setattr(
         listing_tools._profile_cache,

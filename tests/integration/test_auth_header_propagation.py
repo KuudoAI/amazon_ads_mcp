@@ -17,6 +17,8 @@ The tests cover:
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
+from amazon_ads_mcp.auth.base import BaseAmazonAdsProvider
+from amazon_ads_mcp.auth.manager import AuthManager
 from amazon_ads_mcp.middleware.authentication import (
     AuthConfig,
     RefreshTokenMiddleware,
@@ -74,9 +76,13 @@ class TestAuthorizationHeaderExtraction:
 
     @pytest.fixture
     def mock_auth_manager(self):
-        """Create a mock auth manager with an OpenBridge-like provider."""
-        manager = MagicMock()
-        manager.provider = MagicMock()
+        """Create a mock auth manager with an OpenBridge-like provider.
+
+        Both the manager and provider are spec'd so attribute typos and API
+        renames fail at test time rather than producing silent child Mocks.
+        """
+        manager = MagicMock(spec=AuthManager)
+        manager.provider = MagicMock(spec=BaseAmazonAdsProvider)
         manager.provider.provider_type = "openbridge"
         manager.provider.set_refresh_token = MagicMock()
         return manager
@@ -221,8 +227,8 @@ class TestTokenPropagationToProvider:
         config.enabled = False  # Auth processing disabled
         config.refresh_token_enabled = False  # Refresh token processing disabled
 
-        mock_auth_manager = MagicMock()
-        mock_auth_manager.provider = MagicMock()
+        mock_auth_manager = MagicMock(spec=AuthManager)
+        mock_auth_manager.provider = MagicMock(spec=BaseAmazonAdsProvider)
         mock_auth_manager.provider.set_refresh_token = MagicMock()
 
         middleware = RefreshTokenMiddleware(config, mock_auth_manager)
@@ -255,8 +261,10 @@ class TestTokenPropagationToProvider:
         config.enabled = True
         config.refresh_token_enabled = True
 
-        # Provider without set_refresh_token method (e.g., direct auth)
-        mock_auth_manager = MagicMock()
+        # Provider without set_refresh_token method (e.g., direct auth).
+        # Manager spec'd against AuthManager; provider intentionally
+        # spec'd against an empty list to simulate a no-methods provider.
+        mock_auth_manager = MagicMock(spec=AuthManager)
         mock_auth_manager.provider = MagicMock(spec=[])  # No methods
 
         middleware = RefreshTokenMiddleware(config, mock_auth_manager)
@@ -292,8 +300,8 @@ class TestEndToEndAuthFlow:
         config.jwt_validation_enabled = False  # Skip JWT validation for this test
         config.refresh_token_endpoint = "https://auth.openbridge.io/refresh"  # Required
 
-        mock_auth_manager = MagicMock()
-        mock_auth_manager.provider = MagicMock()
+        mock_auth_manager = MagicMock(spec=AuthManager)
+        mock_auth_manager.provider = MagicMock(spec=BaseAmazonAdsProvider)
         mock_auth_manager.provider.provider_type = "openbridge"
         mock_auth_manager.provider.set_refresh_token = MagicMock()
 
@@ -345,8 +353,8 @@ class TestEndToEndAuthFlow:
         config.refresh_token_enabled = False  # This was the bug!
         config.jwt_validation_enabled = True
 
-        mock_auth_manager = MagicMock()
-        mock_auth_manager.provider = MagicMock()
+        mock_auth_manager = MagicMock(spec=AuthManager)
+        mock_auth_manager.provider = MagicMock(spec=BaseAmazonAdsProvider)
         mock_auth_manager.provider.provider_type = "openbridge"
         mock_auth_manager.provider.set_refresh_token = MagicMock()
 
@@ -371,8 +379,8 @@ class TestContextVariations:
         config.enabled = True
         config.refresh_token_enabled = True
 
-        mock_auth_manager = MagicMock()
-        mock_auth_manager.provider = MagicMock()
+        mock_auth_manager = MagicMock(spec=AuthManager)
+        mock_auth_manager.provider = MagicMock(spec=BaseAmazonAdsProvider)
         mock_auth_manager.provider.set_refresh_token = MagicMock()
 
         middleware = RefreshTokenMiddleware(config, mock_auth_manager)
@@ -470,9 +478,13 @@ class TestXOpenbridgeTokenHeader:
 
     @pytest.fixture
     def mock_auth_manager(self):
-        """Create a mock auth manager with an OpenBridge-like provider."""
-        manager = MagicMock()
-        manager.provider = MagicMock()
+        """Create a mock auth manager with an OpenBridge-like provider.
+
+        Both the manager and provider are spec'd so attribute typos and API
+        renames fail at test time rather than producing silent child Mocks.
+        """
+        manager = MagicMock(spec=AuthManager)
+        manager.provider = MagicMock(spec=BaseAmazonAdsProvider)
         manager.provider.provider_type = "openbridge"
         manager.provider.set_refresh_token = MagicMock()
         return manager
