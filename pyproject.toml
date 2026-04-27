@@ -23,6 +23,7 @@ dev = [
  "ruff>=0.14.10",
  "fastmcp[code-mode]>=3.2.4,<4",
  "hypothesis>=6.152.3",
+ "respx>=0.23.1",
 ]
 
 [project.optional-dependencies]

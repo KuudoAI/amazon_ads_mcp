@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
+import respx
 
 from amazon_ads_mcp.utils.http_client import AuthenticatedClient
 from amazon_ads_mcp.utils.media import MediaTypeRegistry
@@ -87,12 +88,16 @@ async def test_httpx_default_accept_is_overridden_with_vendored_type():
     )
     assert request.headers.get("accept") == "*/*"
 
-    with patch.object(httpx.AsyncClient, "send", autospec=True) as mock_send:
-        mock_send.return_value = httpx.Response(200, request=request)
+    # respx intercepts at the transport layer — observes the wire request
+    # exactly as httpx would emit it, including any header overrides done
+    # by ``_inject_headers`` between build_request and the wire.
+    with respx.mock(assert_all_called=True) as respx_mock:
+        route = respx_mock.post(
+            "https://advertising-api-eu.amazon.com/sp/campaigns/list"
+        ).mock(return_value=httpx.Response(200))
         await client.send(request)
+        sent = route.calls.last.request
 
-    # autospec=True on bound method: call_args[0][0] is `self`, [1] is the request.
-    sent = mock_send.call_args[0][1]
     assert sent.headers.get("accept") == "application/vnd.spCampaign.v3+json"
     assert (
         sent.headers.get("content-type") == "application/vnd.spCampaign.v3+json"
@@ -129,12 +134,13 @@ async def test_explicit_vendored_accept_is_preserved():
         json={},
     )
 
-    with patch.object(httpx.AsyncClient, "send", autospec=True) as mock_send:
-        mock_send.return_value = httpx.Response(200, request=request)
+    with respx.mock(assert_all_called=True) as respx_mock:
+        route = respx_mock.post(
+            "https://advertising-api-eu.amazon.com/sp/targetPromotionGroups"
+        ).mock(return_value=httpx.Response(200))
         await client.send(request)
+        sent = route.calls.last.request
 
-    # autospec=True on bound method: call_args[0][0] is `self`, [1] is the request.
-    sent = mock_send.call_args[0][1]
     assert (
         sent.headers.get("accept")
         == "application/vnd.sptargetpromotiongroup.v2+json"

@@ -20,10 +20,11 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import httpx
 import pytest
+import respx
 
 from amazon_ads_mcp.utils.http_client import AuthenticatedClient
 from amazon_ads_mcp.utils.media import MediaTypeRegistry
@@ -83,21 +84,27 @@ async def test_dsp_conversions_list_sends_v2_accept_on_wire(
         "https://advertising-api.amazon.com/accounts/123/dsp/conversionDefinitions/list",
         json={},
     )
-    captured: dict[str, str | None] = {}
 
-    async def fake_send(self_, request_, **kwargs):
-        captured["accept"] = request_.headers.get("Accept")
-        return httpx.Response(200, request=request_)
+    # respx intercepts at httpx's transport layer — sees the fully
+    # serialized wire request, including header case + JSON body bytes.
+    # Catches request-construction bugs that ``patch.object(send)``
+    # is structurally blind to.
+    with respx.mock(assert_all_called=True) as respx_mock:
+        route = respx_mock.post(
+            "https://advertising-api.amazon.com/accounts/123/"
+            "dsp/conversionDefinitions/list"
+        ).mock(return_value=httpx.Response(200))
 
-    with patch.object(httpx.AsyncClient, "send", fake_send):
         await client.send(request)
 
-    assert (
-        captured.get("accept") == "application/vnd.dspconversiondefinition.v2+json"
-    ), (
-        f"DSP wire-path regression: expected v2 Accept, got "
-        f"{captured.get('accept')!r}. Resolver may have regressed or "
-        f"_inject_headers may no longer be calling resolve_accept."
+        # Inspect the actual request as sent on the wire
+        sent = route.calls.last.request
+        accept = sent.headers.get("Accept")
+
+    assert accept == "application/vnd.dspconversiondefinition.v2+json", (
+        f"DSP wire-path regression: expected v2 Accept, got {accept!r}. "
+        f"Resolver may have regressed or _inject_headers may no longer be "
+        f"calling resolve_accept."
     )
 
 
@@ -122,16 +129,18 @@ async def test_dsp_conversions_caller_pinned_v1_preserved_on_wire(
         headers={"Accept": pinned},
         json={},
     )
-    captured: dict[str, str | None] = {}
 
-    async def fake_send(self_, request_, **kwargs):
-        captured["accept"] = request_.headers.get("Accept")
-        return httpx.Response(200, request=request_)
+    with respx.mock(assert_all_called=True) as respx_mock:
+        route = respx_mock.post(
+            "https://advertising-api.amazon.com/accounts/123/"
+            "dsp/conversionDefinitions/list"
+        ).mock(return_value=httpx.Response(200))
 
-    with patch.object(httpx.AsyncClient, "send", fake_send):
         await client.send(request)
 
-    assert captured.get("accept") == pinned, (
+        accept = route.calls.last.request.headers.get("Accept")
+
+    assert accept == pinned, (
         f"Caller-pinned vendored Accept was clobbered: expected {pinned!r}, "
-        f"got {captured.get('accept')!r}. Resolver rule 1 may have regressed."
+        f"got {accept!r}. Resolver rule 1 may have regressed."
     )
