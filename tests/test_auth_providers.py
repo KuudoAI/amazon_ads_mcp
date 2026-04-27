@@ -149,7 +149,7 @@ class TestDirectProvider:
         }
         
         with patch("httpx.AsyncClient.post", return_value=mock_response):
-            with patch.object(direct_provider, "_get_client", new_callable=AsyncMock) as mock_get_client:
+            with patch.object(direct_provider, "_get_client", autospec=True) as mock_get_client:
                 mock_client = AsyncMock()
                 mock_client.post = AsyncMock(return_value=mock_response)
                 mock_get_client.return_value = mock_client
@@ -180,7 +180,7 @@ class TestDirectProvider:
         )
         
         # Mock _refresh_access_token to prevent it from being called
-        with patch.object(direct_provider, "_refresh_access_token", new_callable=AsyncMock) as mock_refresh:
+        with patch.object(direct_provider, "_refresh_access_token", autospec=True) as mock_refresh:
             # Get token should return cached one without making request
             token = await direct_provider.get_token()
             assert token.value == "cached_token"
@@ -208,7 +208,7 @@ class TestDirectProvider:
             "expires_in": 3600
         }
         
-        with patch.object(direct_provider, "_get_client", new_callable=AsyncMock) as mock_get_client:
+        with patch.object(direct_provider, "_get_client", autospec=True) as mock_get_client:
             mock_client = AsyncMock()
             mock_client.post = AsyncMock(return_value=mock_response)
             mock_get_client.return_value = mock_client
@@ -249,7 +249,7 @@ class TestDirectProvider:
             "expires_in": 3600
         }
         
-        with patch.object(direct_provider, "_get_client", new_callable=AsyncMock) as mock_get_client:
+        with patch.object(direct_provider, "_get_client", autospec=True) as mock_get_client:
             mock_client = AsyncMock()
             mock_client.post = AsyncMock(return_value=mock_response)
             mock_get_client.return_value = mock_client
@@ -313,12 +313,12 @@ class TestOpenBridgeProvider:
             }
         }
         
-        with patch.object(openbridge_provider, "_get_client", new_callable=AsyncMock) as mock_get_client:
+        with patch.object(openbridge_provider, "_get_client", autospec=True) as mock_get_client:
             mock_client = AsyncMock()
             mock_client.post = AsyncMock(return_value=mock_response)
             mock_get_client.return_value = mock_client
             
-            with patch("jwt.decode") as mock_decode:
+            with patch("jwt.decode", autospec=True) as mock_decode:
                 mock_decode.return_value = {
                     "expires_at": 1700000000,
                     "user_id": "123",

@@ -263,29 +263,45 @@ def patched_set_context_deps(monkeypatch):
 
     test_identity = Identity(id="id-1", type="remote", attributes={"name": "Test"})
 
+    # Spec each AsyncMock against the real tool function so signature drift
+    # (renamed kwarg, added required arg) fails at the call site instead of
+    # silently accepting any arguments.
     monkeypatch.setattr(
         identity_tools,
         "set_active_identity",
         AsyncMock(
+            spec=identity_tools.set_active_identity,
             return_value=SetActiveIdentityResponse(
                 success=True,
                 identity=test_identity,
                 credentials_loaded=True,
-            )
+            ),
         ),
     )
     monkeypatch.setattr(
-        identity_tools, "get_active_identity", AsyncMock(return_value=test_identity)
+        identity_tools,
+        "get_active_identity",
+        AsyncMock(spec=identity_tools.get_active_identity, return_value=test_identity),
     )
     monkeypatch.setattr(
-        region_tools, "set_region", AsyncMock(return_value={"success": True, "region": "na"})
-    )
-    monkeypatch.setattr(region_tools, "get_region", AsyncMock(return_value={"region": "na"}))
-    monkeypatch.setattr(
-        profile_tools, "set_active_profile", AsyncMock(return_value={"success": True})
+        region_tools,
+        "set_region",
+        AsyncMock(spec=region_tools.set_region, return_value={"success": True, "region": "na"}),
     )
     monkeypatch.setattr(
-        profile_tools, "get_active_profile", AsyncMock(return_value={"profile_id": "p1"})
+        region_tools,
+        "get_region",
+        AsyncMock(spec=region_tools.get_region, return_value={"region": "na"}),
+    )
+    monkeypatch.setattr(
+        profile_tools,
+        "set_active_profile",
+        AsyncMock(spec=profile_tools.set_active_profile, return_value={"success": True}),
+    )
+    monkeypatch.setattr(
+        profile_tools,
+        "get_active_profile",
+        AsyncMock(spec=profile_tools.get_active_profile, return_value={"profile_id": "p1"}),
     )
 
     return SimpleNamespace(identity=test_identity)
@@ -345,11 +361,12 @@ async def test_set_active_identity_impl_populates_state_fields(monkeypatch):
         identity_tools,
         "set_active_identity",
         AsyncMock(
+            spec=identity_tools.set_active_identity,
             return_value=SetActiveIdentityResponse(
                 success=True,
                 identity=Identity(id="id-1", type="remote", attributes={}),
                 credentials_loaded=True,
-            )
+            ),
         ),
     )
 
@@ -368,7 +385,9 @@ async def test_get_active_identity_impl_returns_wrapped_response_with_state(monk
 
     test_identity = Identity(id="id-1", type="remote", attributes={"name": "Test"})
     monkeypatch.setattr(
-        identity_tools, "get_active_identity", AsyncMock(return_value=test_identity)
+        identity_tools,
+        "get_active_identity",
+        AsyncMock(spec=identity_tools.get_active_identity, return_value=test_identity),
     )
 
     ctx = FakeFastMCPContext(with_session=True)
@@ -389,7 +408,9 @@ async def test_get_active_identity_impl_no_identity_still_carries_state(monkeypa
     from amazon_ads_mcp.tools import identity as identity_tools
 
     monkeypatch.setattr(
-        identity_tools, "get_active_identity", AsyncMock(return_value=None)
+        identity_tools,
+        "get_active_identity",
+        AsyncMock(spec=identity_tools.get_active_identity, return_value=None),
     )
 
     ctx = FakeFastMCPContext(with_session=False)
@@ -410,7 +431,8 @@ async def test_get_active_profile_impl_carries_state(monkeypatch):
         profile_tools,
         "get_active_profile",
         AsyncMock(
-            return_value={"success": True, "profile_id": "p1", "source": "explicit"}
+            spec=profile_tools.get_active_profile,
+            return_value={"success": True, "profile_id": "p1", "source": "explicit"},
         ),
     )
 

@@ -25,6 +25,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
+from amazon_ads_mcp.auth.base import BaseAmazonAdsProvider
+from amazon_ads_mcp.auth.manager import AuthManager
 from amazon_ads_mcp.utils.http_client import AuthenticatedClient
 from amazon_ads_mcp.utils.media import MediaTypeRegistry
 
@@ -46,19 +48,21 @@ def dsp_conversions_registry() -> MediaTypeRegistry:
 
 
 @pytest.fixture
-def mocked_auth_manager() -> AsyncMock:
+def mocked_auth_manager() -> MagicMock:
     """Fully mocked auth manager — deterministic, no env credential reads.
 
     Mirrors the pattern in tests/unit/test_client_accept_resolver.py so the
-    wire-path test stays consistent with the existing wire-path tests."""
-    auth_manager = AsyncMock()
+    wire-path test stays consistent with the existing wire-path tests.
+    Both manager and provider are spec'd so attribute typos and API renames
+    fail at test time rather than producing silent child Mocks."""
+    auth_manager = MagicMock(spec=AuthManager)
     auth_manager.get_headers = AsyncMock(
         return_value={
             "Authorization": "Bearer test",
             "Amazon-Advertising-API-ClientId": "test-client-id",
         }
     )
-    auth_manager.provider = MagicMock()
+    auth_manager.provider = MagicMock(spec=BaseAmazonAdsProvider)
     auth_manager.provider.requires_identity_region_routing = MagicMock(
         return_value=False
     )
@@ -76,7 +80,7 @@ def mocked_auth_manager() -> AsyncMock:
 @pytest.mark.asyncio
 async def test_dsp_conversions_list_sends_v2_accept_on_wire(
     dsp_conversions_registry: MediaTypeRegistry,
-    mocked_auth_manager: AsyncMock,
+    mocked_auth_manager: MagicMock,
 ) -> None:
     """`dspAmazonListConversionDefinitions` declares v1 and v2 in the spec.
     Resolver should pick v2 (the headline regression class). This test
@@ -116,7 +120,7 @@ async def test_dsp_conversions_list_sends_v2_accept_on_wire(
 @pytest.mark.asyncio
 async def test_dsp_conversions_caller_pinned_v1_preserved_on_wire(
     dsp_conversions_registry: MediaTypeRegistry,
-    mocked_auth_manager: AsyncMock,
+    mocked_auth_manager: MagicMock,
 ) -> None:
     """A tool that explicitly pins ``Accept: …v1+json`` keeps v1 even when
     the resolver would auto-upgrade to v2. Resolver rule 1 (caller-pinned

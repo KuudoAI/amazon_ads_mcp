@@ -8,11 +8,29 @@ Both servers must classify ``fastmcp.exceptions.NotFoundError`` as
 from __future__ import annotations
 
 import json
+from unittest.mock import MagicMock
 
 import pytest
 from fastmcp.exceptions import NotFoundError
 
 from amazon_ads_mcp.middleware.error_envelope import build_envelope_from_exception
+
+
+def _make_middleware_ctx(*, message_name=None, message_uri=None):
+    """Build a minimal MCP middleware context for envelope-wrapping tests.
+
+    Note: deliberately uses bare MagicMock (no spec) — the production
+    middleware reads only ``ctx.message.name`` / ``ctx.message.uri``, and
+    those vary across MCP request-params types (CallTool, GetPrompt,
+    ReadResource). Spec'ing against any one type would require switching
+    spec per test and add no real safety beyond what the assertions check.
+    """
+    ctx = MagicMock()
+    ctx.message = MagicMock(name="message")
+    ctx.message.name = message_name
+    if message_uri is not None:
+        ctx.message.uri = message_uri
+    return ctx
 
 
 def _envelope(env: dict) -> dict:
@@ -83,12 +101,9 @@ async def test_envelope_middleware_wraps_get_prompt_not_found() -> None:
     from amazon_ads_mcp.middleware.error_envelope_middleware import (
         ErrorEnvelopeMiddleware,
     )
-    from unittest.mock import MagicMock
 
     mw = ErrorEnvelopeMiddleware()
-    ctx = MagicMock()
-    ctx.message = MagicMock(name="message")
-    ctx.message.name = "missing_prompt"
+    ctx = _make_middleware_ctx(message_name="missing_prompt")
 
     async def call_next(ctx):
         raise _NF("Unknown prompt: 'missing_prompt'")
@@ -110,13 +125,9 @@ async def test_envelope_middleware_wraps_read_resource_not_found() -> None:
     from amazon_ads_mcp.middleware.error_envelope_middleware import (
         ErrorEnvelopeMiddleware,
     )
-    from unittest.mock import MagicMock
 
     mw = ErrorEnvelopeMiddleware()
-    ctx = MagicMock()
-    ctx.message = MagicMock(name="message")
-    ctx.message.uri = "does://not/exist"
-    ctx.message.name = None
+    ctx = _make_middleware_ctx(message_name=None, message_uri="does://not/exist")
 
     async def call_next(ctx):
         raise _NF("Unknown resource: 'does://not/exist'")
@@ -136,12 +147,9 @@ async def test_envelope_middleware_get_prompt_passes_other_exceptions() -> None:
     from amazon_ads_mcp.middleware.error_envelope_middleware import (
         ErrorEnvelopeMiddleware,
     )
-    from unittest.mock import MagicMock
 
     mw = ErrorEnvelopeMiddleware()
-    ctx = MagicMock()
-    ctx.message = MagicMock(name="message")
-    ctx.message.name = "p"
+    ctx = _make_middleware_ctx(message_name="p")
 
     class _OtherErr(Exception):
         pass

@@ -85,7 +85,7 @@ class TestAuthenticatedClient:
         )
         
         # Mock the parent send method
-        with patch.object(httpx.AsyncClient, 'send', new_callable=AsyncMock) as mock_send:
+        with patch.object(httpx.AsyncClient, 'send', autospec=True) as mock_send:
             mock_response = httpx.Response(200, json={"success": True})
             mock_send.return_value = mock_response
             
@@ -93,7 +93,8 @@ class TestAuthenticatedClient:
             await authenticated_client.send(request)
             
             # Verify headers were scrubbed and replaced
-            sent_request = mock_send.call_args[0][0]
+            # autospec=True on bound method: call_args[0][0] is `self`, [1] is the request.
+            sent_request = mock_send.call_args[0][1]
             assert "authorization" in sent_request.headers
             assert sent_request.headers["authorization"] == "Bearer test-token"
             assert sent_request.headers.get("Amazon-Advertising-API-ClientId") == "test-client-id"
@@ -109,7 +110,7 @@ class TestAuthenticatedClient:
             }
         )
         
-        with patch.object(httpx.AsyncClient, 'send', new_callable=AsyncMock) as mock_send:
+        with patch.object(httpx.AsyncClient, 'send', autospec=True) as mock_send:
             mock_response = httpx.Response(200, json={"id": "123"})
             mock_send.return_value = mock_response
             
@@ -119,7 +120,8 @@ class TestAuthenticatedClient:
             mock_auth_manager.get_headers.assert_called_once()
             
             # Verify headers were injected
-            sent_request = mock_send.call_args[0][0]
+            # autospec=True on bound method: call_args[0][0] is `self`, [1] is the request.
+            sent_request = mock_send.call_args[0][1]
             assert sent_request.headers.get("authorization") == "Bearer test-token"
             assert sent_request.headers.get("Amazon-Advertising-API-ClientId") is not None
     
@@ -132,8 +134,8 @@ class TestAuthenticatedClient:
             url="https://advertising-api.amazon.com/test"
         )
 
-        with patch.object(authenticated_client, '_inject_headers', new_callable=AsyncMock) as mock_inject:
-            with patch.object(httpx.AsyncClient, 'send', new_callable=AsyncMock) as mock_send:
+        with patch.object(authenticated_client, '_inject_headers', autospec=True) as mock_inject:
+            with patch.object(httpx.AsyncClient, 'send', autospec=True) as mock_send:
                 mock_send.return_value = httpx.Response(200)
                 await authenticated_client.send(request)
                 await authenticated_client.send(request)
@@ -156,14 +158,15 @@ class TestAuthenticatedClient:
             ],
         )
         
-        with patch.object(httpx.AsyncClient, 'send', new_callable=AsyncMock) as mock_send:
+        with patch.object(httpx.AsyncClient, 'send', autospec=True) as mock_send:
             mock_response = httpx.Response(200)
             mock_send.return_value = mock_response
             
             await authenticated_client.send(request)
             
             # Verify media type was set
-            sent_request = mock_send.call_args[0][0]
+            # autospec=True on bound method: call_args[0][0] is `self`, [1] is the request.
+            sent_request = mock_send.call_args[0][1]
             assert sent_request.headers.get("accept") == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     
     async def test_region_routing(self, authenticated_client):
@@ -176,14 +179,15 @@ class TestAuthenticatedClient:
         
         from amazon_ads_mcp.utils.http_client import set_region_override
         set_region_override("eu")
-        with patch.object(httpx.AsyncClient, 'send', new_callable=AsyncMock) as mock_send:
+        with patch.object(httpx.AsyncClient, 'send', autospec=True) as mock_send:
             mock_response = httpx.Response(200, json=[])
             mock_send.return_value = mock_response
             
             await authenticated_client.send(request)
             
             # Verify URL was updated to EU endpoint
-            sent_request = mock_send.call_args[0][0]
+            # autospec=True on bound method: call_args[0][0] is `self`, [1] is the request.
+            sent_request = mock_send.call_args[0][1]
             assert sent_request.url.host == "advertising-api-eu.amazon.com"
         set_region_override(None)
     
@@ -197,7 +201,7 @@ class TestAuthenticatedClient:
         # Make auth manager return None to simulate missing headers
         authenticated_client.auth_manager.get_headers = AsyncMock(return_value=None)
         
-        with patch.object(httpx.AsyncClient, 'send', new_callable=AsyncMock) as mock_send:
+        with patch.object(httpx.AsyncClient, 'send', autospec=True) as mock_send:
             mock_response = httpx.Response(401, json={"error": "Unauthorized"})
             mock_send.return_value = mock_response
             

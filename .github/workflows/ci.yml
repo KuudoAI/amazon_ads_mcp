@@ -13,7 +13,32 @@ permissions:
   contents: read
 
 jobs:
+  # ---------- Smoke gate ------------------------------------------------
+  # Fails the whole CI in seconds when something fundamental is broken
+  # (server module won't import, settings can't construct from env,
+  # resilience primitives misbehave). Runs on a single Python version
+  # since smoke checks the integration surface, not Python compatibility.
+  smoke:
+    name: Smoke gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - run: uv sync --frozen
+      - name: Run smoke lane
+        env:
+          MCP_TEST_COMPAT: "true"
+        run: |
+          uv run pytest -q -m smoke
+
   tests:
+    needs: smoke
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -42,11 +67,32 @@ jobs:
         run: |
           python -W error::SyntaxWarning -m compileall -q src tests
 
-      - name: Run tests (fast suite)
+      # Coverage ratchet:
+      #   - Baseline at the time this gate landed: 69% (11668 stmts).
+      #   - Floor is set 4 points below baseline to catch sudden drops
+      #     without locking the current number in forever.
+      #   - Ratchet up by 1-2 points whenever new code lands with tests
+      #     until we reach the long-term target of 80%.
+      #   - Threshold lives ONLY in CI; local TDD addopts intentionally
+      #     do not enforce coverage so the dev loop stays fast.
+      - name: Run tests (fast suite + coverage)
         env:
           MCP_TEST_COMPAT: "true"
         run: |
-          uv run pytest -q -m "not slow"
+          uv run pytest -q -m "not slow and not smoke" \
+            --cov=src/amazon_ads_mcp \
+            --cov-report=term-missing:skip-covered \
+            --cov-report=xml:coverage.xml \
+            --cov-fail-under=65
+
+      - name: Upload coverage artifact
+        if: matrix.python-version == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          if-no-files-found: warn
+          retention-days: 7
 
   # ----- report_fields catalog gates (adsv1.md §F.1) --------------------
   #
