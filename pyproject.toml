@@ -97,12 +97,12 @@ module = "tests.*"
 ignore_errors = true
 
 [tool.pytest-asyncio]
-asyncio_mode = "auto"
+asyncio_mode = "strict"
 
 [tool.pytest.ini_options]
 testpaths = [ "tests",]
 addopts = "-v --strict-markers --strict-config --import-mode=importlib"
-asyncio_mode = "auto"
+asyncio_mode = "strict"
 markers = [
     "slow: long-running tests (wheel builds, subprocess installs) — filtered out of local dev via '-m \"not slow\"' and run only in CI.",
     "smoke: fast critical-path tests run as a CI gate before the full suite.",

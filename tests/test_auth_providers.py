@@ -4,6 +4,7 @@ import os
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 
 from amazon_ads_mcp.auth.base import BaseAmazonAdsProvider, ProviderConfig
@@ -140,7 +141,7 @@ class TestDirectProvider:
     @pytest.mark.asyncio
     async def test_direct_provider_token_refresh(self, direct_provider):
         """Test token refresh for direct provider."""
-        mock_response = MagicMock()
+        mock_response = MagicMock(spec=httpx.Response)
         mock_response.status_code = 200
         mock_response.json.return_value = {
             "access_token": "new_access_token",
@@ -200,7 +201,7 @@ class TestDirectProvider:
             token_type="Bearer"
         )
         
-        mock_response = MagicMock()
+        mock_response = MagicMock(spec=httpx.Response)
         mock_response.status_code = 200
         mock_response.json.return_value = {
             "access_token": "fresh_token",
@@ -241,7 +242,7 @@ class TestDirectProvider:
         from amazon_ads_mcp.auth.manager import AuthManager
         AuthManager.reset()
         
-        mock_response = MagicMock()
+        mock_response = MagicMock(spec=httpx.Response)
         mock_response.status_code = 200
         mock_response.json.return_value = {
             "access_token": "test_token",
@@ -302,7 +303,7 @@ class TestOpenBridgeProvider:
     @pytest.mark.asyncio
     async def test_openbridge_jwt_conversion(self, openbridge_provider):
         """Test converting refresh token to JWT."""
-        mock_response = MagicMock()
+        mock_response = MagicMock(spec=httpx.Response)
         mock_response.status_code = 202
         mock_response.json.return_value = {
             "data": {
@@ -343,7 +344,7 @@ class TestOpenBridgeProvider:
         fingerprint = openbridge_provider._token_fingerprint()
         openbridge_provider._jwt_tokens[fingerprint] = jwt_token
         
-        mock_response = MagicMock()
+        mock_response = MagicMock(spec=httpx.Response)
         mock_response.status_code = 200
         mock_response.json.return_value = {
             "data": [
@@ -415,16 +416,16 @@ class TestOpenBridgeProvider:
             token_type="Bearer",
         )
 
-        token_response = MagicMock()
+        token_response = MagicMock(spec=httpx.Response)
         token_response.status_code = 200
         token_response.raise_for_status = MagicMock()
         token_response.json.return_value = {"data": {"access_token": "amazon_token"}}
 
-        not_found_response = MagicMock()
+        not_found_response = MagicMock(spec=httpx.Response)
         not_found_response.status_code = 404
         not_found_response.json.return_value = {}
 
-        app_response = MagicMock()
+        app_response = MagicMock(spec=httpx.Response)
         app_response.status_code = 200
         app_response.json.return_value = {
             "data": {

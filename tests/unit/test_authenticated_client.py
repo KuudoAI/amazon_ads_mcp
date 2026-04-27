@@ -9,6 +9,8 @@ import pytest_asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 
+from amazon_ads_mcp.auth.base import BaseAmazonAdsProvider
+from amazon_ads_mcp.auth.manager import AuthManager
 from amazon_ads_mcp.utils.http_client import AuthenticatedClient
 from amazon_ads_mcp.utils.header_resolver import HeaderNameResolver
 from amazon_ads_mcp.utils.media import MediaTypeRegistry
@@ -16,15 +18,20 @@ from amazon_ads_mcp.utils.media import MediaTypeRegistry
 
 @pytest.fixture
 def mock_auth_manager():
-    """Create a mock auth manager."""
-    manager = AsyncMock()
+    """Create a mock auth manager.
+
+    Spec'd against the real ``AuthManager`` and ``BaseAmazonAdsProvider`` so
+    typos and renames fail at test time instead of silently producing child
+    Mocks that always evaluate to truthy.
+    """
+    manager = MagicMock(spec=AuthManager)
     manager.get_headers = AsyncMock(return_value={
         "Authorization": "Bearer test-token",
         "Amazon-Advertising-API-ClientId": "test-client-id",
         "Amazon-Advertising-API-Scope": "test-profile-id"
     })
     # Mock provider capabilities (default to False for non-OpenBridge provider)
-    manager.provider = MagicMock()
+    manager.provider = MagicMock(spec=BaseAmazonAdsProvider)
     manager.provider.requires_identity_region_routing = MagicMock(return_value=False)
     manager.provider.headers_are_identity_specific = MagicMock(return_value=False)
     manager.provider.region_controlled_by_identity = MagicMock(return_value=False)
