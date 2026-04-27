@@ -374,6 +374,14 @@ def _try_classify_known_type(exc: BaseException) -> _Classification | None:
     return None
 
 
+def _is_fastmcp_not_found_error(exc: BaseException) -> bool:
+    try:
+        from fastmcp.exceptions import NotFoundError as FastMCPNotFoundError
+    except Exception:  # pragma: no cover - defensive
+        return False
+    return isinstance(exc, FastMCPNotFoundError)
+
+
 def _classify(exc: BaseException) -> _Classification:
     # Order matters: more-specific Pydantic / httpx checks first, then the
     # AmazonAdsMCPError hierarchy (most-specific subclasses first), then
@@ -381,6 +389,29 @@ def _classify(exc: BaseException) -> _Classification:
 
     if _is_pydantic_validation_error(exc) or _is_fastmcp_validation_error(exc):
         return _classify_validation(exc)
+
+    if _is_fastmcp_not_found_error(exc):
+        # Phase 2 (Round 11): unknown tool name. Re-routed from
+        # the catch-all (which previously surfaced as ``internal_error``
+        # / ``ads_api_client``) per ``openbridge-mcp/CONTRACT.md``.
+        # Round 12 SP-1: dedicated ``tool_not_found`` error_kind
+        # (was ``mcp_input_validation``). Additive taxonomy entry; agents
+        # that branch on ``error_code`` (``TOOL_NOT_FOUND``) are unaffected.
+        # The call never reached the upstream API; this is purely an
+        # MCP-side mistake.
+        return _Classification(
+            error_kind="tool_not_found",
+            summary="Tool is not registered on this server.",
+            details=[_detail_from_message(exc)],
+            hints=[
+                "Search the tool catalog (e.g. via the 'search' meta-tool) "
+                "to find the correct tool name.",
+                "Tool names are case-sensitive and may carry namespace prefixes.",
+            ],
+            error_code="TOOL_NOT_FOUND",
+            retryable=False,
+            legacy_error_kind="NOT_FOUND",
+        )
 
     if isinstance(exc, httpx.HTTPStatusError):
         return _classify_http_status(exc)
@@ -441,18 +472,33 @@ def _classify(exc: BaseException) -> _Classification:
         # tool-specific guidance can flow through without the translator
         # knowing about every tool. Fall back to the generic hint when none
         # are provided.
+        # Phase 1 (Round 11): the new ``SchemaValidationMiddleware``
+        # raises ``AdsValidationError`` with ``code`` set to a canonical
+        # ``SCHEMA_*`` value (e.g. ``SCHEMA_MAX_ITEMS``) per
+        # ``openbridge-mcp/schemas/jsonschema_error_codes.json``. Surface
+        # that code on the envelope. Legacy callers using the bare
+        # ``ValidationError`` default code ``VALIDATION_ERROR`` fall back
+        # to ``INPUT_VALIDATION_FAILED``.
         custom_hints: list[str] = []
         if isinstance(exc.details, dict):
             for h in exc.details.get("hints") or []:
                 if isinstance(h, str) and h:
                     custom_hints.append(h)
+        raw_code = getattr(exc, "code", None) or ""
+        envelope_error_code = (
+            raw_code
+            if raw_code
+            and raw_code != "VALIDATION_ERROR"
+            and raw_code.startswith("SCHEMA_")
+            else "INPUT_VALIDATION_FAILED"
+        )
         return _Classification(
             error_kind="mcp_input_validation",
             summary="Tool input validation failed.",
             details=[_detail_from_ads_validation_error(exc)],
             hints=custom_hints
             or ["Check required fields and input types in the tool schema."],
-            error_code="INPUT_VALIDATION_FAILED",
+            error_code=envelope_error_code,
             retryable=False,
             legacy_error_kind=getattr(exc, "code", "VALIDATION_ERROR"),
         )

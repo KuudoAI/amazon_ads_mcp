@@ -213,6 +213,23 @@ class ServerBuilder:
         middleware_list.append(SchemaKeyNormalizationMiddleware())
         logger.info("Added SchemaKeyNormalizationMiddleware")
 
+        # Phase 1 (Round 11): pre-flight JSON Schema validation. Runs
+        # AFTER SchemaKeyNormalizationMiddleware so it sees the
+        # post-rewrite arg dict, but BEFORE FastMCP dispatches the call.
+        # On constraint failure raises AdsValidationError with a canonical
+        # SCHEMA_* code so the error envelope translator surfaces
+        # structured ``mcp_input_validation`` envelopes instead of
+        # FastMCP's raw ``ValidationError`` strings. Closes SP-6 / SP-9 /
+        # SP-13 cross-server parity from the client conformance report.
+        from ..middleware.schema_validation import (
+            create_schema_validation_middleware,
+        )
+
+        middleware_list.append(create_schema_validation_middleware())
+        logger.info(
+            "Added SchemaValidationMiddleware (pre-flight JSON Schema enforcement)"
+        )
+
         # Inject upstream rate-limit telemetry into successful dict responses.
         # Reads the per-call context-var populated by the resilient HTTP client
         # and merges ``_meta.rate_limit`` / ``_meta.retry_after_seconds`` into

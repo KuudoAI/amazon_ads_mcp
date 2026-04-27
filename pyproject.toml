@@ -101,8 +101,16 @@ asyncio_mode = "auto"
 
 [tool.pytest.ini_options]
 testpaths = [ "tests",]
-addopts = "-v"
-markers = [ "slow: long-running tests (wheel builds, subprocess installs) — filtered out of local dev via '-m \"not slow\"' and run only in CI.",]
+addopts = "-v --strict-markers --strict-config --import-mode=importlib"
+asyncio_mode = "auto"
+markers = [
+    "slow: long-running tests (wheel builds, subprocess installs) — filtered out of local dev via '-m \"not slow\"' and run only in CI.",
+    "smoke: fast critical-path tests run as a CI gate before the full suite.",
+    "unit: fast isolated unit tests.",
+    "integration: tests exercising the in-memory MCP client or real services.",
+    "auth: authentication and identity flows.",
+    "asyncio: pytest-asyncio marker (mode=auto; redundant on async tests, kept for explicit opt-in).",
+]
 
 [tool.coverage.run]
 source = [ "src/amazon_ads_mcp",]

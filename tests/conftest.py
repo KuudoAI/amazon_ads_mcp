@@ -8,21 +8,8 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 
-def pytest_configure(config):
-    # Register the asyncio marker so pytest doesn't warn when it's used.
-    config.addinivalue_line(
-        "markers", "asyncio: mark test to run in an asyncio event loop"
-    )
-    # Add custom markers for test organization
-    config.addinivalue_line(
-        "markers", "unit: mark test as a unit test"
-    )
-    config.addinivalue_line(
-        "markers", "integration: mark test as an integration test"
-    )
-    config.addinivalue_line(
-        "markers", "auth: mark test as testing authentication"
-    )
+# Markers are registered centrally in pyproject.toml [tool.pytest.ini_options]
+# with --strict-markers to catch typos. Don't duplicate here.
 
 
 @pytest.fixture(autouse=True)
@@ -94,8 +81,15 @@ def mock_env_vars(monkeypatch):
 
 @pytest.fixture
 def mock_auth_manager():
-    """Mock authentication manager."""
-    manager = MagicMock()
+    """Mock authentication manager.
+
+    Uses ``spec=AuthManager`` so unknown attribute access fails at test time
+    instead of silently returning a child Mock — this catches drift when
+    AuthManager renames or removes methods.
+    """
+    from amazon_ads_mcp.auth.manager import AuthManager
+
+    manager = MagicMock(spec=AuthManager)
     manager.get_headers = AsyncMock(return_value={
         "Authorization": "Bearer test-token",
         "Amazon-Advertising-API-ClientId": "test-client-id",

@@ -173,9 +173,19 @@ def _normalize_args_with_schema(
             continue
         targets = index.get(token) or []
         if len(targets) != 1:
+            # Round 12 follow-up: when strict-unknown is on, the field
+            # WILL be rejected downstream — emit ``unknown_field_rejected``
+            # so the event label matches what actually happens. When
+            # the flag is off, the field IS passed through; keep the
+            # original label.
+            event_kind = (
+                "unknown_field_rejected"
+                if settings.mcp_strict_unknown_fields
+                else "unknown_field_passed_through"
+            )
             events.append(
                 {
-                    "kind": "unknown_field_passed_through",
+                    "kind": event_kind,
                     "field": src,
                     "reason": "no_schema_match",
                 }
