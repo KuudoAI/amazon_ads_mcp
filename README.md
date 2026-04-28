@@ -8,7 +8,7 @@
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![CI](https://github.com/KuudoAI/amazon-ads-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/KuudoAI/amazon-ads-mcp/actions/workflows/ci.yml)
+[![CI](https://github.com/KuudoAI/amazon_ads_mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/KuudoAI/amazon_ads_mcp/actions/workflows/ci.yml)
 
 **MCP registry id** (for clients and catalogs that display a stable package name): `io.github.KuudoAI/amazon_ads_mcp`
 
