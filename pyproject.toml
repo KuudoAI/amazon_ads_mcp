@@ -1,6 +1,6 @@
 [project]
 name = "amazon-ads-mcp"
-version = "0.3.7"
+version = "0.3.10"
 description = "Amazon Ads API MCP Server - Implementation for Amazon Advertising API"
 readme = "README.md"
 requires-python = ">=3.10,<4.0"
@@ -13,18 +13,7 @@ requires = [ "poetry-core",]
 build-backend = "poetry.core.masonry.api"
 
 [dependency-groups]
-dev = [
- "black>=25.12,<27.0",
- "isort>=7,<9",
- "mypy>=1.19.1",
- "pytest>=9.0.2",
- "pytest-asyncio>=1.3.0",
- "pytest-cov>=7.0.0",
- "ruff>=0.14.10",
- "fastmcp[code-mode]>=3.2.4,<4",
- "hypothesis>=6.152.3",
- "respx>=0.23.1",
-]
+dev = [ "black>=25.12,<27.0", "isort>=7,<9", "mypy>=1.19.1", "pytest>=9.0.2", "pytest-asyncio>=1.3.0", "pytest-cov>=7.0.0", "ruff>=0.14.10", "fastmcp[code-mode]>=3.2.4,<4", "hypothesis>=6.152.3", "respx>=0.23.1",]
 
 [project.optional-dependencies]
 audit = [ "tiktoken>=0.7.0", "rich>=13.0",]
@@ -114,9 +103,6 @@ ignore_errors = true
 [tool.pytest.ini_options]
 testpaths = [ "tests",]
 addopts = "-v --strict-markers --strict-config --import-mode=importlib"
-# pytest-asyncio: strict mode requires every async test to carry the
-# @pytest.mark.asyncio decorator. Keeps async-vs-sync intent explicit and
-# fails loudly when a marker is forgotten (vs auto mode's silent collection).
 asyncio_mode = "strict"
 markers = [
     "slow: long-running tests (wheel builds, subprocess installs) — filtered out of local dev via '-m \"not slow\"' and run only in CI.",
@@ -130,23 +116,7 @@ markers = [
 
 [tool.coverage.run]
 source = [ "src/amazon_ads_mcp",]
-# Excluded from coverage:
-# - tests/, debug/: not production code
-# - tool_audit/: standalone CLI dev tool (run via `python -m
-#   amazon_ads_mcp.tool_audit`), not imported by any production module.
-#   Coverage of audit reporters/serializers shouldn't be gated by the
-#   library's test suite.
-# - server/__main__.py, tool_audit/__main__.py: entrypoints (1-2 lines
-#   each) that just call main(); covered transitively.
-# - server/html_templates.py: static HTML constants; coverage signal
-#   would just measure import-time execution.
-omit = [
-    "*/tests/*",
-    "*/debug/*",
-    "*/tool_audit/*",
-    "*/__main__.py",
-    "*/html_templates.py",
-]
+omit = [ "*/tests/*", "*/debug/*", "*/tool_audit/*", "*/__main__.py", "*/html_templates.py",]
 
 [tool.coverage.report]
 exclude_lines = [ "pragma: no cover", "def __repr__", "if self.debug:", "if settings.DEBUG", "raise AssertionError", "raise NotImplementedError", "if 0:", "if __name__ == .__main__.:", "class .*\\bProtocol\\):", "@(abc\\.)?abstractmethod",]
