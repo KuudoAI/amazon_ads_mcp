@@ -1172,9 +1172,12 @@ async def register_report_catalog_tools(server: FastMCP):
             limit: int = 25,
             offset: int = 0,
             validate_fields: Optional[list] = None,
+            field_id: Optional[str] = None,
+            field_ids: Optional[list] = None,
+            body: Optional[dict] = None,
             drop: Optional[list] = None,
         ):
-            """Dispatch to the query/validate handler.
+            """Dispatch to the query/validate/lookup handler.
 
             Serializes with exclude_none=True so optional fields the caller
             hasn't requested (e.g. v3_name_dsp when include_v3_mapping=False)
@@ -1186,6 +1189,10 @@ async def register_report_catalog_tools(server: FastMCP):
             measurement and the wrapper strips the named keys from each
             field record after dump. Validate-mode payloads have no field
             records and pass through unchanged.
+
+            Round 13 B-5: ``mode="lookup"`` with ``field_id`` (single) or
+            ``field_ids`` (batch) returns one record per requested id in
+            request order; misses surface as ``error="not_found"`` records.
             """
             try:
                 result = report_fields_handle(
@@ -1200,6 +1207,9 @@ async def register_report_catalog_tools(server: FastMCP):
                     limit=limit,
                     offset=offset,
                     validate_fields=validate_fields,
+                    field_id=field_id,
+                    field_ids=field_ids,
+                    body=body,
                     drop=drop,
                 )
                 payload = result.model_dump(exclude_none=True)

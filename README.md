@@ -80,6 +80,42 @@ The Amazon Ads API MCP SDK is an open-source implementation that provides a robu
 - **Testing Frameworks**: Automated testing for Amazon Ads integrations
 - **Development Tools**: Local development and debugging utilities
 
+
+## Why this Ads MCP is different
+
+Other Amazon Ads MCPs do happy path. They fall apart the moment an agent makes a reasonable mistake and Amazon's Ads API has more reasonable mistakes than almost any other large API surface. The v1 reporting catalog uses a different vocabulary than v3. The docs are scattered across migration generations. The same field can have three plausible names depending on which tutorial an agent or human was trained on.
+
+### You've felt this before
+
+You know the symptoms even if you've never thought of them as a single problem:
+
+- "Compacting conversation…" right when you were getting somewhere
+- "Usage limit reached" mid-task, with nothing to show for the tokens
+- "Context window exceeded" start over, re-explain everything
+- The agent quietly forgetting the fix it figured out three turns ago
+- Five tool calls, four of them retries, none of them progress
+- Re-pasting the same error into the chat for the third time
+
+That's not the model being dumb. That's the **API surface burning context** vague errors trigger thrashing, thrashing fills the window, the window fills and everything useful gets evicted. Anywhere from 4 to 12 round-trips for an agent: wrong field names, wrong body shape, wrong filter operator, wrong date placement, wrong advertiser-account format.
+
+### Here, the wrong moves return the right move
+
+This server is built around a different premise: **the error surface is the documentation surface.** Every failure is a teaching opportunity, and the server is engineered to make the next attempt smarter than the last one, for the same agent or the next one, without retraining, prompt updates, or memory tricks.
+
+- The server tells you what went wrong, and *why* you got it wrong
+- Every failure converts to a corrective action — the model just reads the hint and moves on
+- A five-tool-call debugging arc collapses into a two-call corrected one
+- The same mistake a week later doesn't re-burn context, because the validator, alias table, and deprecated-shape table are still right there
+- No out-of-context tribal knowledge to forget
+
+Every failure is cheaper than the last. Every agent learns from the same authoritative source. Every retry has direction. That compounding is what a smart agent solution looks like in practice.
+
+### Everything is an edge case, you can help
+
+We won't catch every edge case. Amazon's API surface is enormous, the migration history is messy, and real-world failures get more creative than anything anyone can anticipate. What we're committing to is the **strategy** that errors should teach, that documentation should live in the surfaces agents actually touch, that every wrong move should make the next move easier.
+
+If you hit a failure where the envelope didn't help; vague hint, wrong suggestion, no hint at all, that's exactly the feedback we want. **Open an issue, paste the envelope, tell us what you expected.** The strategy is only as good as the cases it covers.
+
 ## Quick start
 
 **Prerequisites:** [Docker](https://docs.docker.com/get-started/) (recommended), Python 3.10+ if you run from source, and [Amazon Ads API access](https://advertising.amazon.com/API/docs/en-us/guides/get-started/overview) (your own developer app or a partner such as Openbridge).

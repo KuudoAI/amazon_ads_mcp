@@ -13,6 +13,8 @@ from typing import Dict, Optional, Tuple
 from fastmcp.server.transforms import Transform
 from fastmcp.tools.tool import Tool
 
+from ._polling_guidance import RETRIEVE_TOOL_POLLING_GUIDANCE
+
 logger = logging.getLogger(__name__)
 
 # Maps (tool_name_pattern) -> (hint_text, status_tool_hint)
@@ -163,8 +165,8 @@ ASYNC_OPERATION_HINTS: Dict[str, Tuple[str, Optional[str]]] = {
     ),
     "AdsApiv1RetrieveReport": (
         "Returns the current status of an AdsAPI v1 report (PENDING, "
-        "PROCESSING, COMPLETED, FAILED). If not yet complete, tell the user "
-        "and suggest checking back shortly rather than polling in a loop. "
+        "PROCESSING, COMPLETED, FAILED). "
+        f"{RETRIEVE_TOOL_POLLING_GUIDANCE} "
         "When COMPLETED, the response includes a download URL. Use "
         "`download_export` to persist the file to profile-scoped storage.",
         None,
@@ -180,7 +182,7 @@ _ADS_V1_CREATE_BASELINE = (
     "IMPORTANT:\n"
     "• `accessRequestedAccounts[].advertiserAccountId` must be the "
     "`amzn1.ads-account.g.*` account ID — NOT a legacy numeric profile "
-    "ID. Use `allv1_AdsApiv1QueryAdvertiserAccount` to resolve a "
+    "ID. Use `allv1_QueryAdvertiserAccount` to resolve a "
     "profileId to its advertiserAccountId first.\n"
     "• Field names vary by endpoint and can reject guessed values. "
     "Use `list_report_fields` with "
@@ -200,13 +202,16 @@ _ADS_V1_CREATE_REPORT_FIELDS = (
     "IMPORTANT:\n"
     "• `accessRequestedAccounts[].advertiserAccountId` must be the "
     "`amzn1.ads-account.g.*` account ID — NOT a legacy numeric profile "
-    "ID. Use `allv1_AdsApiv1QueryAdvertiserAccount` to resolve a "
+    "ID. Use `allv1_QueryAdvertiserAccount` to resolve a "
     "profileId to its advertiserAccountId first.\n"
     "• BEFORE CreateReport, validate your field list with:\n"
     '    report_fields(mode="validate", operation="allv1_AdsApiv1CreateReport",\n'
     '                  validate_fields=["metric.clicks", "campaign.id"])\n'
-    "  Returns unknown_fields, missing_required, incompatible_pairs so you\n"
-    "  never submit a field that will 400.\n"
+    "  Returns unknown_fields, missing_required, incompatible_pairs so\n"
+    "  field-name typos and incompatible-field combinations get caught\n"
+    "  before the upstream call. Body-shape errors (top-level structure,\n"
+    "  missing required wrappers, operator misuse like BETWEEN on filters)\n"
+    "  are NOT covered by this mode — they surface as upstream HTTP 400.\n"
     "• TO DISCOVER fields, use:\n"
     '    report_fields(mode="query", category="metric", search="click")\n'
     "  or `list_report_fields(operation='allv1_AdsApiv1CreateReport')` for\n"

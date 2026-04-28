@@ -703,6 +703,13 @@ class ReportFieldEntry(BaseModel):
     # Source-side (populated on metric records by Amazon; carries display labels):
     compatible_dimensions: Optional[List[str]] = None
     incompatible_dimensions: Optional[List[str]] = None
+    # Round 13 Phase D: parallel field-id arrays so callers can use
+    # canonical IDs programmatically without re-walking the label
+    # index themselves. ``compatible_dimensions`` (display strings)
+    # remains for backward compat through 2026-09-30. See response-
+    # level ``deprecations[]`` for the migration window.
+    compatible_dimension_ids: Optional[List[str]] = None
+    incompatible_dimension_ids: Optional[List[str]] = None
     # Inverted index (built at refresh; attached to dimension records so the
     # graph is queryable from either direction):
     compatible_metrics: Optional[List[str]] = None
@@ -733,6 +740,11 @@ class QueryReportFieldsResponse(BaseModel):
     offset: int
     limit: int
     fields: List[ReportFieldEntry] = Field(default_factory=list)
+    #: Round 13 Phase D: signal future removal of legacy
+    #: display-string compatibility arrays. Each entry:
+    #: ``{kind: "field_renamed", old: "compatible_dimensions",
+    #:   new: "compatible_dimension_ids", remove_after: "2026-09-30"}``
+    deprecations: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class ValidateReportFieldsResponse(BaseModel):
@@ -750,8 +762,104 @@ class ValidateReportFieldsResponse(BaseModel):
     suggested_replacements: Dict[str, List[str]] = Field(default_factory=dict)
 
 
+class LookupReportFieldEntry(BaseModel):
+    """A single entry in a lookup-mode response.
+
+    For known field IDs, all the same fields ``ReportFieldEntry`` carries
+    are populated. For unknown IDs, only ``field_id`` and ``error`` are
+    set so the caller can correlate misses back to the request order.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    field_id: str
+    #: Set to ``"not_found"`` when the catalog has no record for this
+    #: field_id. Absent (None) when the lookup hit.
+    error: Optional[str] = None
+
+    # Same projection as ReportFieldEntry — all optional because not-found
+    # records only populate field_id + error.
+    display_name: Optional[str] = None
+    data_type: Optional[str] = None
+    category: Optional[Literal["dimension", "metric", "filter", "time"]] = None
+    provenance: Optional[Literal["empirical", "documented", "schema-derived"]] = None
+    short_description: Optional[str] = None
+    description: Optional[str] = None
+    required_fields: Optional[List[str]] = None
+    complementary_fields: Optional[List[str]] = None
+    compatible_dimensions: Optional[List[str]] = None
+    incompatible_dimensions: Optional[List[str]] = None
+    # Round 13 Phase D: parallel field-id arrays (mirror ReportFieldEntry).
+    compatible_dimension_ids: Optional[List[str]] = None
+    incompatible_dimension_ids: Optional[List[str]] = None
+    compatible_metrics: Optional[List[str]] = None
+    incompatible_metrics: Optional[List[str]] = None
+    v3_name_dsp: Optional[str] = None
+    v3_name_sponsored_ads: Optional[str] = None
+    source: Optional[CatalogSourceMeta] = None
+
+
+class ValidateBodyReportFieldsResponse(BaseModel):
+    """Response for ``report_fields(mode="validate_body", body=...)``.
+
+    Round 13 Phase C-1. Validates the would-be CreateReport request
+    body against the runtime CreateReport schema (single source of
+    truth) and surfaces:
+
+      - ``shape_errors[]``: jsonschema validator outputs in the
+        canonical SCHEMA_* code format (Round 11 mapping).
+      - ``unknown_fields[]``: top-level keys not in the schema.
+      - ``deprecated_shape_hints[]``: curated v3-tutorial-attribution
+        guidance for the famous deprecated keys (``name``,
+        ``configuration``, ``query`` at top level).
+      - ``suggested_replacements{}``: alias-table-aware suggestions
+        for unknown top-level keys (mirrors mode='validate' surface).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    mode: Literal["validate_body"]  # discriminator
+    success: bool
+    operation: str
+    valid: bool
+    shape_errors: List[Dict[str, Any]] = Field(default_factory=list)
+    unknown_fields: List[str] = Field(default_factory=list)
+    missing_required: List[str] = Field(default_factory=list)
+    deprecated_shape_hints: List[str] = Field(default_factory=list)
+    suggested_replacements: Dict[str, List[str]] = Field(default_factory=dict)
+    #: Round 13 Phase C-2: filter operator misuse (BETWEEN, LIKE,
+    #: NOT_IN) flagged with curated replacement guidance.
+    operator_misuse: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class LookupReportFieldsResponse(BaseModel):
+    """Response for `report_fields(mode="lookup", ...)`.
+
+    Returns one record per requested field_id, in request order. Misses
+    surface as records with ``error="not_found"``; never raise.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    mode: Literal["lookup"]  # discriminator
+    success: bool
+    operation: str
+    catalog_schema_version: int
+    parsed_at: str
+    stale_warning: Optional[str] = None
+    requested: int
+    found: int
+    missing: int
+    fields: List[LookupReportFieldEntry] = Field(default_factory=list)
+
+
 #: Discriminated union tagged on the `mode` field.
 ReportFieldsResponse = Annotated[
-    Union[QueryReportFieldsResponse, ValidateReportFieldsResponse],
+    Union[
+        QueryReportFieldsResponse,
+        ValidateReportFieldsResponse,
+        LookupReportFieldsResponse,
+        ValidateBodyReportFieldsResponse,
+    ],
     Field(discriminator="mode"),
 ]

@@ -1,0 +1,110 @@
+name: Live Integration
+
+# Live tests hit a real Amazon Ads sandbox account. They detect schema
+# drift, auth quirks, and rate-limit behavior changes that unit tests
+# cannot catch.
+#
+# # Opt-in via secrets
+#
+# This workflow is **fully opt-in**: it runs only if all three sandbox
+# credentials are configured as repo secrets. If any are missing, the
+# workflow exits cleanly with status success and a "skipped" message.
+# This means:
+#
+# - Forks and PRs from forks (no access to secrets) → clean skip.
+# - Repos that haven't onboarded sandbox creds yet → clean skip; no red
+#   CI, no babysitting.
+# - Repos that HAVE configured the secrets → tests run weekly.
+#
+# Required secrets (set all three to opt in):
+#   SANDBOX_AMAZON_AD_API_CLIENT_ID
+#   SANDBOX_AMAZON_AD_API_CLIENT_SECRET
+#   SANDBOX_AMAZON_AD_API_REFRESH_TOKEN
+#
+# Set at: https://github.com/<owner>/<repo>/settings/secrets/actions
+#
+# # LWA token-lifetime caveat
+#
+# LWA refresh tokens expire after ~6 months of inactivity and can be
+# revoked by user action. When the token dies, the lane goes yellow
+# (skip — credentials no longer "valid" in the sense that calls 401)
+# and someone needs to walk through the LWA consent flow to mint a
+# fresh token and update the secret. There is no fully-automated
+# refresh path for human-account tokens. See
+# ``tests/live/README.md`` for the upgrade-path discussion.
+#
+# # Cadence
+#
+# Weekly Mondays 09:00 UTC (after the weekend, before workweek
+# overload) + manual dispatch. NOT on every push/PR.
+
+on:
+  schedule:
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Why are you running this manually?"
+        required: false
+        default: "ad-hoc drift check"
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    name: Live integration (sandbox)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      # Step 1: Decide whether to run, based on whether all three
+      # sandbox secrets are configured. Secrets are NOT directly testable
+      # in `if:` expressions, so we forward them to env vars and check
+      # in shell. ``GITHUB_OUTPUT`` exports the decision for later steps.
+      - name: Check sandbox credentials
+        id: check_creds
+        env:
+          CLIENT_ID: ${{ secrets.SANDBOX_AMAZON_AD_API_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.SANDBOX_AMAZON_AD_API_CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.SANDBOX_AMAZON_AD_API_REFRESH_TOKEN }}
+        run: |
+          if [ -n "$CLIENT_ID" ] && [ -n "$CLIENT_SECRET" ] && [ -n "$REFRESH_TOKEN" ]; then
+            echo "have_creds=true" >> "$GITHUB_OUTPUT"
+            echo "All sandbox credentials present — live tests will run."
+          else
+            echo "have_creds=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Live integration skipped::Sandbox credentials not configured. To enable, set SANDBOX_AMAZON_AD_API_CLIENT_ID, _CLIENT_SECRET, and _REFRESH_TOKEN at https://github.com/${{ github.repository }}/settings/secrets/actions"
+          fi
+
+      # All subsequent steps gate on the credentials check. The job
+      # exits success either way — opt-in means absence is not failure.
+
+      - name: Set up Python
+        if: steps.check_creds.outputs.have_creds == 'true'
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        if: steps.check_creds.outputs.have_creds == 'true'
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install dependencies
+        if: steps.check_creds.outputs.have_creds == 'true'
+        run: uv sync --frozen
+
+      - name: Run live tests
+        if: steps.check_creds.outputs.have_creds == 'true'
+        env:
+          RUN_LIVE_TESTS: "1"
+          AMAZON_AD_API_CLIENT_ID: ${{ secrets.SANDBOX_AMAZON_AD_API_CLIENT_ID }}
+          AMAZON_AD_API_CLIENT_SECRET: ${{ secrets.SANDBOX_AMAZON_AD_API_CLIENT_SECRET }}
+          AMAZON_AD_API_REFRESH_TOKEN: ${{ secrets.SANDBOX_AMAZON_AD_API_REFRESH_TOKEN }}
+          AMAZON_ADS_REGION: "na"
+        run: |
+          uv run pytest tests/live/ -v --tb=short --no-header

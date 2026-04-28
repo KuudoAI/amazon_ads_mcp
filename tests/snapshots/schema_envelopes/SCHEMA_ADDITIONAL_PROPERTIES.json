@@ -1,0 +1,15 @@
+{
+  "code": "SCHEMA_ADDITIONAL_PROPERTIES",
+  "details": {
+    "code": "SCHEMA_ADDITIONAL_PROPERTIES",
+    "extra": "typo_key",
+    "extras": [
+      "typo_key"
+    ],
+    "field": "",
+    "hints": [
+      "Remove unknown key typo_key or check schema for typos.",
+      "Check required fields and input types in the tool schema."
+    ]
+  }
+}

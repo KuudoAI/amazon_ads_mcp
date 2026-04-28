@@ -20,8 +20,11 @@ constraint fails. The existing error envelope translator routes
 
 from __future__ import annotations
 
+import json
 import logging
-from typing import Any, Awaitable, Callable, Dict
+import pathlib
+from types import MappingProxyType
+from typing import Any, Awaitable, Callable, Dict, Mapping
 
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from jsonschema import Draft202012Validator
@@ -60,6 +63,190 @@ ERROR_CODE_MAP: Dict[str, str] = {
 FALLBACK_CODE = "SCHEMA_VALIDATION_FAILED"
 
 
+# ---- Round 13 B-8: hint templates from canonical spec ------------------
+
+
+def _load_hint_templates() -> Mapping[str, Dict[str, str]]:
+    """Load and freeze the canonical jsonschema → hint-template map.
+
+    Source of truth: ``openbridge-mcp/schemas/jsonschema_error_codes.json``
+    (Round 11 spec). Parsed ONCE at module import time so per-request
+    hint generation is template substitution only — zero file I/O on the
+    hot path.
+
+    Returns a ``MappingProxyType`` over a dict of
+    ``error_code -> {"hint": "...", "summary_template": "..."}`` so
+    callers cannot accidentally mutate the cache.
+
+    Search order for the spec file (fail-open if none found — middleware
+    falls back to generic boilerplate hints, never raises at import):
+
+      1. ``OPENBRIDGE_SCHEMAS_DIR`` env var (deploy-time override)
+      2. Packaged copy under ``amazon_ads_mcp/resources/contract/`` (prod
+         containers — wheel-shipped copy is most reliable)
+      3. Sibling ``openbridge-mcp/schemas/`` checkout (dev workstation)
+    """
+    import os
+
+    candidates: list[pathlib.Path] = []
+    env_dir = os.environ.get("OPENBRIDGE_SCHEMAS_DIR")
+    if env_dir:
+        candidates.append(pathlib.Path(env_dir) / "jsonschema_error_codes.json")
+    here = pathlib.Path(__file__).resolve()
+    # Packaged copy first — guaranteed present in production wheels.
+    candidates.append(
+        here.parent.parent
+        / "resources"
+        / "contract"
+        / "jsonschema_error_codes.json"
+    )
+    # Workstation fallback: sibling openbridge-mcp checkout.
+    # /Users/.../amazon_ads_mcp/src/amazon_ads_mcp/middleware/schema_validation.py
+    # → ../../../../openbridge-mcp/schemas/jsonschema_error_codes.json
+    candidates.append(
+        here.parent.parent.parent.parent.parent
+        / "openbridge-mcp"
+        / "schemas"
+        / "jsonschema_error_codes.json"
+    )
+
+    raw: Dict[str, Any] | None = None
+    for path in candidates:
+        try:
+            if path.is_file():
+                raw = json.loads(path.read_text(encoding="utf-8"))
+                break
+        except Exception:  # pragma: no cover - defensive
+            continue
+    if raw is None:
+        return MappingProxyType({})
+
+    out: Dict[str, Dict[str, str]] = {}
+    mapping = raw.get("mapping", {}) or {}
+    for _validator, entry in mapping.items():
+        code = entry.get("error_code")
+        if not isinstance(code, str):
+            continue
+        out[code] = {
+            "hint": str(entry.get("hint") or ""),
+            "summary_template": str(entry.get("summary_template") or ""),
+        }
+    fallback = raw.get("fallback") or {}
+    fb_code = fallback.get("error_code")
+    if isinstance(fb_code, str):
+        out[fb_code] = {
+            "hint": str(fallback.get("hint") or ""),
+            "summary_template": str(fallback.get("summary_template") or ""),
+        }
+    # Freeze the inner dicts too — full-depth immutability.
+    return MappingProxyType({k: MappingProxyType(v) for k, v in out.items()})
+
+
+#: Frozen, process-lifetime template map. Hot path does dict lookups only.
+_HINT_TEMPLATES: Mapping[str, Mapping[str, str]] = _load_hint_templates()
+
+
+def _format_template(template: str, details: Dict[str, Any]) -> str:
+    """Substitute ``{path}``, ``{limit}``, ``{actual}``, ``{allowed}``,
+    ``{extra}``, ``{expected_type}``, ``{received_type}``, ``{format}``,
+    ``{validator}`` from *details*. Missing keys render as the bracketed
+    placeholder verbatim — callers see the gap rather than a crash."""
+    if not template:
+        return ""
+    safe = {
+        "path": details.get("field") or "",
+        "limit": details.get("limit"),
+        "actual": details.get("actual"),
+        "allowed": ", ".join(str(x) for x in (details.get("allowed") or [])),
+        "extra": details.get("extra") or "",
+        "expected_type": details.get("expected_type") or "",
+        "received_type": details.get("received_type") or "",
+        "format": details.get("format") or "",
+        "validator": details.get("validator") or "",
+    }
+    try:
+        return template.format(**safe)
+    except (KeyError, IndexError):  # pragma: no cover - defensive
+        return template
+
+
+def _hints_for_schema_error(code: str, details: Dict[str, Any]) -> list[str]:
+    """Build the ``hints[]`` list for a schema-rejection envelope.
+
+    Sources the primary hint from the canonical template map (parsed
+    once at import time), then appends a single boilerplate fallback so
+    even unrecognized codes carry SOMETHING actionable.
+
+    Round 13 C-pre: for ``SCHEMA_ADDITIONAL_PROPERTIES`` (an unknown
+    top-level field), consult the v1 report-fields catalog for
+    did-you-mean candidates. Closes the gap where the catalog's 700+
+    valid field_ids and display-label index sat unused while the
+    rejection path emitted a generic boilerplate hint.
+    """
+    out: list[str] = []
+    entry = _HINT_TEMPLATES.get(code) or _HINT_TEMPLATES.get(FALLBACK_CODE)
+    if entry:
+        primary = _format_template(entry.get("hint") or "", details)
+        if primary:
+            out.append(primary)
+    if code == "SCHEMA_ADDITIONAL_PROPERTIES":
+        # Round 13 follow-up: walk EVERY extra (jsonschema's plural
+        # form ``'foo', 'bar' were unexpected`` packs multiple in one
+        # error). The earlier code keyed off ``details.extra`` only
+        # — when ``extras`` was multi-valued, just the first key got
+        # the deprecated-shape lookup, and when the extractor
+        # returned empty the lookup keyed off ``""``.
+        extras: list[str] = list(details.get("extras") or [])
+        if not extras and details.get("extra"):
+            extras = [details.get("extra")]
+        bad_field_fallback = details.get("field") or ""
+        if not extras and bad_field_fallback:
+            extras = [bad_field_fallback]
+        tool_name = details.get("tool_name") or ""
+
+        # Round 13 Phase C-1: deprecated-shape table FIRST for
+        # CreateReport calls so v3-tutorial reflexes get the
+        # actionable rewrite guidance ahead of generic suggestions.
+        # Emit one hint per matched key when multiple v3-shape keys
+        # arrive together.
+        if "CreateReport" in tool_name and extras:
+            try:
+                from ..tools.report_fields_v1_handler import (
+                    DEPRECATED_V1_SHAPE_KEYS,
+                )
+
+                for bad in extras:
+                    dep_hint = DEPRECATED_V1_SHAPE_KEYS.get(bad)
+                    if dep_hint and dep_hint not in out:
+                        out.append(dep_hint)
+            except Exception:  # pragma: no cover - defensive
+                pass
+
+        # Catalog-driven did-you-mean per remaining unmapped extra.
+        if extras:
+            try:
+                from ..tools.report_fields_v1_handler import (
+                    catalog_suggestions_for,
+                )
+
+                sugg_lines: list[str] = []
+                for bad in extras[:5]:
+                    s = catalog_suggestions_for(bad)
+                    if s:
+                        sugg_lines.append(f"{bad} → {', '.join(s)}")
+                if sugg_lines:
+                    out.append(
+                        f"Did you mean: {'; '.join(sugg_lines)}? "
+                        f"(matched against the v1 report-fields catalog)"
+                    )
+            except Exception:  # pragma: no cover - defensive
+                pass
+    # Always include the generic safety net so old clients that scan
+    # for "input schema" still find guidance.
+    out.append("Check required fields and input types in the tool schema.")
+    return out
+
+
 def _pointer_path(error: JsonSchemaValidationError) -> str:
     parts = [str(p) for p in error.absolute_path]
     return "/".join(parts)
@@ -74,15 +261,44 @@ def _required_field_name(error: JsonSchemaValidationError) -> str:
 
 
 def _additional_property_name(error: JsonSchemaValidationError) -> str:
+    """Return the FIRST offending extra-property name from a jsonschema
+    ``additionalProperties: false`` rejection. For multi-extra cases
+    use :func:`_additional_property_names` instead."""
+    names = _additional_property_names(error)
+    return names[0] if names else ""
+
+
+def _additional_property_names(error: JsonSchemaValidationError) -> list[str]:
+    """Return ALL offending extra-property names from a jsonschema
+    ``additionalProperties: false`` rejection.
+
+    jsonschema produces TWO message shapes:
+
+      - Singular: ``"Additional properties are not allowed ('foo' was
+        unexpected)"`` — one extra key per error.
+      - Plural: ``"Additional properties are not allowed ('foo',
+        'bar', 'baz' were unexpected)"`` — multiple extra keys in one
+        error, common when the caller sends several v3 reflexes at
+        once (``name`` + ``configuration`` + ``query``).
+
+    Round 13 follow-up: the original singular-only regex returned
+    empty for plural messages, leaking ``"Remove unknown key  or
+    check schema for typos."`` (double space) and silently skipping
+    the deprecated-shape hint enricher. This walker handles both
+    forms and returns every quoted name in source order.
+    """
+    import re
+
     msg = error.message or ""
-    if "(" in msg and "was unexpected" in msg:
-        try:
-            start = msg.index("'") + 1
-            end = msg.index("'", start)
-            return msg[start:end]
-        except ValueError:
-            return ""
-    return ""
+    if "are not allowed" not in msg or (
+        "was unexpected" not in msg and "were unexpected" not in msg
+    ):
+        return []
+    # Pull every single-quoted token in the message. Robust against
+    # singular ("'foo' was") and plural ("'foo', 'bar', 'baz' were")
+    # phrasings. The regex matches non-quote characters between
+    # straight single quotes.
+    return re.findall(r"'([^']+)'", msg)
 
 
 def _build_details(error: JsonSchemaValidationError, code: str) -> Dict[str, Any]:
@@ -96,9 +312,15 @@ def _build_details(error: JsonSchemaValidationError, code: str) -> Dict[str, Any
         else:
             details["field"] = field
     elif code == "SCHEMA_ADDITIONAL_PROPERTIES":
-        extra = _additional_property_name(error)
-        if extra:
-            details["extra"] = extra
+        extras = _additional_property_names(error)
+        if extras:
+            # ``extra`` keeps the first key for the legacy hint
+            # template ``Remove unknown key {extra} or check schema
+            # for typos.`` The plural form is exposed as
+            # ``extras`` so the hint enricher can emit one
+            # deprecated-shape hint per matched key.
+            details["extra"] = extras[0]
+            details["extras"] = extras
         details["field"] = field
     else:
         details["field"] = field
@@ -128,10 +350,28 @@ def _build_details(error: JsonSchemaValidationError, code: str) -> Dict[str, Any
     return details
 
 
-def _exception_for(error: JsonSchemaValidationError) -> AdsValidationError:
+def _exception_for(
+    error: JsonSchemaValidationError,
+    *,
+    tool_name: str | None = None,
+) -> AdsValidationError:
     validator = str(getattr(error, "validator", "") or "")
     code = ERROR_CODE_MAP.get(validator, FALLBACK_CODE)
     details = _build_details(error, code)
+    # Round 13 B-8: populate hints from canonical template spec.
+    # The error envelope translator surfaces `details["hints"]` under
+    # the envelope's `hints[]` array (Ads error_envelope.py:444-448).
+    if validator and FALLBACK_CODE == code:
+        # Surface the original validator name in the fallback hint.
+        details.setdefault("validator", validator)
+    # Round 13 Phase C-1: thread tool_name so the hint enricher can
+    # apply CreateReport-specific deprecated-shape guidance.
+    if tool_name:
+        details["tool_name"] = tool_name
+    details["hints"] = _hints_for_schema_error(code, details)
+    # Don't leak the tool_name back to envelope details surface — it's
+    # purely a hint-enricher hook.
+    details.pop("tool_name", None)
     field = details.get("field") or ""
     message = error.message or "Schema validation failed."
     exc = AdsValidationError(message=message, field=field)
@@ -272,7 +512,7 @@ class SchemaValidationMiddleware(Middleware):
             key=lambda e: list(e.absolute_path),
         )
         if errors:
-            raise _exception_for(errors[0])
+            raise _exception_for(errors[0], tool_name=tool_name)
 
         return await call_next(context)
 

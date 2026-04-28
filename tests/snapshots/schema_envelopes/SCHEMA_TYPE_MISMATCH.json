@@ -1,0 +1,13 @@
+{
+  "code": "SCHEMA_TYPE_MISMATCH",
+  "details": {
+    "code": "SCHEMA_TYPE_MISMATCH",
+    "expected_type": "array",
+    "field": "marketplaceIds",
+    "hints": [
+      "Send a value of the schema-declared type for marketplaceIds.",
+      "Check required fields and input types in the tool schema."
+    ],
+    "received_type": "str"
+  }
+}

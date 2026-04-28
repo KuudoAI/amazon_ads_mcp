@@ -183,13 +183,27 @@ def _normalize_args_with_schema(
                 if settings.mcp_strict_unknown_fields
                 else "unknown_field_passed_through"
             )
-            events.append(
-                {
-                    "kind": event_kind,
-                    "field": src,
-                    "reason": "no_schema_match",
-                }
-            )
+            event: Dict[str, Any] = {
+                "kind": event_kind,
+                "field": src,
+                "reason": "no_schema_match",
+            }
+            # Round 13 C-pre (gaps 2-4): consult v1 catalog for did-you-mean
+            # suggestions. Closes the gap where the catalog's 700+ valid
+            # field_ids and label index were never consulted on rejection.
+            # Lazy import to avoid circular deps and to fail-open silently
+            # if the catalog isn't loadable in this context.
+            try:
+                from ..tools.report_fields_v1_handler import (
+                    catalog_suggestions_for,
+                )
+
+                suggestions = catalog_suggestions_for(src)
+                if suggestions:
+                    event["suggestions"] = suggestions
+            except Exception:  # pragma: no cover - defensive
+                pass
+            events.append(event)
             continue
         target = targets[0]
         src_val = rewritten.get(src)
