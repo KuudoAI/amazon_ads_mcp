@@ -1,6 +1,6 @@
 [project]
 name = "amazon-ads-mcp"
-version = "0.3.10"
+version = "0.3.11"
 description = "Amazon Ads API MCP Server - Implementation for Amazon Advertising API"
 readme = "README.md"
 requires-python = ">=3.10,<4.0"
@@ -104,15 +104,7 @@ ignore_errors = true
 testpaths = [ "tests",]
 addopts = "-v --strict-markers --strict-config --import-mode=importlib"
 asyncio_mode = "strict"
-markers = [
-    "slow: long-running tests (wheel builds, subprocess installs) — filtered out of local dev via '-m \"not slow\"' and run only in CI.",
-    "smoke: fast critical-path tests run as a CI gate before the full suite.",
-    "unit: fast isolated unit tests.",
-    "integration: tests exercising the in-memory MCP client or real services.",
-    "auth: authentication and identity flows.",
-    "asyncio: pytest-asyncio marker — required on every async test under asyncio_mode=strict.",
-    "live: tests that hit a real Amazon Ads sandbox account. Default-skipped; require RUN_LIVE_TESTS=1 to opt in. Run weekly in CI to surface schema drift and auth quirks that unit tests cannot catch.",
-]
+markers = [ "slow: long-running tests (wheel builds, subprocess installs) — filtered out of local dev via '-m \"not slow\"' and run only in CI.", "smoke: fast critical-path tests run as a CI gate before the full suite.", "unit: fast isolated unit tests.", "integration: tests exercising the in-memory MCP client or real services.", "auth: authentication and identity flows.", "asyncio: pytest-asyncio marker — required on every async test under asyncio_mode=strict.", "live: tests that hit a real Amazon Ads sandbox account. Default-skipped; require RUN_LIVE_TESTS=1 to opt in. Run weekly in CI to surface schema drift and auth quirks that unit tests cannot catch.",]
 
 [tool.coverage.run]
 source = [ "src/amazon_ads_mcp",]
