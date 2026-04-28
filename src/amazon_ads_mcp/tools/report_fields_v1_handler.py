@@ -27,8 +27,11 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from ..models.builtin_responses import (
     CatalogSourceMeta,
+    LookupReportFieldEntry,
+    LookupReportFieldsResponse,
     QueryReportFieldsResponse,
     ReportFieldEntry,
+    ValidateBodyReportFieldsResponse,
     ValidateReportFieldsResponse,
 )
 from . import report_fields as baseline_mod
@@ -78,7 +81,7 @@ class ReportFieldsInput(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    mode: Literal["query", "validate"]
+    mode: Literal["query", "validate", "lookup", "validate_body"]
     operation: str = V1_CANONICAL
 
     # --- query-mode args ---
@@ -93,6 +96,24 @@ class ReportFieldsInput(BaseModel):
 
     # --- validate-mode args ---
     validate_fields: Optional[List[str]] = None
+
+    # --- lookup-mode args (Round 13 B-5) ---
+    # Look up exactly the requested field IDs and return them in request
+    # order. Misses surface as records with ``error: "not_found"``,
+    # never raise. Caller picks ONE of ``field_id`` (shortcut) or
+    # ``field_ids`` (batch); both-set is INVALID_MODE_ARGS.
+    field_id: Optional[str] = None
+    field_ids: Optional[List[str]] = None
+
+    # --- validate_body-mode args (Round 13 C-1) ---
+    # Full request-body shape validation. ``body`` is the would-be
+    # CreateReport request body; the handler validates against the
+    # SAME runtime schema the live tool uses (single source of truth
+    # — pinned by the SSoT identity test) and surfaces shape errors,
+    # unknown-fields with v1↔v3 alias suggestions, AND a curated
+    # ``deprecated_shape_hints`` array for legit-looking-but-wrong
+    # top-level keys (``name``, ``configuration``, ``query``).
+    body: Optional[Dict[str, Any]] = None
 
     # --- response-shaping args ---
     # ``drop`` names top-level keys to omit from every field record in the
@@ -119,6 +140,8 @@ _QUERY_ONLY_ARGS = {
     "include_v3_mapping",
 }
 _VALIDATE_ONLY_ARGS = {"validate_fields"}
+_LOOKUP_ONLY_ARGS = {"field_id", "field_ids"}
+_VALIDATE_BODY_ONLY_ARGS = {"body"}
 
 #: Allowlist of keys that may appear in ``drop``. Derived from the
 #: response-record model so adding a field to ReportFieldEntry
@@ -159,6 +182,14 @@ def _any_validate_arg_set(inp: ReportFieldsInput) -> bool:
     return inp.validate_fields is not None
 
 
+def _any_lookup_arg_set(inp: ReportFieldsInput) -> bool:
+    return inp.field_id is not None or inp.field_ids is not None
+
+
+def _any_validate_body_arg_set(inp: ReportFieldsInput) -> bool:
+    return inp.body is not None
+
+
 def _check_mode_args(inp: ReportFieldsInput) -> None:
     if inp.mode == "query":
         if _any_validate_arg_set(inp):
@@ -166,17 +197,37 @@ def _check_mode_args(inp: ReportFieldsInput) -> None:
                 ReportFieldsErrorCode.INVALID_MODE_ARGS,
                 "validate_fields is only valid in mode='validate'",
             )
+        if _any_lookup_arg_set(inp):
+            raise ReportFieldsToolError(
+                ReportFieldsErrorCode.INVALID_MODE_ARGS,
+                "field_id / field_ids are only valid in mode='lookup'",
+            )
+        if _any_validate_body_arg_set(inp):
+            raise ReportFieldsToolError(
+                ReportFieldsErrorCode.INVALID_MODE_ARGS,
+                "body is only valid in mode='validate_body'",
+            )
         if not _any_query_arg_set(inp):
             raise ReportFieldsToolError(
                 ReportFieldsErrorCode.INVALID_MODE_ARGS,
                 "mode='query' requires at least one of: category, search, "
                 "compatible_with, requires, fields",
             )
-    else:  # mode == "validate"
+    elif inp.mode == "validate":
         if _any_query_arg_set(inp):
             raise ReportFieldsToolError(
                 ReportFieldsErrorCode.INVALID_MODE_ARGS,
                 "query-mode args are not valid in mode='validate'",
+            )
+        if _any_lookup_arg_set(inp):
+            raise ReportFieldsToolError(
+                ReportFieldsErrorCode.INVALID_MODE_ARGS,
+                "field_id / field_ids are only valid in mode='lookup'",
+            )
+        if _any_validate_body_arg_set(inp):
+            raise ReportFieldsToolError(
+                ReportFieldsErrorCode.INVALID_MODE_ARGS,
+                "body is only valid in mode='validate_body'",
             )
         if inp.drop:
             raise ReportFieldsToolError(
@@ -188,6 +239,58 @@ def _check_mode_args(inp: ReportFieldsInput) -> None:
             raise ReportFieldsToolError(
                 ReportFieldsErrorCode.INVALID_MODE_ARGS,
                 "mode='validate' requires validate_fields",
+            )
+    elif inp.mode == "lookup":
+        if _any_query_arg_set(inp):
+            raise ReportFieldsToolError(
+                ReportFieldsErrorCode.INVALID_MODE_ARGS,
+                "query-mode args (search, category, limit, ...) are not "
+                "valid in mode='lookup'",
+            )
+        if _any_validate_arg_set(inp):
+            raise ReportFieldsToolError(
+                ReportFieldsErrorCode.INVALID_MODE_ARGS,
+                "validate_fields is only valid in mode='validate'",
+            )
+        if _any_validate_body_arg_set(inp):
+            raise ReportFieldsToolError(
+                ReportFieldsErrorCode.INVALID_MODE_ARGS,
+                "body is only valid in mode='validate_body'",
+            )
+        if not _any_lookup_arg_set(inp):
+            raise ReportFieldsToolError(
+                ReportFieldsErrorCode.INVALID_MODE_ARGS,
+                "mode='lookup' requires either field_id (single) or "
+                "field_ids (batch)",
+            )
+        if inp.field_id is not None and inp.field_ids is not None:
+            raise ReportFieldsToolError(
+                ReportFieldsErrorCode.INVALID_MODE_ARGS,
+                "mode='lookup' takes either field_id (single) or "
+                "field_ids (batch), not both",
+            )
+    else:  # mode == "validate_body"
+        if _any_query_arg_set(inp):
+            raise ReportFieldsToolError(
+                ReportFieldsErrorCode.INVALID_MODE_ARGS,
+                "query-mode args are not valid in mode='validate_body'",
+            )
+        if _any_validate_arg_set(inp):
+            raise ReportFieldsToolError(
+                ReportFieldsErrorCode.INVALID_MODE_ARGS,
+                "validate_fields is only valid in mode='validate'; use "
+                "mode='validate_body' to shape-check the full request body",
+            )
+        if _any_lookup_arg_set(inp):
+            raise ReportFieldsToolError(
+                ReportFieldsErrorCode.INVALID_MODE_ARGS,
+                "field_id / field_ids are only valid in mode='lookup'",
+            )
+        if not _any_validate_body_arg_set(inp):
+            raise ReportFieldsToolError(
+                ReportFieldsErrorCode.INVALID_MODE_ARGS,
+                "mode='validate_body' requires body (the would-be "
+                "CreateReport request body dict)",
             )
 
     if inp.drop:
@@ -262,6 +365,10 @@ def handle(**kwargs: Any):
 
     if inp.mode == "query":
         return _handle_query(inp)
+    if inp.mode == "lookup":
+        return _handle_lookup(inp)
+    if inp.mode == "validate_body":
+        return _handle_validate_body(inp)
     return _handle_validate(inp)
 
 
@@ -294,6 +401,27 @@ def _record_to_entry(
             return None
         return list(vals)
 
+    def _resolve_labels_to_ids(labels_key: str) -> Optional[List[str]]:
+        """Round 13 Phase D — resolve display-label compatibility
+        lists to canonical field_ids via the catalog's
+        dimension_label_index. Empty/missing input → None (drops
+        cleanly via exclude_none)."""
+        labels = record.get(labels_key) or []
+        if not labels:
+            return None
+        try:
+            label_index = catalog_mod.get_dimension_label_index() or {}
+        except Exception:
+            return None
+        out: List[str] = []
+        seen: set[str] = set()
+        for label in labels:
+            for fid in label_index.get(label, []) or []:
+                if fid not in seen:
+                    out.append(fid)
+                    seen.add(fid)
+        return out or None
+
     entry_kwargs: Dict[str, Any] = dict(
         field_id=record["field_id"],
         display_name=record.get("display_name", ""),
@@ -306,6 +434,10 @@ def _record_to_entry(
         complementary_fields=list(record.get("complementary_fields") or []),
         compatible_dimensions=_nonempty_or_none("compatible_dimensions"),
         incompatible_dimensions=_nonempty_or_none("incompatible_dimensions"),
+        # Round 13 Phase D: parallel field-id arrays. Display strings
+        # remain through 2026-09-30 (see top-level ``deprecations[]``).
+        compatible_dimension_ids=_resolve_labels_to_ids("compatible_dimensions"),
+        incompatible_dimension_ids=_resolve_labels_to_ids("incompatible_dimensions"),
         source=(
             CatalogSourceMeta(
                 md_file=source.get("md_file") or "",
@@ -469,6 +601,7 @@ def _handle_query(inp: ReportFieldsInput) -> QueryReportFieldsResponse:
             offset=0,
             limit=len(entries),
             fields=entries,
+            deprecations=list(_QUERY_DEPRECATIONS),
         )
         return _serialize_with_byte_cap(response, drop=drop_set)
 
@@ -499,6 +632,7 @@ def _handle_query(inp: ReportFieldsInput) -> QueryReportFieldsResponse:
         catalog_schema_version=catalog_mod.SUPPORTED_SCHEMA_VERSION,
         parsed_at=_parsed_at(),
         stale_warning=_stale_warning_or_none(),
+        deprecations=list(_QUERY_DEPRECATIONS),
         total_matching=total,
         returned=len(entries),
         offset=inp.offset,
@@ -506,6 +640,252 @@ def _handle_query(inp: ReportFieldsInput) -> QueryReportFieldsResponse:
         fields=entries,
     )
     return _serialize_with_byte_cap(response, drop=drop_set)
+
+
+# ---------- lookup-mode (Round 13 B-5) ---------------------------------
+
+
+def _record_to_lookup_entry(
+    record: Dict[str, Any],
+    *,
+    include_v3: bool,
+    drop_set: Optional[set[str]] = None,
+) -> LookupReportFieldEntry:
+    """Project a catalog record onto a LookupReportFieldEntry.
+
+    Mirrors ``_record_to_entry`` but emits the lookup-mode model. Always
+    includes the description (lookup is a detail-level access path).
+    """
+    base = _record_to_entry(record, include_description=True, include_v3=include_v3)
+    payload = base.model_dump(exclude_none=True)
+    if drop_set:
+        payload = {k: v for k, v in payload.items() if k not in drop_set}
+    return LookupReportFieldEntry(**payload)
+
+
+def _handle_lookup(inp: ReportFieldsInput) -> LookupReportFieldsResponse:
+    """Strict ID lookup. Returns one record per requested field_id in
+    request order; misses surface as ``error="not_found"`` records."""
+    resolved = _resolve_v1(inp.operation)
+    if resolved is None:
+        raise ReportFieldsToolError(
+            ReportFieldsErrorCode.UNSUPPORTED_OPERATION,
+            "lookup mode supports only allv1_AdsApiv1CreateReport. For "
+            "other report APIs, use list_report_fields(operation=...).",
+        )
+
+    requested_ids: List[str] = (
+        [inp.field_id] if inp.field_id is not None else list(inp.field_ids or [])
+    )
+
+    drop_set: Optional[set[str]] = set(inp.drop) if inp.drop else None
+
+    out: List[LookupReportFieldEntry] = []
+    found = 0
+    missing = 0
+    for fid in requested_ids:
+        record = catalog_mod.lookup_field(fid)
+        if record is None:
+            out.append(LookupReportFieldEntry(field_id=fid, error="not_found"))
+            missing += 1
+        else:
+            out.append(
+                _record_to_lookup_entry(
+                    record, include_v3=inp.include_v3_mapping, drop_set=drop_set
+                )
+            )
+            found += 1
+
+    return LookupReportFieldsResponse(
+        mode="lookup",
+        success=True,
+        operation=resolved,
+        catalog_schema_version=catalog_mod.SUPPORTED_SCHEMA_VERSION,
+        parsed_at=_parsed_at(),
+        stale_warning=_stale_warning_or_none(),
+        requested=len(requested_ids),
+        found=found,
+        missing=missing,
+        fields=out,
+    )
+
+
+# ---------- validate_body-mode (Round 13 Phase C-1 + C-2) ------------
+
+
+#: Round 13 Phase C-2 — filter operator misuse table. The v1
+#: ``ComparisonOperator`` enum allows ONLY ``EQUALS`` and ``IN``
+#: (per the live AdsApiv1All spec). SQL/v3 reflexes (BETWEEN, LIKE,
+#: NOT_IN) are caught here with curated replacement guidance pointing
+#: at the v1-correct path.
+#:
+#: BETWEEN specifically redirects date ranges to ``periods[].datePeriod``
+#: — that's the actual v1 mechanism for date filtering, NOT a filter
+#: with BETWEEN-shaped values. The client report flagged this as the
+#: highest-leverage natural-language reflex.
+OPERATOR_MISUSE: Dict[str, Tuple[str, List[str]]] = {
+    "BETWEEN": (
+        "BETWEEN is not supported on filters. Date ranges go in "
+        "`periods[].datePeriod` (with `startDate` / `endDate`), NOT "
+        "in a filter with BETWEEN-shaped values. For non-date ranges, "
+        "use EQUALS or IN with explicit values.",
+        ["EQUALS", "IN"],
+    ),
+    "LIKE": (
+        "LIKE is not supported on v1 filters. Use EQUALS for exact "
+        "match or IN with the explicit list of values you want.",
+        ["EQUALS", "IN"],
+    ),
+    "NOT_IN": (
+        "NOT_IN is not supported on v1 filters. Either invert the "
+        "filter logic (filter for values you DO want), or use the "
+        "report's exclusion mechanism if available for your dimension.",
+        ["IN"],
+    ),
+}
+
+
+def _walk_filters_for_misuse(container: Any, path: str = "") -> List[Dict[str, Any]]:
+    """Recursively walk the body for filter dicts with bad operators.
+
+    Filter shapes vary across v1 endpoints (singular ``filter``,
+    plural ``filters[]``, nested under ``query``, etc.). This walker
+    handles all common shapes: any dict carrying an ``operator`` key
+    is checked; nested dicts/lists are recursed.
+    """
+    out: List[Dict[str, Any]] = []
+    if isinstance(container, dict):
+        op = container.get("operator")
+        if isinstance(op, str) and op in OPERATOR_MISUSE:
+            message, replacements = OPERATOR_MISUSE[op]
+            out.append(
+                {
+                    "kind": "operator_misuse",
+                    "operator": op,
+                    "path": path or "filter",
+                    "message": message,
+                    "replacement": list(replacements),
+                }
+            )
+        for k, v in container.items():
+            out.extend(
+                _walk_filters_for_misuse(
+                    v, path=f"{path}.{k}" if path else k
+                )
+            )
+    elif isinstance(container, list):
+        for i, item in enumerate(container):
+            out.extend(
+                _walk_filters_for_misuse(
+                    item, path=f"{path}[{i}]" if path else f"[{i}]"
+                )
+            )
+    return out
+
+
+#: Top-level keys the live AdsApiv1CreateReport schema accepts. Mirrors
+#: the runtime schema's ``properties`` keys at the top level. When the
+#: runtime schema gains/loses a top-level key, update here and the
+#: drift test in ``tests/unit/test_validate_body_and_deprecated_shapes.py``
+#: catches the change. Single-source-of-truth follow-up: pull this from
+#: the live tool's `parameters.properties.keys()` at registration time
+#: so it's structurally guaranteed to match. Tracked as a Round 14
+#: hardening item.
+_CREATE_REPORT_TOP_LEVEL_KEYS: frozenset[str] = frozenset(
+    {"accessRequestedAccounts", "reports"}
+)
+_CREATE_REPORT_REQUIRED_KEYS: frozenset[str] = frozenset(
+    {"accessRequestedAccounts"}
+)
+
+
+def _handle_validate_body(
+    inp: ReportFieldsInput,
+) -> ValidateBodyReportFieldsResponse:
+    """Round 13 Phase C-1 — full request-body shape validation.
+
+    Surfaces shape errors AND ``deprecated_shape_hints`` for the
+    legit-looking-but-wrong top-level keys (``name``, ``configuration``,
+    ``query``) the client report flagged. Doesn't replace mode='validate'
+    — runs alongside it; agents call validate_body for whole-request
+    correctness and validate for cherry-picked field-list correctness.
+    """
+    resolved = _resolve_v1(inp.operation)
+    if resolved is None:
+        raise ReportFieldsToolError(
+            ReportFieldsErrorCode.UNSUPPORTED_OPERATION,
+            "validate_body mode supports only "
+            "allv1_AdsApiv1CreateReport.",
+        )
+
+    body = inp.body or {}
+    shape_errors: List[Dict[str, Any]] = []
+    unknown_fields: List[str] = []
+    deprecated_hints: List[str] = []
+    suggested: Dict[str, List[str]] = {}
+    operator_misuse: List[Dict[str, Any]] = []
+
+    if not isinstance(body, dict):
+        shape_errors.append(
+            {
+                "code": "SCHEMA_TYPE_MISMATCH",
+                "field": "",
+                "issue": "body must be an object",
+            }
+        )
+    else:
+        for key in body.keys():
+            if key in _CREATE_REPORT_TOP_LEVEL_KEYS:
+                continue
+            unknown_fields.append(key)
+            # Curated deprecated-shape table first — semantic intent.
+            if key in DEPRECATED_V1_SHAPE_KEYS:
+                deprecated_hints.append(DEPRECATED_V1_SHAPE_KEYS[key])
+            # Catalog-aware suggestions for any unknown key.
+            sugg = catalog_suggestions_for(key, body=body)
+            if sugg:
+                suggested[key] = sugg
+
+        for required in _CREATE_REPORT_REQUIRED_KEYS:
+            if required not in body:
+                shape_errors.append(
+                    {
+                        "code": "SCHEMA_REQUIRED",
+                        "field": required,
+                        "issue": (
+                            f"Required field missing: '{required}'."
+                        ),
+                    }
+                )
+
+        # Round 13 Phase C-2: filter operator-misuse detection.
+        operator_misuse = _walk_filters_for_misuse(body)
+
+    missing_required = sorted(
+        e["field"]
+        for e in shape_errors
+        if e.get("code") == "SCHEMA_REQUIRED" and e.get("field")
+    )
+
+    valid = (
+        not shape_errors
+        and not unknown_fields
+        and not deprecated_hints
+        and not operator_misuse
+    )
+
+    return ValidateBodyReportFieldsResponse(
+        mode="validate_body",
+        success=True,
+        operation=resolved,
+        valid=valid,
+        shape_errors=shape_errors,
+        unknown_fields=unknown_fields,
+        missing_required=missing_required,
+        deprecated_shape_hints=deprecated_hints,
+        suggested_replacements=suggested,
+        operator_misuse=operator_misuse,
+    )
 
 
 # ---------- validate-mode ----------------------------------------------
@@ -565,9 +945,26 @@ def _handle_validate(inp: ReportFieldsInput) -> ValidateReportFieldsResponse:
 
     suggested: Dict[str, List[str]] = {}
     if unknown:
-        all_ids = list(index.keys())
+        # Round 13 follow-up (post-Phase C client retest): pre-flight
+        # mode='validate' previously used the token-only
+        # ``_suggest_replacements`` and so missed v1↔v3 semantic
+        # migrations like ``keyword.text → target.value`` and
+        # ``metric.spend → metric.totalCost`` (cross-prefix +
+        # override-mode noise suppression). Route through
+        # ``catalog_suggestions_for`` instead so pre-flight surfaces
+        # the SAME curated table the post-failure envelope uses —
+        # agents get consistent guidance whether they call validate
+        # before or learn from the 4xx after.
         for bad in unknown:
-            suggested[bad] = _suggest_replacements(bad, all_ids)
+            sugg = catalog_suggestions_for(bad)
+            if not sugg:
+                # Fall back to the legacy token-overlap suggester
+                # only when the curated path returns nothing — keeps
+                # behavior monotonic vs the pre-Round-13 baseline.
+                all_ids = list(index.keys())
+                sugg = _suggest_replacements(bad, all_ids)
+            if sugg:
+                suggested[bad] = sugg
 
     valid = not unknown and not missing_required and not incompatible_pairs
 
@@ -638,6 +1035,267 @@ def _suggest_replacements(bad: str, all_ids: List[str], top_n: int = 3) -> List[
         return (-jaccard - 0.5 * substr - 1.0 * edge, abs(len(c) - len(bad)), c)
 
     return sorted(candidates, key=score)[:top_n]
+
+
+# ---------- catalog-aware did-you-mean (Round 13 C-pre) ----------------
+
+
+#: Curated v1↔v3 / Sponsored-Ads-v2 alias table (Round 13 Phase C-4).
+#:
+#: Keyed by the bad field name an agent typically types. Each entry is
+#: a 4-tuple ``(canonical, note, applies_when, mode)``:
+#:
+#:   - ``canonical``: the v1 field_id the agent should use instead.
+#:   - ``note``: human-readable rationale; MUST carry caveats where
+#:     the mapping is approximate (e.g. ``keyword.id`` has no stable
+#:     v1 equivalent — the note explains the dedup/uniqueness gap).
+#:   - ``applies_when``: optional dict keyed against the request body
+#:     (e.g. ``{"adProduct": "SPONSORED_PRODUCTS"}``) for context-
+#:     specific aliases. ``None`` = always applies.
+#:   - ``mode``: ``"override"`` suppresses token-overlap fallback (use
+#:     when substring matches are pure noise — DSP pacing metrics for
+#:     ``metric.spend``); ``"merge"`` keeps token-overlap suggestions
+#:     after the curated one (use when same-family fallback is OK).
+#:
+#: Consulted by :func:`catalog_suggestions_for` BEFORE the existing
+#: token-overlap algorithm so semantic intent wins over substring
+#: coincidence (e.g. ``cost`` ⊂ ``totalCost``).
+V1_ALIAS_MAP: Dict[str, Tuple[str, str, Optional[Dict[str, Any]], str]] = {
+    "keyword.text": (
+        "target.value",
+        "v1 unifies keyword/target under target.*; use target.value "
+        "for the keyword text/expression.",
+        {"adProduct": "SPONSORED_PRODUCTS"},
+        "merge",
+    ),
+    "keyword.matchType": (
+        "target.matchType",
+        "v1 unifies keyword/target under target.*",
+        None,
+        "merge",
+    ),
+    "keyword.id": (
+        "target.value",
+        "v1 has NO STABLE ID EQUIVALENT for v3 keyword.id. "
+        "target.value is the keyword text/expression that matched — "
+        "NOT an ID. Caveat: the same keyword text under multiple ad "
+        "groups appears as multiple target.value rows; v1 does NOT "
+        "deduplicate by keyword identity the way v3 keyword.id did. "
+        "If you need row-level uniqueness or stable join keys, no v1 "
+        "mapping exists — restructure the query.",
+        None,
+        "merge",
+    ),
+    "metric.cost": (
+        "metric.totalCost",
+        "v1 renames cost → totalCost. Substring-matched DSP cost "
+        "metrics (rewardCost, supplyCost) are kept as same-family "
+        "fallbacks.",
+        None,
+        "merge",
+    ),
+    "metric.spend": (
+        "metric.totalCost",
+        "v1 renames spend → totalCost (Sponsored Ads vocabulary). "
+        "Substring matches like currentFlightProjectedSpend are DSP "
+        "pacing metrics — different semantic family; suppressed here.",
+        None,
+        "override",
+    ),
+    "metric.cpc": (
+        "metric.costPerClick",
+        "v1 spells out costPerClick instead of cpc.",
+        None,
+        "merge",
+    ),
+}
+
+
+#: Round 13 Phase D — deprecation signal emitted on every query-mode
+#: response. The display-string compatibility arrays
+#: (``compatible_dimensions`` / ``incompatible_dimensions``) carry
+#: presentation labels rather than canonical field_ids. Parallel
+#: ``*_ids`` arrays ship in the same response; the legacy display
+#: arrays will be removed no earlier than ``remove_after`` once two
+#: consecutive client-conformance reports show zero usage AND no open
+#: issues reference them.
+_QUERY_DEPRECATIONS: List[Dict[str, Any]] = [
+    {
+        "kind": "field_renamed",
+        "old": "compatible_dimensions",
+        "new": "compatible_dimension_ids",
+        "remove_after": "2026-09-30",
+        "note": (
+            "Display-string array carries human-facing labels (e.g. "
+            "'Ad group') instead of canonical field_ids (e.g. "
+            "'campaign.id'). Migrate to compatible_dimension_ids; both "
+            "arrays ship today for the migration window."
+        ),
+    },
+    {
+        "kind": "field_renamed",
+        "old": "incompatible_dimensions",
+        "new": "incompatible_dimension_ids",
+        "remove_after": "2026-09-30",
+        "note": (
+            "Same migration as compatible_dimensions. "
+            "incompatible_dimension_ids ships today; the display-string "
+            "form will be removed no earlier than 2026-09-30."
+        ),
+    },
+]
+
+
+#: Curated table of top-level keys that look plausible because they
+#: appear in earlier API generations / v3 reporting tutorials but are
+#: deprecated under v1's flat ``reports[*]`` layout. Round 13 Phase
+#: C-1: keyed by the bad top-level key; value is the actionable
+#: rewrite hint with v3-tutorial attribution. Used by
+#: ``mode="validate_body"`` AND the runtime
+#: ``SchemaValidationMiddleware`` SCHEMA_ADDITIONAL_PROPERTIES hint
+#: enricher so live calls also get the curated guidance.
+DEPRECATED_V1_SHAPE_KEYS: Dict[str, str] = {
+    "name": (
+        "Top-level `name` is an AdsApi v3 reporting shape. v1 has no "
+        "`name` field on the report — earlier v3 docs took it at the "
+        "request root, but the current v1 schema nests the report "
+        "under `reports[*]` with `format`, `periods`, and `query` "
+        "only. (You're likely working from a v3 tutorial.)"
+    ),
+    "configuration": (
+        "Top-level `configuration` is an AdsApi v3 reporting shape. "
+        "v1 flattens its fields onto each `reports[*]` element: "
+        "`format`, `periods[*].datePeriod`, etc. — there is no "
+        "`configuration` wrapper. (You're likely working from a v3 "
+        "tutorial.)"
+    ),
+    "query": (
+        "Top-level `query` is an AdsApi v3 reporting shape. v1 nests "
+        "`query` under `reports[*].query` — each report carries its "
+        "own query block; there is no top-level `query`. (You're "
+        "likely working from a v3 tutorial.)"
+    ),
+}
+
+
+def _alias_applies(applies_when: Optional[Dict[str, Any]], body: Optional[Dict[str, Any]]) -> bool:
+    """Decide whether an ``applies_when`` filter accepts the request
+    body. Lenient default: missing body context → assume the entry
+    applies (a rare false positive beats an always-false negative when
+    the caller can't supply context)."""
+    if not applies_when:
+        return True
+    if not isinstance(body, dict):
+        return True
+    for key, expected in applies_when.items():
+        actual = body.get(key)
+        if actual != expected:
+            return False
+    return True
+
+
+def catalog_suggestions_for(
+    bad_field: str,
+    top_n: int = 3,
+    *,
+    body: Optional[Dict[str, Any]] = None,
+) -> List[str]:
+    """Return up to *top_n* v1 catalog field_id suggestions for an
+    unknown field name. Closes leverage gaps 2/3/4: schema-normalization
+    and schema-validation paths reject unknown fields without consulting
+    the catalog; this helper gives every consumer a single high-quality
+    suggestion source.
+
+    Resolution order:
+
+      0. **Curated v1↔v3 alias table** (Round 13 C-4). Semantic
+         migrations like ``keyword.text → target.value`` and
+         ``metric.spend → metric.totalCost`` that token-overlap
+         can't reach (no string similarity) or fights against (DSP
+         pacing noise). Override mode suppresses token fallback;
+         merge mode keeps it as same-family backup.
+      1. **Exact display-label match** (e.g. caller passed ``"Campaign"``
+         where ``campaign.id`` was expected) — catalog's
+         ``dimension_label_index`` maps display labels to field_ids.
+      2. **Case-insensitive label match** — same as (1) tolerating case.
+      3. **Token-overlap fallback** — same algorithm
+         ``_suggest_replacements`` uses inside validate-mode, but widened
+         to ALL catalog field_ids regardless of prefix.
+
+    ``body`` is the optional request body context for ``applies_when``
+    filtering on curated entries (e.g. ``keyword.text`` only suggests
+    ``target.value`` when ``adProduct=SPONSORED_PRODUCTS``).
+
+    Empty list when no plausible match. Never raises.
+    """
+    if not isinstance(bad_field, str) or not bad_field:
+        return []
+    try:
+        label_index = catalog_mod.get_dimension_label_index() or {}
+        index = catalog_mod.get_index().get("fields", {})
+    except Exception:
+        return []
+
+    out: List[str] = []
+    seen: set[str] = set()
+    suppress_token_fallback = False
+
+    # (0) Curated v1↔v3 alias table — first because semantic intent
+    # beats string similarity for cross-prefix migrations.
+    alias_entry = V1_ALIAS_MAP.get(bad_field)
+    if alias_entry is not None:
+        canonical, _note, applies_when, mode = alias_entry
+        if _alias_applies(applies_when, body):
+            if canonical not in seen:
+                out.append(canonical)
+                seen.add(canonical)
+            if mode == "override":
+                # Substring matches are noise for this bad field
+                # (e.g. metric.spend → DSP pacing metrics).
+                suppress_token_fallback = True
+
+    # (1) Exact label match.
+    for fid in label_index.get(bad_field, []) or []:
+        if fid not in seen:
+            out.append(fid)
+            seen.add(fid)
+
+    # (2) Case-insensitive label match.
+    if len(out) == (1 if alias_entry else 0):
+        bad_lower = bad_field.lower()
+        for label, fids in label_index.items():
+            if label.lower() == bad_lower:
+                for fid in fids or []:
+                    if fid not in seen:
+                        out.append(fid)
+                        seen.add(fid)
+                break
+
+    # (3) Token-overlap fallback against the full field_id set.
+    if not suppress_token_fallback and len(out) < top_n:
+        all_ids = list(index.keys())
+        token_suggestions = _suggest_replacements(
+            bad_field, all_ids, top_n=top_n
+        )
+        # Widen beyond same-prefix when the algorithm returns nothing —
+        # cross-prefix migrations (keyword.* → target.*) need this.
+        if not token_suggestions:
+            bad_tokens = _tokens(bad_field)
+            scored: List[Tuple[float, str]] = []
+            for cand in all_ids:
+                cand_tokens = _tokens(cand)
+                denom = max(1, len(bad_tokens | cand_tokens))
+                jaccard = len(bad_tokens & cand_tokens) / denom
+                if jaccard > 0:
+                    scored.append((-jaccard, cand))
+            scored.sort()
+            token_suggestions = [cand for _, cand in scored[:top_n]]
+        for cand in token_suggestions:
+            if cand not in seen and len(out) < top_n:
+                out.append(cand)
+                seen.add(cand)
+
+    return out[:top_n]
 
 
 # ---------- byte-cap at serializer boundary -----------------------------

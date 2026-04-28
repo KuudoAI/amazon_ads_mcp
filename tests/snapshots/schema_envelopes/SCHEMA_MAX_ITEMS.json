@@ -1,0 +1,13 @@
+{
+  "code": "SCHEMA_MAX_ITEMS",
+  "details": {
+    "actual": 6,
+    "code": "SCHEMA_MAX_ITEMS",
+    "field": "marketplaceIds",
+    "hints": [
+      "Trim marketplaceIds to at most 5 items.",
+      "Check required fields and input types in the tool schema."
+    ],
+    "limit": 5
+  }
+}

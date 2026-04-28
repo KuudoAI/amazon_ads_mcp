@@ -91,6 +91,7 @@ def build_envelope_from_exception(
     normalized: list[dict[str, Any]] | None = None,
     http_meta: dict[str, Any] | None = None,
     emit_legacy_error_kind: bool = False,
+    tool_args: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Translate an exception into a v1 envelope dict.
 
@@ -106,6 +107,12 @@ def build_envelope_from_exception(
     :param emit_legacy_error_kind: If True, include ``legacy_error_kind`` in
         the envelope carrying the prior taxonomy value (one-release migration
         window). Default False.
+    :param tool_args: Optional original tool arguments. Round 13 C-pre: used
+        for retroactive catalog-aware hint enrichment when the failing tool
+        is ``AdsApiv1CreateReport`` (the catalog already knows which v1
+        field combinations are incompatible — surface that knowledge in
+        the envelope so the agent gets the same guidance ``mode='validate'``
+        would have given).
     """
     # Round 8: when the exception's message text carries an inner v1
     # envelope (Code Mode sandbox bridge → MontyRuntimeError → outer
@@ -158,7 +165,207 @@ def build_envelope_from_exception(
     # Runs AFTER classification regardless of which classifier built
     # the envelope. New classification paths get hint quality for free.
     _promote_field_signals_into_hints(envelope)
+    # Round 13 C-pre (gaps 1+2): when AdsApiv1CreateReport returned
+    # an upstream HTTP error AND we have the original request body,
+    # retroactively run the catalog validator and surface
+    # incompatible_pairs / missing_required as additional hints. The
+    # catalog already knows what mode="validate" would have caught;
+    # this gives the agent that same guidance after the call has
+    # already failed, instead of forcing a separate validate retry.
+    #
+    # Includes auth_error because upstream 401/403 on a CreateReport
+    # call still surfaces from the request body the agent constructed
+    # — and the catalog can still flag bad fields in query.fields[].
+    # When the auth error is unrelated to fields, the catalog hints
+    # are no-ops; the agent gets no false guidance.
+    if (
+        tool_args
+        and isinstance(tool_args, dict)
+        and tool_name
+        and (
+            "CreateReport" in tool_name
+            # Round 14 Phase A: low-impact hardening for the
+            # pathological hybrid-body case where an agent constructs
+            # CreateReport-shaped args against QueryAdvertiserAccount.
+            # ``_enrich_with_catalog_validate`` walks for
+            # ``query.fields[]`` and silently no-ops when absent — so
+            # widening the gate to QAA costs nothing on normal calls
+            # and steers the agent toward the right endpoint when the
+            # body is misshapen.
+            or "QueryAdvertiserAccount" in tool_name
+        )
+        and classification.error_kind
+        in ("ads_api_http", "ads_api_client", "auth_error")
+    ):
+        _enrich_with_catalog_validate(envelope, tool_args)
     return envelope
+
+
+def _enrich_with_catalog_validate(
+    envelope: dict[str, Any], tool_args: dict[str, Any]
+) -> None:
+    """Round 13 C-pre — retroactive catalog validate on CreateReport 4xx.
+
+    Extracts the request's ``query.fields[]`` (and ``reports[].query.fields[]``)
+    and runs ``mode="validate"`` against the catalog. Surface
+    ``incompatible_pairs``, ``missing_required``, and
+    ``unknown_fields`` (with catalog suggestions) as additional hints
+    on the envelope. Best-effort; never raises.
+    """
+    try:
+        # Walk the request for query.fields[] in any of the three shapes:
+        #
+        #   (a) FastMCP-flattened OpenAPI body — fields at top level:
+        #       tool_args = {"accessRequestedAccounts": [...], "reports": [...]}
+        #   (b) Hand-wrapped {"body": {...}} from agents that read the docs
+        #       too literally and nest the body under a "body" key
+        #   (c) Top-level "query" key (older shape variants)
+        #
+        # Cover all three so retroactive enrichment works regardless of
+        # how the caller constructed the request.
+        candidate_field_lists: list[list[str]] = []
+
+        def _walk(container: Any) -> None:
+            if not isinstance(container, dict):
+                return
+            reports = container.get("reports")
+            if isinstance(reports, list):
+                for r in reports:
+                    if isinstance(r, dict):
+                        q = r.get("query")
+                        if isinstance(q, dict):
+                            f = q.get("fields")
+                            if isinstance(f, list):
+                                candidate_field_lists.append(
+                                    [str(x) for x in f if isinstance(x, str)]
+                                )
+            top_q = container.get("query")
+            if isinstance(top_q, dict):
+                f = top_q.get("fields")
+                if isinstance(f, list):
+                    candidate_field_lists.append(
+                        [str(x) for x in f if isinstance(x, str)]
+                    )
+
+        # (a) flattened — walk tool_args directly
+        _walk(tool_args if isinstance(tool_args, dict) else None)
+        # (b) wrapped — walk tool_args.get("body")
+        if isinstance(tool_args, dict):
+            _walk(tool_args.get("body"))
+        if not candidate_field_lists:
+            return
+
+        from ..tools.report_fields_v1_handler import handle as rf_handle
+
+        merged_unknown: list[str] = []
+        merged_missing: dict[str, list[str]] = {}
+        merged_pairs: list[tuple[str, str]] = []
+        merged_suggestions: dict[str, list[str]] = {}
+        for fields in candidate_field_lists:
+            try:
+                resp = rf_handle(
+                    mode="validate",
+                    operation="allv1_AdsApiv1CreateReport",
+                    validate_fields=fields,
+                )
+                payload = resp.model_dump(exclude_none=True)
+                for k in payload.get("unknown_fields") or []:
+                    if k not in merged_unknown:
+                        merged_unknown.append(k)
+                for k, v in (payload.get("missing_required") or {}).items():
+                    merged_missing.setdefault(k, list(v))
+                for pair in payload.get("incompatible_pairs") or []:
+                    pt = tuple(pair) if isinstance(pair, (list, tuple)) else None
+                    if pt and pt not in merged_pairs:
+                        merged_pairs.append(pt)
+                for k, v in (payload.get("suggested_replacements") or {}).items():
+                    merged_suggestions.setdefault(k, list(v))
+            except Exception:  # pragma: no cover - defensive
+                continue
+
+        new_hints: list[str] = []
+        if merged_pairs:
+            pair_strs = [f"{a} + {b}" for a, b in merged_pairs[:5]]
+            new_hints.append(
+                f"v1 catalog flags incompatible field pairs in your "
+                f"query.fields[]: {'; '.join(pair_strs)}. Drop one of "
+                f"each pair before retrying."
+            )
+        if merged_missing:
+            sample = next(iter(merged_missing.items()))
+            new_hints.append(
+                f"v1 catalog flags missing required field(s): "
+                f"{sample[0]} requires {sample[1]}. Add the required "
+                f"co-fields to query.fields[]."
+            )
+        if merged_unknown:
+            # Round 13 Phase C-4: re-derive suggestions through the
+            # curated-table path so semantic v1↔v3 mappings outrank
+            # substring noise (keyword.text → target.value, etc.).
+            # Pass the request body so applies_when filters fire.
+            from ..tools.report_fields_v1_handler import (
+                catalog_suggestions_for,
+            )
+
+            # Build context body from tool_args for applies_when.
+            ctx_body: dict[str, Any] = {}
+            if isinstance(tool_args, dict):
+                # Top-level adProduct is rare; usually it lives inside
+                # reports[*].query or filter shapes. Surface whatever
+                # is at the top level for the simple SPONSORED_PRODUCTS
+                # check; richer matching can come later.
+                if "adProduct" in tool_args:
+                    ctx_body["adProduct"] = tool_args["adProduct"]
+                # Walk reports[*] for any adProduct hint.
+                reports = tool_args.get("reports")
+                if isinstance(reports, list):
+                    for r in reports:
+                        if isinstance(r, dict):
+                            ap = r.get("adProduct") or (
+                                (r.get("query") or {}).get("adProduct")
+                            )
+                            if ap:
+                                ctx_body.setdefault("adProduct", ap)
+
+            # Round 13 follow-up: the prior ``[:3]`` cap silently
+            # dropped suggestions for the 4th+ unknown field
+            # (alphabetical sort meant ``metric.spend`` was excluded
+            # when keyword.* + metric.cost + metric.spend all appeared
+            # together). Now we surface a suggestion line for EVERY
+            # unknown that has a catalog match — agents see the full
+            # rewrite plan in one envelope. Cap kept at 8 to bound
+            # hint length on pathological calls with dozens of bad
+            # fields; real-world calls have 1–5.
+            unknown_sorted = sorted(merged_unknown)
+            unknown_summary = ", ".join(unknown_sorted[:8])
+            sugg_lines = []
+            for bad in unknown_sorted[:8]:
+                # Prefer curated-table-aware suggestions over the
+                # validate-mode token-only output.
+                sugg = catalog_suggestions_for(bad, body=ctx_body or None)
+                if not sugg:
+                    sugg = merged_suggestions.get(bad) or []
+                if sugg:
+                    sugg_lines.append(f"{bad} → {', '.join(sugg)}")
+            sugg_clause = (
+                f" Did you mean: {'; '.join(sugg_lines)}?"
+                if sugg_lines
+                else ""
+            )
+            new_hints.append(
+                f"v1 catalog rejects unknown field(s): "
+                f"{unknown_summary}.{sugg_clause}"
+            )
+        new_hints.append(
+            "Pre-flight with `report_fields(mode=\"validate\", "
+            "operation=\"allv1_AdsApiv1CreateReport\", "
+            "validate_fields=[...])` to catch this before the call."
+        )
+
+        existing_hints = envelope.get("hints") or []
+        envelope["hints"] = list(existing_hints) + new_hints
+    except Exception:  # pragma: no cover - defensive
+        return
 
 
 def _merge_http_meta(

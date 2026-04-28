@@ -241,6 +241,29 @@ class Settings(BaseSettings):
         ),
     )
 
+    # Round 14 Phase B — per-identity QueryAdvertiserAccount cache.
+    mcp_query_advertiser_cache_ttl: int = Field(
+        60,
+        alias="MCP_QUERY_ADVERTISER_CACHE_TTL",
+        description=(
+            "TTL in seconds for the per-identity "
+            "QueryAdvertiserAccount cache. Default 60s. Set to 0 to "
+            "disable caching entirely (every call hits upstream). "
+            "Cache is single-node in-memory; multi-node deployments "
+            "should disable or front with a shared cache."
+        ),
+    )
+    mcp_query_advertiser_cache_size: int = Field(
+        256,
+        alias="MCP_QUERY_ADVERTISER_CACHE_SIZE",
+        description=(
+            "Maximum number of cached QueryAdvertiserAccount entries "
+            "across all identities. LRU eviction. Default 256. Each "
+            "entry is a list of account records (~5-50KB), so 256 "
+            "entries is a soft worst-case of ~13MB resident."
+        ),
+    )
+
     # OAuth Configuration (optional, for web-based authentication flows)
     oauth_client_id: Optional[str] = Field(
         None,

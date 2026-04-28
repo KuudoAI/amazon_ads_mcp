@@ -1,0 +1,11 @@
+{
+  "code": "SCHEMA_REQUIRED",
+  "details": {
+    "code": "SCHEMA_REQUIRED",
+    "field": "marketplaceIds",
+    "hints": [
+      "Include marketplaceIds in the request body.",
+      "Check required fields and input types in the tool schema."
+    ]
+  }
+}

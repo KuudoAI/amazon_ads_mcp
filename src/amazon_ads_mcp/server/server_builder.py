@@ -240,6 +240,21 @@ class ServerBuilder:
         middleware_list.append(MetaInjectionMiddleware())
         logger.info("Added MetaInjectionMiddleware (success-path rate-limit telemetry)")
 
+        # Round 14 Phase B: per-identity QueryAdvertiserAccount cache.
+        # Sits AFTER ErrorEnvelope + MetaInjection so cache hits flow
+        # through error/meta wrapping if a stale entry triggers
+        # downstream issues, and BEFORE the resilient HTTP client so
+        # cache short-circuit precedes upstream dispatch.
+        from ..middleware.query_advertiser_cache import (
+            create_query_advertiser_cache_middleware,
+        )
+
+        middleware_list.append(create_query_advertiser_cache_middleware())
+        logger.info(
+            "Added QueryAdvertiserCacheMiddleware "
+            "(per-identity QAA result cache)"
+        )
+
         # Error callback for logging
         def error_callback(error: Exception, context=None) -> None:
             logger.error(f"Tool execution error: {type(error).__name__}: {error}")

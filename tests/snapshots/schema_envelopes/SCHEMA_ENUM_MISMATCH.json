@@ -1,0 +1,16 @@
+{
+  "code": "SCHEMA_ENUM_MISMATCH",
+  "details": {
+    "allowed": [
+      "NA",
+      "EU",
+      "FE"
+    ],
+    "code": "SCHEMA_ENUM_MISMATCH",
+    "field": "region",
+    "hints": [
+      "Set region to one of: NA, EU, FE.",
+      "Check required fields and input types in the tool schema."
+    ]
+  }
+}

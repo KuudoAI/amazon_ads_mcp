@@ -64,10 +64,22 @@ class ErrorEnvelopeMiddleware(Middleware):
     def _build_envelope(self, exc: BaseException, context: Any) -> dict[str, Any]:
         tool_name = self._extract_tool_name(context)
         normalized = get_current_normalization_events()
+        # Round 13 C-pre: thread the original request args through so the
+        # envelope translator can run retroactive catalog-validate on
+        # CreateReport upstream failures.
+        tool_args: dict[str, Any] | None = None
+        try:
+            message = getattr(context, "message", None)
+            args = getattr(message, "arguments", None)
+            if isinstance(args, dict):
+                tool_args = dict(args)
+        except Exception:  # pragma: no cover - defensive
+            tool_args = None
         return build_envelope_from_exception(
             exc,
             tool_name=tool_name,
             normalized=normalized,
+            tool_args=tool_args,
         )
 
     @staticmethod

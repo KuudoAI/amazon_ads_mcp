@@ -28,6 +28,7 @@ if TYPE_CHECKING:
 from fastmcp.server.dependencies import get_context
 
 from ..config.settings import settings
+from ._polling_guidance import SANDBOX_POLLING_GUIDANCE
 from ..middleware.auth_session_bridge import (
     hydrate_auth_from_mcp_session,
     persist_auth_to_mcp_session,
@@ -107,8 +108,7 @@ EXECUTE_DESCRIPTION = (
     "  larger than ~1 MB may be auto-stashed by the host client.\n"
     "- `print()` output may be discarded depending on the client path; return\n"
     "  data via the script's final expression instead.\n"
-    "- `asyncio.sleep` is unavailable by design in this sandbox path. Don't sleep —\n"
-    "  chain `await call_tool` calls (e.g. poll a report-status tool) instead.\n"
+    f"- {SANDBOX_POLLING_GUIDANCE}\n"
     "- `try`/`except`/`finally` work normally. To probe many candidates in one\n"
     "  block, wrap each `await call_tool(...)` in its own `try/except RuntimeError`.\n"
     "- `with` works for pure-Python context managers (e.g. `decimal.localcontext()`).\n"

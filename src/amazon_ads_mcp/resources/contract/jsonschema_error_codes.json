@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openbridge.io/mcp/schemas/jsonschema_error_codes.json",
+  "title": "JSON Schema validator → MCP envelope error_code mapping",
+  "description": "Canonical mapping that both Amazon SP MCP and Amazon Ads MCP servers MUST honor when their pre-flight schema-validation middleware rejects a tool call. Each entry binds a jsonschema validator name (the `validator` attribute on `jsonschema.ValidationError`) to the v1 envelope `error_code` string and the canonical hint shown to agents. Servers can append per-tool hints; they MUST NOT change the error_code for a given validator. The conformance test in openbridge-mcp/tests/conformance/ enforces parity by sending the same bad-input shape to both servers and asserting they emit matching codes.",
+  "version": "1.0",
+  "envelope_version": 1,
+  "error_kind": "mcp_input_validation",
+  "retryable": false,
+  "mapping": {
+    "type": {
+      "error_code": "SCHEMA_TYPE_MISMATCH",
+      "summary_template": "Field {path} expected {expected_type}, received {received_type}.",
+      "hint": "Send a value of the schema-declared type for {path}."
+    },
+    "required": {
+      "error_code": "SCHEMA_REQUIRED",
+      "summary_template": "Required field {path} is missing.",
+      "hint": "Include {path} in the request body."
+    },
+    "maxItems": {
+      "error_code": "SCHEMA_MAX_ITEMS",
+      "summary_template": "Array {path} exceeds maxItems={limit} (got {actual}).",
+      "hint": "Trim {path} to at most {limit} items."
+    },
+    "minItems": {
+      "error_code": "SCHEMA_MIN_ITEMS",
+      "summary_template": "Array {path} below minItems={limit} (got {actual}).",
+      "hint": "Provide at least {limit} items in {path}."
+    },
+    "maxLength": {
+      "error_code": "SCHEMA_MAX_LENGTH",
+      "summary_template": "String {path} exceeds maxLength={limit}.",
+      "hint": "Shorten {path} to at most {limit} characters."
+    },
+    "minLength": {
+      "error_code": "SCHEMA_MIN_LENGTH",
+      "summary_template": "String {path} below minLength={limit}.",
+      "hint": "Provide at least {limit} characters in {path}."
+    },
+    "maximum": {
+      "error_code": "SCHEMA_MAXIMUM",
+      "summary_template": "Number {path} exceeds maximum={limit}.",
+      "hint": "Use a value at most {limit} for {path}."
+    },
+    "minimum": {
+      "error_code": "SCHEMA_MINIMUM",
+      "summary_template": "Number {path} below minimum={limit}.",
+      "hint": "Use a value at least {limit} for {path}."
+    },
+    "enum": {
+      "error_code": "SCHEMA_ENUM_MISMATCH",
+      "summary_template": "Field {path} must be one of {allowed}.",
+      "hint": "Set {path} to one of: {allowed}."
+    },
+    "pattern": {
+      "error_code": "SCHEMA_PATTERN_MISMATCH",
+      "summary_template": "Field {path} does not match required pattern.",
+      "hint": "Adjust {path} to match the schema pattern."
+    },
+    "format": {
+      "error_code": "SCHEMA_FORMAT_INVALID",
+      "summary_template": "Field {path} is not a valid {format}.",
+      "hint": "Provide a valid {format} for {path}."
+    },
+    "additionalProperties": {
+      "error_code": "SCHEMA_ADDITIONAL_PROPERTIES",
+      "summary_template": "Field {path} contains unexpected key {extra}.",
+      "hint": "Remove unknown key {extra} or check schema for typos."
+    },
+    "oneOf": {
+      "error_code": "SCHEMA_ONE_OF_FAILED",
+      "summary_template": "Field {path} matched no oneOf branch.",
+      "hint": "Inspect schema branches for {path} and pick exactly one."
+    },
+    "anyOf": {
+      "error_code": "SCHEMA_ANY_OF_FAILED",
+      "summary_template": "Field {path} matched no anyOf branch.",
+      "hint": "Inspect schema branches for {path} and provide a matching shape."
+    },
+    "allOf": {
+      "error_code": "SCHEMA_ALL_OF_FAILED",
+      "summary_template": "Field {path} failed an allOf constraint.",
+      "hint": "Field {path} must satisfy every allOf branch simultaneously."
+    },
+    "uniqueItems": {
+      "error_code": "SCHEMA_UNIQUE_ITEMS",
+      "summary_template": "Array {path} has duplicate items where uniqueItems=true.",
+      "hint": "Remove duplicates from {path}."
+    },
+    "const": {
+      "error_code": "SCHEMA_CONST_MISMATCH",
+      "summary_template": "Field {path} must equal the schema-declared constant.",
+      "hint": "Set {path} to the schema-declared constant."
+    },
+    "multipleOf": {
+      "error_code": "SCHEMA_MULTIPLE_OF",
+      "summary_template": "Field {path} must be a multiple of the declared base.",
+      "hint": "Provide a multiple of the schema-declared base for {path}."
+    }
+  },
+  "fallback": {
+    "error_code": "SCHEMA_VALIDATION_FAILED",
+    "summary_template": "Field {path} failed schema validation ({validator}).",
+    "hint": "Inspect the schema for {path} and adjust the value."
+  },
+  "domain_validators": {
+    "_note": "Codes emitted by domain validators (closed-enum checks against runtime caches like identity lists) that share the SCHEMA_* envelope shape but do not correspond to a jsonschema validator name. These codes still carry error_kind=mcp_input_validation; agents can branch on them for domain-specific recovery flows.",
+    "SCHEMA_IDENTITY_NOT_FOUND": {
+      "server": "SP",
+      "tool": "set_active_identity",
+      "summary_template": "Identity '{identity_id}' is not in the available identity list.",
+      "hint": "Call list_identities to see available identities; details.hints carries closest-match suggestions."
+    }
+  },
+  "compliance_note": "The path token is a JSON Pointer rendering of jsonschema.ValidationError.absolute_path. When the error originates from a combinator (oneOf/anyOf/allOf), the path is the combinator's parent path, not a sub-branch. Servers MAY include sub-branch reasons in `_meta.schema_branches` but MUST keep the top-level error_code stable."
+}
