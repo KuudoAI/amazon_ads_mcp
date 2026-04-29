@@ -152,3 +152,40 @@ def test_execute_description_documents_envelope_translation():
     assert "json.loads" in text
     # Mention RuntimeError as the catch surface
     assert "RuntimeError" in text
+
+
+# ---------------------------------------------------------------------------
+# B2: tool_not_found hint must point at real discovery tools
+# ---------------------------------------------------------------------------
+
+
+def test_tool_not_found_hint_names_real_discovery_tools():
+    """When NotFoundError surfaces, the v1 envelope's hints[] must
+    name the *actually-registered* discovery tools (GetTags / Search /
+    GetSchemas) — not the fictional ``list_tools`` / ``tool_search``
+    that prior agents were chasing into a second tool_not_found.
+    """
+    from fastmcp.exceptions import NotFoundError
+
+    from amazon_ads_mcp.server.code_mode import translate_to_sandbox_runtime_error
+
+    runtime = translate_to_sandbox_runtime_error(
+        NotFoundError("Unknown tool: listIdentities")
+    )
+    parsed = json.loads(str(runtime))
+
+    assert parsed["error_kind"] == "tool_not_found"
+    assert parsed["error_code"] == "TOOL_NOT_FOUND"
+    assert parsed["tool"] == "listIdentities"
+
+    hint_text = " ".join(parsed["hints"])
+    # Real discovery surface registered by build_discovery_tools().
+    # FastMCP's GetTags/Search/GetSchemas classes register their tools
+    # under the lowercase names tags/search/get_schema (verified live
+    # via list_tools on a running server).
+    assert "tags" in hint_text
+    assert "search" in hint_text
+    assert "get_schema" in hint_text
+    # Stale references must NOT appear
+    assert "list_tools" not in hint_text
+    assert "tool_search" not in hint_text

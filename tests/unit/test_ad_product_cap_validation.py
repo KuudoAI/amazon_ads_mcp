@@ -18,6 +18,7 @@ import pytest
 
 from amazon_ads_mcp.middleware.schema_normalization import (
     check_ad_product_caps,
+    check_ad_product_include_shape,
 )
 from amazon_ads_mcp.utils.errors import ErrorCategory, ValidationError
 
@@ -290,3 +291,110 @@ def test_error_envelope_includes_actionable_details():
     assert "SPONSORED_PRODUCTS" in v.get("issue", "")
     assert "1000" in v.get("issue", "")
     assert "1500" in v.get("issue", "")
+
+
+# ---------------------------------------------------------------------------
+# F3: adProductFilter.include shape — exactly-one rule with helpful hint
+# ---------------------------------------------------------------------------
+
+
+def test_include_with_two_products_raises_with_named_hint():
+    """Multiple ad products in include[] — replace R1's generic
+    'array must contain at most 1 items' with one that names the
+    real workflow (one call per product)."""
+    with pytest.raises(ValidationError) as excinfo:
+        check_ad_product_include_shape(
+            "QueryCampaign",
+            {
+                "adProductFilter": {
+                    "include": ["SPONSORED_PRODUCTS", "SPONSORED_BRANDS"],
+                }
+            },
+        )
+    err = excinfo.value
+    assert err.details.get("error_code") == "INPUT_VALIDATION_FAILED"
+
+    hints = err.details.get("hints") or []
+    hint_text = " ".join(hints)
+    # Names the real fix path
+    assert "one call per ad product" in hint_text
+    assert "SPONSORED_PRODUCTS" in hint_text
+    assert "SPONSORED_BRANDS" in hint_text
+    # Names all five allowed values so agents can plan
+    assert "SPONSORED_DISPLAY" in hint_text
+    assert "SPONSORED_TELEVISION" in hint_text
+    assert "AMAZON_DSP" in hint_text
+
+
+def test_include_empty_array_raises_with_same_hint():
+    """An empty include[] is also invalid (Amazon enforces minItems=1).
+    Must produce the same actionable hint, not a different generic message."""
+    with pytest.raises(ValidationError) as excinfo:
+        check_ad_product_include_shape(
+            "QueryCampaign",
+            {"adProductFilter": {"include": []}},
+        )
+    err = excinfo.value
+    assert err.details.get("error_code") == "INPUT_VALIDATION_FAILED"
+    hint_text = " ".join(err.details.get("hints") or [])
+    assert "one call per ad product" in hint_text
+
+
+def test_include_single_product_passes_through():
+    """The happy path (exactly one product) must not raise — that case
+    flows on to the cap validator."""
+    check_ad_product_include_shape(
+        "QueryCampaign",
+        {"adProductFilter": {"include": ["SPONSORED_PRODUCTS"]}},
+    )
+
+
+def test_include_shape_check_is_op_targeted():
+    """Tools outside _AD_PRODUCT_CAP_TOOL_SUFFIXES are not gated — fail
+    open so unrelated calls aren't broken."""
+    check_ad_product_include_shape(
+        "set_active_profile",
+        {"adProductFilter": {"include": ["A", "B"]}},
+    )
+
+
+def test_include_shape_check_fails_open_on_missing_filter():
+    """No adProductFilter at all → R1 catches the missing-required;
+    we don't manufacture a duplicate violation."""
+    check_ad_product_include_shape("QueryCampaign", {"maxResults": 100})
+
+
+def test_include_shape_violation_message_quotes_observed_input():
+    """The error message must quote what the agent actually passed so
+    they can correlate it to their own code."""
+    with pytest.raises(ValidationError) as excinfo:
+        check_ad_product_include_shape(
+            "QueryCampaign",
+            {
+                "adProductFilter": {
+                    "include": ["SPONSORED_PRODUCTS", "SPONSORED_BRANDS"],
+                }
+            },
+        )
+    err = excinfo.value
+    msg = str(err)
+    # Names the path so debuggers can locate the offending field
+    assert "adProductFilter.include" in msg or err.details.get("violations")
+    # Cites the observed length so agents see "you sent 2"
+    assert "2" in msg
+
+
+def test_include_shape_disabled_when_validator_off(monkeypatch):
+    """Honors the same env switch as cap validation — a single kill
+    switch for the entire ad-product-validation surface."""
+    monkeypatch.setenv("MCP_AD_PRODUCT_CAP_VALIDATION_ENABLED", "false")
+    from amazon_ads_mcp.config.settings import Settings
+    from amazon_ads_mcp.middleware import schema_normalization as sn_module
+
+    monkeypatch.setattr(sn_module, "settings", Settings())
+
+    # Multi-element include[] — must NOT raise when the kill switch is off
+    check_ad_product_include_shape(
+        "QueryCampaign",
+        {"adProductFilter": {"include": ["SPONSORED_PRODUCTS", "SPONSORED_BRANDS"]}},
+    )
