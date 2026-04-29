@@ -203,7 +203,19 @@ class TestInMemoryMCPOperations:
                 assert "region" in data
                 assert "host" in data
                 assert data["region"] in ("na", "eu", "fe")
-                assert "amazon.com" in data["host"]
+                # Verify the routed host is genuinely within amazon.com,
+                # not just a string containing that substring (CodeQL
+                # py/incomplete-url-substring-sanitization). Parse first,
+                # then check the hostname suffix — handles both bare
+                # hostnames (``advertising-api.amazon.com``) and full
+                # URLs (``https://advertising-api-eu.amazon.com``).
+                from urllib.parse import urlparse
+
+                host_str = data["host"]
+                hostname = (urlparse(host_str).hostname or host_str).lower()
+                assert (
+                    hostname == "amazon.com" or hostname.endswith(".amazon.com")
+                ), f"expected an amazon.com host, got {host_str!r}"
 
     @pytest.mark.asyncio
     async def test_get_active_profile_without_profile_set(self, mcp_server):
