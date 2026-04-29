@@ -113,6 +113,15 @@ class ServerBuilder:
 
         self.server.add_transform(AsyncHintsTransform())
 
+        # B1 + F3: Surface per-ad-product caps and the "one ad product per
+        # call" constraint (adProductFilter.include maxItems=1) in the
+        # descriptions of QueryCampaign / QueryTarget family tools so
+        # agents see Amazon's real limits at schema-fetch time, not after
+        # a guaranteed first-call validation failure.
+        from .ad_product_cap_hints_transform import AdProductCapHintsTransform
+
+        self.server.add_transform(AdProductCapHintsTransform())
+
         # Code mode: tag tools by category then apply CodeMode transform
         if code_mode:
             await self._tag_tools_for_code_mode()
@@ -1085,10 +1094,11 @@ class ServerBuilder:
         register_file_routes(self.server)
 
     async def _setup_health_check(self):
-        """Register /health endpoint for container orchestration.
+        """Register health endpoints for container orchestration.
 
-        Returns 200 with basic server info. Used by load balancers,
-        Cloudflare Containers, Kubernetes probes, etc.
+        Returns 200 with basic server info on /health, /healthz, and /.
+        Used by load balancers, Cloudflare Containers, Kubernetes probes
+        (k8s/GCE convention is /healthz), and bare root probes.
         """
         if not hasattr(self.server, "custom_route"):
             return
@@ -1101,14 +1111,23 @@ class ServerBuilder:
         git_sha = os.getenv("AMAZON_ADS_MCP_GIT_SHA", "unknown")
         built_at = os.getenv("AMAZON_ADS_MCP_BUILD_TIME", "unknown")
 
+        def _health_payload() -> dict:
+            return {
+                "status": "healthy",
+                "service": "amazon-ads-mcp",
+                "version": package_version,
+                "git_sha": git_sha,
+                "built_at": built_at,
+            }
+
         @self.server.custom_route("/health", methods=["GET"])
         async def health_check(request: Request) -> JSONResponse:
-            return JSONResponse(
-                {
-                    "status": "healthy",
-                    "service": "amazon-ads-mcp",
-                    "version": package_version,
-                    "git_sha": git_sha,
-                    "built_at": built_at,
-                }
-            )
+            return JSONResponse(_health_payload())
+
+        @self.server.custom_route("/healthz", methods=["GET"])
+        async def health_check_z(request: Request) -> JSONResponse:
+            return JSONResponse(_health_payload())
+
+        @self.server.custom_route("/", methods=["GET"])
+        async def root_health(request: Request) -> JSONResponse:
+            return JSONResponse(_health_payload())

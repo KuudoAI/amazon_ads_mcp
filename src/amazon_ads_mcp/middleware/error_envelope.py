@@ -165,6 +165,12 @@ def build_envelope_from_exception(
     # Runs AFTER classification regardless of which classifier built
     # the envelope. New classification paths get hint quality for free.
     _promote_field_signals_into_hints(envelope)
+    # F3: upgrade ``adProductFilter.include`` SCHEMA_MAX_ITEMS /
+    # SCHEMA_MIN_ITEMS violations with the "one call per ad product"
+    # workflow hint. Runs at the envelope level so both the sidecar
+    # pre-validator path AND the upstream JSON-Schema path get the
+    # same agent-facing guidance.
+    _promote_ad_product_include_hint(envelope)
     # Round 13 C-pre (gaps 1+2): when AdsApiv1CreateReport returned
     # an upstream HTTP error AND we have the original request body,
     # retroactively run the catalog validator and surface
@@ -198,7 +204,61 @@ def build_envelope_from_exception(
         in ("ads_api_http", "ads_api_client", "auth_error")
     ):
         _enrich_with_catalog_validate(envelope, tool_args)
+    # Round 14 hotfix (Gap 3): tool-aware 401 hint for listProfiles. The
+    # endpoint serves only one purpose, so we can be specific: a 401
+    # here usually means the identity lacks v2 Profiles API scope, not
+    # that credentials are invalid. Steer v1-report flows toward
+    # allv1_QueryAdvertiserAccount which doesn't require Profiles
+    # scope. No-ops for non-401 / non-listProfiles failures.
+    _enrich_listprofiles_401_hint(envelope, tool_name)
     return envelope
+
+
+def _enrich_listprofiles_401_hint(
+    envelope: dict[str, Any], tool_name: str | None
+) -> None:
+    """Round 14 hotfix (Gap 3) — tool-aware 401 hint for listProfiles.
+
+    Why this is safe to be specific: ``listProfiles`` (and its various
+    aliases — ``ac_listProfiles``, ``AccountsProfiles_listProfiles``)
+    has one job: enumerate v2 Profiles. A 401 from this endpoint almost
+    always means the identity lacks v2 Profiles API scope, NOT that the
+    bearer is expired (other tools on the same server would 401 too if
+    that were the case). Agents commonly call listProfiles to resolve a
+    profile ID for a v1 CreateReport — but v1 reports don't actually
+    require Profiles scope; ``allv1_QueryAdvertiserAccount`` returns
+    advertiser account IDs without it. Steer them there.
+
+    No-op for non-401 failures, non-listProfiles tools, or missing tool
+    names. Best-effort; never raises.
+    """
+    if not tool_name:
+        return
+    if envelope.get("error_code") not in ("ADS_API_HTTP_401", "ADS_API_HTTP_403"):
+        return
+    if "listProfiles" not in tool_name:
+        return
+    hints = envelope.get("hints")
+    if not isinstance(hints, list):
+        hints = []
+        envelope["hints"] = hints
+    profile_hint = (
+        "This identity may not have v2 Profiles API scope. If you need "
+        "advertiser account IDs for a v1 report, call "
+        "allv1_QueryAdvertiserAccount instead — it returns "
+        "advertiserAccountId without requiring Profiles scope."
+    )
+    scope_hint = (
+        "If the active identity is correct, the 401/403 is more likely "
+        "a missing endpoint scope than an expired bearer; re-check the "
+        "client's authorized scopes for the v2 Profiles API."
+    )
+    # Prepend so the tool-aware guidance appears before the generic
+    # "inspect details" hint.
+    if profile_hint not in hints:
+        hints.insert(0, profile_hint)
+    if scope_hint not in hints:
+        hints.insert(1, scope_hint)
 
 
 def _enrich_with_catalog_validate(
@@ -589,6 +649,58 @@ def _is_fastmcp_not_found_error(exc: BaseException) -> bool:
     return isinstance(exc, FastMCPNotFoundError)
 
 
+def _is_monty_runtime_error(exc: BaseException) -> bool:
+    """Detect Monty's ``MontyError`` / ``MontyRuntimeError`` from the
+    Code Mode sandbox.
+
+    B3: Monty (the sandboxed Python interpreter behind the ``execute``
+    meta-tool) raises ``MontyRuntimeError`` when sandboxed user code
+    triggers a runtime failure (including blocked stdlib imports).
+    Today this falls through to the bare-Exception fallback and emits
+    ``error_code=INTERNAL_ERROR`` — which is a misclassification of
+    sandbox policy as a server bug.
+
+    Detection strategy: try ``isinstance`` against the real
+    ``MontyError`` class when ``pydantic_monty`` is importable, AND
+    additionally accept any class whose ``__module__`` starts with
+    ``pydantic_monty`` and whose name is ``MontyError`` /
+    ``MontyRuntimeError``. The duck-typed branch covers (a) installs
+    where pydantic-monty isn't on the import path and (b) test stubs
+    that mirror the wire shape without depending on the compiled
+    Rust extension.
+    """
+    cls = type(exc)
+    if cls.__module__.startswith("pydantic_monty") and cls.__name__ in {
+        "MontyError",
+        "MontyRuntimeError",
+    }:
+        return True
+    try:
+        from pydantic_monty import MontyError  # type: ignore[import-not-found]
+    except Exception:  # pragma: no cover - defensive
+        return False
+    return isinstance(exc, MontyError)
+
+
+def _monty_inner_exception(exc: BaseException) -> BaseException | None:
+    """Return the inner Python exception wrapped by a ``MontyError``.
+
+    ``MontyError.exception()`` is the documented accessor (per
+    ``pydantic_monty/_monty.pyi:610``); when present it returns the
+    actual exception that user code raised inside the sandbox.
+    Returns ``None`` if the accessor is missing or fails — callers
+    should fall back to ``exc`` itself in that case.
+    """
+    accessor = getattr(exc, "exception", None)
+    if accessor is None:
+        return None
+    try:
+        inner = accessor()
+    except Exception:  # pragma: no cover - defensive
+        return None
+    return inner if isinstance(inner, BaseException) else None
+
+
 def _classify(exc: BaseException) -> _Classification:
     # Order matters: more-specific Pydantic / httpx checks first, then the
     # AmazonAdsMCPError hierarchy (most-specific subclasses first), then
@@ -611,9 +723,13 @@ def _classify(exc: BaseException) -> _Classification:
             summary="Tool is not registered on this server.",
             details=[_detail_from_message(exc)],
             hints=[
-                "Search the tool catalog (e.g. via the 'search' meta-tool) "
-                "to find the correct tool name.",
-                "Tool names are case-sensitive and may carry namespace prefixes.",
+                "Discover tools via the 'tags', 'search', and 'get_schema' "
+                "meta-tools (the discovery surface registered by Code Mode). "
+                "'tags' lists tag categories; 'search' finds tools by "
+                "keyword; 'get_schema' fetches full schemas for selected "
+                "tools.",
+                "Tool names are case-sensitive and may carry namespace "
+                "prefixes (e.g. allv1_QueryCampaign).",
             ],
             error_code="TOOL_NOT_FOUND",
             retryable=False,
@@ -665,7 +781,9 @@ def _classify(exc: BaseException) -> _Classification:
             ),
             details=[_detail_from_message(exc)],
             hints=[
-                "Inspect details for upstream error codes and messages.",
+                "Inspect details[0].upstream_code and upstream_message for "
+                "the upstream-side cause; details[0].request_id is "
+                "Amazon's correlation ID for support escalations.",
                 "Retry idempotent operations after backoff for 5xx and timeouts.",
             ],
             error_code=f"ADS_API_HTTP_{code_suffix}",
@@ -752,6 +870,64 @@ def _classify(exc: BaseException) -> _Classification:
     if isinstance(exc, MCPError):
         return _classify_mcp_error(exc)
 
+    # B3: Monty sandbox runtime — blocked stdlib import or other Monty
+    # policy violation. Surface the typed ``sandbox_runtime`` error_kind
+    # documented in ``openbridge-mcp/CONTRACT.md`` line 163 instead of
+    # misclassifying as ``internal_error``. Sit ahead of the bare-Exception
+    # fallback so ``MontyRuntimeError`` (which IS a Python Exception)
+    # doesn't get swept into the catch-all.
+    if _is_monty_runtime_error(exc):
+        inner = _monty_inner_exception(exc) or exc
+        if isinstance(inner, ModuleNotFoundError):
+            # ``inner.name`` is the standard Python attribute, but Monty's
+            # cross-language exception bridge does not always preserve it
+            # (verified via live smoke against the Code Mode sandbox).
+            # Fall back to parsing the canonical Python message:
+            #   ``"No module named 'collections'"``.
+            blocked = inner.name
+            if not blocked:
+                import re as _re
+
+                msg = str(inner)
+                match = _re.search(r"No module named ['\"]([^'\"]+)['\"]", msg)
+                blocked = match.group(1) if match else "unknown"
+            return _Classification(
+                error_kind="sandbox_runtime",
+                summary=(
+                    f"Module {blocked!r} is not available in the Code Mode "
+                    "sandbox (blocked by Monty's stdlib policy)."
+                ),
+                details=[_detail_from_message(inner)],
+                hints=[
+                    "Available stdlib in Monty is intentionally minimal; "
+                    "use Python built-ins (list/dict comprehensions, "
+                    "set, tuple, math/json/re) for aggregation work.",
+                    "If you need a richer capability, expose it as a "
+                    "server-side tool and call it via ``await call_tool(...)`` "
+                    "from the execute sandbox — Monty cannot import "
+                    "additional stdlib modules at runtime.",
+                ],
+                error_code="SANDBOX_MODULE_BLOCKED",
+                retryable=False,
+                legacy_error_kind="sandbox_runtime",
+            )
+        # Other MontyRuntimeError causes — still sandbox_runtime, but the
+        # more general SANDBOX_RUNTIME_ERROR error_code so agents can
+        # branch on cause.
+        return _Classification(
+            error_kind="sandbox_runtime",
+            summary=str(inner),
+            details=[_detail_from_message(inner)],
+            hints=[
+                "Inspect the message for the underlying sandbox limitation; "
+                "common causes: blocked filesystem/network calls, "
+                "unsupported language features.",
+            ],
+            error_code="SANDBOX_RUNTIME_ERROR",
+            retryable=False,
+            legacy_error_kind="sandbox_runtime",
+        )
+
     # bare Exception → internal_error
     return _Classification(
         error_kind="internal_error",
@@ -801,7 +977,11 @@ def _classify_mcp_error(exc: MCPError) -> _Classification:
             error_kind="ads_api_http",
             summary=str(exc.user_message or exc.message),
             details=_details_from_mcp_error(exc),
-            hints=["Inspect details for upstream error codes and messages."],
+            hints=[
+                "Inspect details[0].upstream_code and upstream_message for "
+                "the upstream-side cause; details[0].request_id is "
+                "Amazon's correlation ID for support escalations."
+            ],
             error_code=f"ADS_API_HTTP_{exc.status_code or cat.name}",
             retryable=retryable,
             legacy_error_kind=legacy,
@@ -943,6 +1123,52 @@ def _sanitize_path(path: str) -> str:
     if len(cleaned) >= 2 and cleaned[0] == cleaned[-1] and cleaned[0] in ("'", '"'):
         cleaned = cleaned[1:-1].strip(_PATH_TRAILING_JUNK)
     return cleaned
+
+
+def _promote_ad_product_include_hint(envelope: dict[str, Any]) -> None:
+    """F3: when the violated path is ``adProductFilter.include`` (regardless
+    of which middleware caught it — the upstream JSON-Schema validator
+    runs before the sidecar pre-validator), prepend a hint that names
+    the real workflow (one targeted call per ad product) instead of
+    leaving agents with the generic SCHEMA_MAX_ITEMS / SCHEMA_MIN_ITEMS
+    message.
+
+    Detects via the ``details[*].path`` carried by the schema-validation
+    classifier; safe no-op when no such detail is present.
+    """
+    details = envelope.get("details") or []
+    if not isinstance(details, list):
+        return
+    # Path may surface as a JSON Pointer (``adProductFilter/include``)
+    # from the upstream JSON-Schema validator, OR as a dotted field
+    # (``adProductFilter.include``) from the sidecar pre-validator.
+    # Match either form so the F3 hint fires regardless of which
+    # middleware caught the violation.
+    matched = False
+    for entry in details:
+        if not isinstance(entry, dict):
+            continue
+        path = str(entry.get("path") or "")
+        normalized = path.replace("/", ".").strip(".")
+        if normalized.endswith("adProductFilter.include"):
+            matched = True
+            break
+    if not matched:
+        return
+    f3_hints = [
+        "Amazon enforces exactly one ad product per call "
+        "(`adProductFilter.include` maxItems=1, minItems=1). To query "
+        "multiple ad products, issue separate calls — one per product — "
+        "and merge results client-side.",
+        "Allowed ad products: SPONSORED_PRODUCTS, SPONSORED_BRANDS, "
+        "SPONSORED_DISPLAY, SPONSORED_TELEVISION, AMAZON_DSP.",
+    ]
+    existing_hints = envelope.get("hints") or []
+    if not isinstance(existing_hints, list):
+        existing_hints = []
+    envelope["hints"] = f3_hints + [
+        h for h in existing_hints if h not in f3_hints
+    ]
 
 
 def _promote_field_signals_into_hints(envelope: dict[str, Any]) -> None:
@@ -1128,7 +1354,11 @@ def _classify_http_status(exc: httpx.HTTPStatusError) -> _Classification:
         error_kind="ads_api_http",
         summary=f"Amazon Ads API request failed with HTTP {status}.",
         details=_parse_http_details(exc.response),
-        hints=["Inspect details for upstream error codes and messages."],
+        hints=[
+            "Inspect details[0].upstream_code and upstream_message for "
+            "the upstream-side cause; details[0].request_id is "
+            "Amazon's correlation ID for support escalations."
+        ],
         error_code=f"ADS_API_HTTP_{status}",
         retryable=is_retryable,
         legacy_error_kind="external_service" if status >= 500 else "validation",
@@ -1136,26 +1366,87 @@ def _classify_http_status(exc: httpx.HTTPStatusError) -> _Classification:
 
 
 def _parse_http_details(response: httpx.Response) -> list[dict[str, Any]]:
+    """Build envelope ``details[]`` from an upstream Amazon Ads response.
+
+    Round 14 hotfix (Gap 3): the previous implementation collapsed an
+    upstream JSON body into a single ``issue`` string, hiding the
+    upstream code, request ID, and structured details. Agents got
+    "HTTP 401 Unauthorized" with no way to distinguish (a) bearer
+    expired, (b) identity lacks endpoint scope, (c) profile-scope
+    header missing — all three retry differently. This implementation
+    additively surfaces the upstream body's structure under
+    ``details[0]`` (canonical ``path/issue/received_type`` keys retained
+    for backwards compat).
+    """
     try:
         body = response.json()
     except Exception:
         body = response.text
+    request_id = (
+        response.headers.get("x-amzn-RequestId")
+        or response.headers.get("x-amz-rid")
+        or response.headers.get("x-request-id")
+    )
     if isinstance(body, dict):
-        return [
-            {
-                "path": "",
-                "issue": str(
-                    body.get("message") or body.get("details") or body.get("error") or body
-                ),
-                "received_type": "dict",
-            }
-        ]
+        upstream_msg = (
+            body.get("message")
+            or body.get("error_description")
+            or body.get("error")
+        )
+        upstream_code = body.get("code") or body.get("error") or body.get("errorType")
+        upstream_request_id = (
+            body.get("requestId")
+            or body.get("request_id")
+            or body.get("amzRequestId")
+            or request_id
+        )
+        nested_details = body.get("details")
+        detail: dict[str, Any] = {
+            "path": "",
+            "issue": str(
+                upstream_msg or nested_details or body.get("error") or body
+            ),
+            "received_type": "dict",
+        }
+        # Additive enrichment — agents reading the canonical triplet
+        # keep working; agents that look for structured upstream context
+        # now find it under documented keys.
+        if upstream_code:
+            detail["upstream_code"] = str(upstream_code)
+        if upstream_msg:
+            detail["upstream_message"] = str(upstream_msg)
+        if upstream_request_id:
+            detail["request_id"] = str(upstream_request_id)
+        if isinstance(nested_details, (list, dict)) and nested_details:
+            # Cap the nested-details payload at a reasonable size so a
+            # large upstream debug blob doesn't blow the wire envelope.
+            try:
+                import json as _json
+
+                serialized = _json.dumps(nested_details, default=str)
+                if len(serialized) <= 4096:
+                    detail["upstream_details"] = nested_details
+                else:
+                    detail["upstream_details"] = serialized[:4093] + "..."
+            except Exception:
+                pass
+        return [detail]
     if isinstance(body, list):
-        return [
+        out_list: list[dict[str, Any]] = [
             {"path": str(i), "issue": str(item), "received_type": type(item).__name__}
             for i, item in enumerate(body)
         ]
-    return [{"path": "", "issue": str(body) or "Upstream returned non-JSON body.", "received_type": "str"}]
+        if request_id and out_list:
+            out_list[0]["request_id"] = str(request_id)
+        return out_list
+    detail_str: dict[str, Any] = {
+        "path": "",
+        "issue": str(body) or "Upstream returned non-JSON body.",
+        "received_type": "str",
+    }
+    if request_id:
+        detail_str["request_id"] = str(request_id)
+    return [detail_str]
 
 
 # ---------------------------------------------------------------------------

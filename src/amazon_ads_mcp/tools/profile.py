@@ -73,10 +73,18 @@ async def set_active_profile(profile_id: str) -> dict:
     from .profile_listing import get_profiles_cached
 
     profiles, _stale = await get_profiles_cached()
-    valid_ids = {str(p.get("profileId")) for p in profiles if p.get("profileId") is not None}
+    matched = next(
+        (p for p in profiles if str(p.get("profileId")) == profile_id),
+        None,
+    )
 
-    if profile_id not in valid_ids:
-        suggestions = get_close_matches(profile_id, list(valid_ids), n=3, cutoff=0.5)
+    if matched is None:
+        valid_ids = [
+            str(p.get("profileId"))
+            for p in profiles
+            if p.get("profileId") is not None
+        ]
+        suggestions = get_close_matches(profile_id, valid_ids, n=3, cutoff=0.5)
         err = ValidationError(
             f"Profile {profile_id!r} not found in cached profile list. "
             f"Use page_profiles or search_profiles to discover valid IDs.",
@@ -89,15 +97,36 @@ async def set_active_profile(profile_id: str) -> dict:
             ]
         raise err
 
-    # Happy path — preserve SetProfileResponse shape (success, profile_id, message)
+    # Happy path — F6: echo resolved profile metadata so agents can
+    # confirm the marketplace/account-type without a follow-up
+    # ``get_active_profile`` round trip. Critical when juggling multi-region
+    # profiles for the same brand (e.g. Solid Gold Pet across BR/CA/MX/US).
     try:
         auth_manager = get_auth_manager()
         auth_manager.set_active_profile_id(profile_id)
 
+        account_info = matched.get("accountInfo") or {}
+        name = account_info.get("name") or None
+        country_code = matched.get("countryCode") or None
+        account_type = account_info.get("type") or None
+
+        # Build a context-rich message; degrade gracefully if metadata is missing.
+        if name or country_code or account_type:
+            context_parts = [p for p in (name, country_code, account_type) if p]
+            message = (
+                f"Active profile set to {profile_id} "
+                f"({', '.join(context_parts)})"
+            )
+        else:
+            message = f"Active profile set to {profile_id}"
+
         return {
             "success": True,
             "profile_id": profile_id,
-            "message": f"Active profile set to {profile_id}",
+            "name": name,
+            "country_code": country_code,
+            "account_type": account_type,
+            "message": message,
         }
     except Exception as e:
         logger.error(f"Failed to set active profile: {e}")

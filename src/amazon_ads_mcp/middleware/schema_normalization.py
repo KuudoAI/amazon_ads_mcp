@@ -389,6 +389,127 @@ _AD_PRODUCT_CAP_TOOL_SUFFIXES = (
 )
 
 
+def render_ad_product_cap_description() -> str:
+    """Render the per-ad-product cap table + "one ad product per call"
+    callout as a description-paragraph suffix.
+
+    Single source of truth: drives both the tool description (B1 + F3 —
+    surfaces the constraint at ``get_schema``-fetch time) and the
+    validator hint (raised by :func:`check_ad_product_caps` when an
+    agent's request would otherwise hit Amazon's per-ad-product cap).
+
+    Why surface, not wrap: Amazon's API enforces both
+    ``adProductFilter.include.maxItems = 1`` (upstream OpenAPI) AND
+    per-product ``maxResults`` caps (lower than schema's max=5000).
+    A server-side fan-out wrapper would hide these constraints behind
+    manufactured functionality; the chosen approach makes the limits
+    visible up front so agents plan N targeted calls correctly.
+    """
+    rows = ", ".join(
+        f"{product}={cap}"
+        for product, cap in sorted(_AD_PRODUCT_MAX_RESULTS_CAPS.items())
+    )
+    return (
+        "\n\n"
+        "**Per-ad-product limits (Amazon Ads API):**\n"
+        "- `adProductFilter.include` must contain exactly one ad product "
+        "per call (`maxItems: 1`). To query across multiple ad products, "
+        "issue separate calls (one per product) and merge client-side. "
+        "Allowed values: `SPONSORED_PRODUCTS`, `SPONSORED_BRANDS`, "
+        "`SPONSORED_DISPLAY`, `SPONSORED_TELEVISION`, `AMAZON_DSP`.\n"
+        f"- `maxResults` per-product caps (lower than the schema-declared "
+        f"max=5000): {rows}. `AMAZON_DSP` cap is not currently enforced by "
+        "this server. Schema's max=5000 still applies for products without "
+        "a documented cap."
+    )
+
+
+#: Allowed ad-product enum values (Amazon Ads API ``AdProduct`` schema).
+#: Used both in F3's validator hint and in user-facing description rendering.
+_ALLOWED_AD_PRODUCTS: Tuple[str, ...] = (
+    "SPONSORED_PRODUCTS",
+    "SPONSORED_BRANDS",
+    "SPONSORED_DISPLAY",
+    "SPONSORED_TELEVISION",
+    "AMAZON_DSP",
+)
+
+
+def check_ad_product_include_shape(
+    tool_name: str,
+    args: Optional[Dict[str, Any]],
+) -> None:
+    """Validate ``adProductFilter.include`` is exactly one ad product (F3).
+
+    Amazon's upstream OpenAPI declares ``maxItems: 1, minItems: 1`` on
+    every ``*AdProductFilter.include`` (verified across
+    ``AdAdProductFilter``, ``AdExtensionAdProductFilter``,
+    ``AdGroupAdProductFilter``, ``CampaignAdProductFilter``,
+    ``TargetAdProductFilter`` in ``openapi/resources/AdsAPIv1All.json``).
+
+    Today R1 (``check_schema_constraints``) catches the violation with a
+    generic message like "array must contain at most 1 items" — agents
+    don't know what to do next. This pre-validator runs BEFORE R1 for
+    the ad-product-gated query tools and replaces the generic error
+    with one that explains the constraint and how to query multiple
+    ad products in practice (one targeted call per product).
+
+    Per the "surface, don't wrap" principle: rather than building a
+    server-side fan-out, we make the upstream contract obvious.
+
+    Fails open on:
+    - Tool not in the targeted operation surface
+    - Missing or non-dict ``adProductFilter`` (R1 catches the schema error)
+    - Non-list ``include`` (R1 catches the type error)
+    """
+    if not settings.mcp_ad_product_cap_validation_enabled:
+        return
+    if not args:
+        return
+    if not any(tool_name.endswith(s) for s in _AD_PRODUCT_CAP_TOOL_SUFFIXES):
+        return
+
+    ad_filter = args.get("adProductFilter")
+    if not isinstance(ad_filter, dict):
+        return
+    include = ad_filter.get("include")
+    if not isinstance(include, list):
+        return  # R1 will catch the type error
+    if len(include) == 1:
+        return  # Happy path — pass through to cap check
+
+    # 0 or >1 items: violation. Build a hint that names the alternative.
+    from ..utils.errors import ValidationError
+
+    if len(include) == 0:
+        observed = "0 items"
+    else:
+        observed = f"{len(include)} items: {include!r}"
+
+    msg = (
+        f"adProductFilter.include must contain exactly one ad product per "
+        f"call (Amazon enforces maxItems=1). Observed {observed}."
+    )
+    err = ValidationError(msg, field="adProductFilter.include")
+    err.details["error_code"] = "INPUT_VALIDATION_FAILED"
+    err.details["hints"] = [
+        "Issue one call per ad product and merge results client-side; "
+        "e.g. separate calls with include=['SPONSORED_PRODUCTS'], "
+        "then include=['SPONSORED_BRANDS'], etc.",
+        "Allowed ad products: " + ", ".join(_ALLOWED_AD_PRODUCTS) + ".",
+    ]
+    err.details["violations"] = [
+        {
+            "path": "adProductFilter.include",
+            "issue": (
+                f"include array must have exactly 1 element; got {len(include)}"
+            ),
+            "validator": "ad_product_include_shape",
+        }
+    ]
+    raise err
+
+
 def check_ad_product_caps(
     tool_name: str,
     args: Optional[Dict[str, Any]],

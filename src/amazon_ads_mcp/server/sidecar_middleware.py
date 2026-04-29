@@ -387,12 +387,19 @@ class SidecarTransformMiddleware(Middleware):
         # feedback_fail_open_telemetry.md.
         from ..middleware.schema_normalization import (
             check_ad_product_caps,
+            check_ad_product_include_shape,
             check_schema_constraints,
             check_strict_unknown_fields,
         )
 
         alias_exempt = self.alias_sources_for(tool_name)
         fastmcp_ctx = getattr(context, "fastmcp_context", None)
+
+        # F3: replace R1's generic "array must contain at most 1 items"
+        # error for adProductFilter.include with a targeted hint that
+        # explains the constraint and points at the actual workflow
+        # (one call per ad product). Runs BEFORE R1 so its message wins.
+        check_ad_product_include_shape(tool_name, final_args)
 
         await check_schema_constraints(
             tool_name,

@@ -426,3 +426,165 @@ def test_is_envelope_text_rejects_unstructured_json():
     mod = _import_translator()
     assert mod.is_envelope_text('{"foo": "bar"}') is False
     assert mod.is_envelope_text("not json") is False
+
+
+# ---------------------------------------------------------------------------
+# B2: tool_not_found hints must point at real discovery tools
+# ---------------------------------------------------------------------------
+
+
+def test_tool_not_found_hints_name_real_discovery_tools():
+    """When NotFoundError is classified, the envelope hints must name
+    the actual discovery surface registered by Code Mode (GetTags,
+    Search, GetSchemas) - not the fictional list_tools / tool_search.
+    """
+    from fastmcp.exceptions import NotFoundError
+
+    mod = _import_translator()
+    exc = NotFoundError("Unknown tool: listIdentities")
+    envelope = mod.build_envelope_from_exception(exc, tool_name="listIdentities")
+
+    assert envelope["error_kind"] == "tool_not_found"
+    assert envelope["error_code"] == "TOOL_NOT_FOUND"
+
+    hint_text = " ".join(envelope["hints"])
+    # Real discovery surface registered by build_discovery_tools().
+    # FastMCP's GetTags/Search/GetSchemas classes register under the
+    # lowercase tool names tags/search/get_schema (verified live via
+    # list_tools on a running server).
+    assert "tags" in hint_text
+    assert "search" in hint_text
+    assert "get_schema" in hint_text
+    # Stale references must NOT appear
+    assert "list_tools" not in hint_text
+    assert "tool_search" not in hint_text
+
+
+# ---------------------------------------------------------------------------
+# B3: Monty sandbox blocked imports → sandbox_runtime, not internal_error
+# ---------------------------------------------------------------------------
+
+
+def _make_monty_stub(*, name: str = "MontyRuntimeError"):
+    """Build a stand-in for ``pydantic_monty.MontyRuntimeError``.
+
+    The real Monty exceptions live in a compiled Rust extension and
+    can't be constructed directly from Python. The classifier uses
+    duck-typing on ``cls.__module__`` + ``cls.__name__`` so this stub
+    presents the same wire shape (right module path, right class name,
+    same ``.exception()`` accessor) without depending on the compiled
+    extension.
+    """
+
+    def __init__(self, inner: BaseException):
+        Exception.__init__(self, str(inner))
+        self._inner = inner
+
+    def exception(self) -> BaseException:
+        return self._inner
+
+    cls = type(
+        name,
+        (Exception,),
+        {
+            "__module__": "pydantic_monty._monty",
+            "__init__": __init__,
+            "exception": exception,
+        },
+    )
+    return cls
+
+
+_StubMontyRuntimeError = _make_monty_stub(name="MontyRuntimeError")
+_StubMontyError = _make_monty_stub(name="MontyError")
+
+
+def test_module_not_found_in_sandbox_classified_as_sandbox_runtime():
+    """B3: when a Code Mode sandbox script triggers a ModuleNotFoundError
+    (e.g. ``from collections import Counter``), the envelope must surface
+    the typed ``sandbox_runtime`` error_kind from CONTRACT.md — NOT the
+    generic ``internal_error`` that prior versions emitted."""
+    mod = _import_translator()
+
+    inner = ModuleNotFoundError("No module named 'collections'")
+    inner.name = "collections"
+    exc = _StubMontyRuntimeError(inner)
+
+    envelope = mod.build_envelope_from_exception(exc, tool_name="execute")
+
+    assert envelope["error_kind"] == "sandbox_runtime"
+    assert envelope["error_code"] == "SANDBOX_MODULE_BLOCKED"
+    # Names the blocked module so agents can react
+    assert "collections" in envelope["summary"]
+    # Hints must point at the real workaround (built-ins, call_tool)
+    hint_text = " ".join(envelope["hints"])
+    assert "call_tool" in hint_text
+
+
+def test_other_monty_runtime_error_still_classified_as_sandbox_runtime():
+    """Non-import MontyRuntimeError causes still route to ``sandbox_runtime``
+    — just with the more general ``SANDBOX_RUNTIME_ERROR`` error_code so
+    agents can branch on cause."""
+    mod = _import_translator()
+
+    inner = AttributeError("module 'asyncio' has no attribute 'sleep'")
+    exc = _StubMontyRuntimeError(inner)
+
+    envelope = mod.build_envelope_from_exception(exc, tool_name="execute")
+
+    assert envelope["error_kind"] == "sandbox_runtime"
+    assert envelope["error_code"] == "SANDBOX_RUNTIME_ERROR"
+
+
+def test_non_monty_module_not_found_stays_internal_error():
+    """Defensive: a bare ModuleNotFoundError that did NOT come from the
+    Monty sandbox (e.g. a server-side import bug at runtime) should
+    still classify as ``internal_error`` — we must not over-promote
+    every ModuleNotFoundError to sandbox_runtime."""
+    mod = _import_translator()
+
+    exc = ModuleNotFoundError("No module named 'broken_optional_dep'")
+
+    envelope = mod.build_envelope_from_exception(exc, tool_name="some_tool")
+
+    # Stays in the bare-Exception bucket because it isn't a MontyError.
+    assert envelope["error_kind"] == "internal_error"
+    assert envelope["error_code"] == "INTERNAL_ERROR"
+
+
+def test_execute_description_documents_sandbox_runtime_error_kind():
+    """The ``EXECUTE_DESCRIPTION`` must tell agents:
+
+    1. The correct exception class to catch INSIDE the sandbox for a
+       blocked import — stock ``ImportError``, not ``RuntimeError``.
+       (Wire-probe verified against the running server: client-side
+       feedback flagged this as a docstring-vs-reality mismatch.)
+    2. That the v1 ``sandbox_runtime`` / ``SANDBOX_MODULE_BLOCKED``
+       envelope only fires when the error is uncaught and propagates
+       OUT of ``execute``.
+    3. Concrete ground-truth lists of available vs blocked stdlib and
+       missing builtins, with workarounds for the surprising gaps
+       (hasattr, callable).
+    """
+    from amazon_ads_mcp.server.code_mode import EXECUTE_DESCRIPTION
+
+    text = EXECUTE_DESCRIPTION
+    # Envelope kind and code are still documented (uncaught path)
+    assert "sandbox_runtime" in text
+    assert "SANDBOX_MODULE_BLOCKED" in text
+    # Critical correction: agents must see ImportError as the in-sandbox catch
+    assert "ImportError" in text
+    # Ground-truth lists must name verified-blocked stdlib so agents stop
+    # discovering by trial-and-error
+    assert "collections" in text
+    # Verified-missing builtins with workarounds — the most surprising gaps
+    assert "hasattr" in text
+    assert "callable" in text
+    # Predictive-model bullet (round-3 client feedback): the sentinel
+    # pattern is module-only; built-in methods and function attributes
+    # are invokable but not reachable as attributes. Pin the agent-
+    # facing summary phrasing.
+    assert "knows the shape of its inputs" in text
+    # Negative regression: the prior shallow framing implied direct
+    # attribute access works on built-in instances (it doesn't).
+    assert "direct attribute access works" not in text

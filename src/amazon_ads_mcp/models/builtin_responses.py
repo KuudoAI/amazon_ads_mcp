@@ -119,11 +119,23 @@ class SetProfileResponse(BaseModel):
 
     :param success: Whether the operation succeeded
     :param profile_id: The profile ID that was set
-    :param message: Human-readable status message
+    :param name: Resolved advertiser/account display name (F6 — echoed
+        from the cached profile so agents can confirm the marketplace
+        without a follow-up ``get_active_profile`` call). ``None`` when
+        the cached entry has no ``accountInfo.name``.
+    :param country_code: Resolved profile country code (e.g. ``"US"``,
+        ``"CA"``). ``None`` when the cached entry omits it.
+    :param account_type: Resolved Amazon Ads account type (e.g. ``"seller"``,
+        ``"vendor"``). ``None`` when the cached entry omits it.
+    :param message: Human-readable status message; includes the resolved
+        name/country/type in parentheses when available.
     """
 
     success: bool
     profile_id: str
+    name: Optional[str] = None
+    country_code: Optional[str] = None
+    account_type: Optional[str] = None
     message: str
 
 
