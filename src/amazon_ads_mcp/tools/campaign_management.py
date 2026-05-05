@@ -1317,6 +1317,194 @@ async def update_sp_negative_keywords(
 
 
 # ---------------------------------------------------------------------------
+# SP Ad Group Negative Keywords (create / list / update)
+# ---------------------------------------------------------------------------
+# SP v3 distinguishes campaign-scope and ad-group-scope negative keywords by
+# endpoint family. Ad-group scope uses /sp/negativeKeywords with
+# application/vnd.spNegativeKeyword.v3+json. Campaign scope (above) uses
+# /sp/campaignNegativeKeywords with vnd.spCampaignNegativeKeyword.v3+json.
+
+_AG_NEG_KW_CT = "application/vnd.spNegativeKeyword.v3+json"
+
+
+async def create_sp_ad_group_negative_keyword(
+    campaign_id: str,
+    ad_group_id: str,
+    keyword_text: str,
+    match_type: str,
+    state: str = "ENABLED",
+) -> dict:
+    """Create an ad-group-level negative keyword for Sponsored Products.
+
+    :param campaign_id: Parent campaign ID
+    :param ad_group_id: Parent ad group ID
+    :param keyword_text: The keyword text to negate
+    :param match_type: NEGATIVE_EXACT or NEGATIVE_PHRASE
+    :param state: Initial state (ENABLED, PAUSED)
+    """
+    from ..utils.http_client import get_authenticated_client
+
+    neg_kw = {
+        "campaignId": campaign_id,
+        "adGroupId": ad_group_id,
+        "keywordText": keyword_text,
+        "matchType": match_type.upper(),
+        "state": state.upper(),
+    }
+    client = await get_authenticated_client()
+    headers = {"Accept": _AG_NEG_KW_CT, "Content-Type": _AG_NEG_KW_CT}
+    resp = await client.post(
+        "/sp/negativeKeywords",
+        json={"negativeKeywords": [neg_kw]},
+        headers=headers,
+    )
+
+    if resp.status_code in (200, 207):
+        data = resp.json()
+        results = data.get("negativeKeywords", {})
+        success_list = results.get("success", [])
+        error_list = results.get("error", [])
+        if success_list:
+            created = success_list[0]
+            kwid = created.get("keywordId") or created.get(
+                "negativeKeyword", {}
+            ).get("keywordId")
+            return {
+                "success": True,
+                "keyword_id": kwid,
+                "message": f"Ad-group negative keyword '{keyword_text}' created",
+                "details": created,
+            }
+        elif error_list:
+            return {
+                "success": False,
+                "keyword_id": None,
+                "error": error_list[0].get("errors", error_list[0]),
+                "message": f"Failed to create ad-group negative keyword '{keyword_text}'",
+            }
+    return {
+        "success": False,
+        "keyword_id": None,
+        "error": f"HTTP {resp.status_code}: {resp.text[:500]}",
+        "message": "API request failed",
+    }
+
+
+async def list_sp_ad_group_negative_keywords(
+    campaign_id: Optional[str] = None,
+    ad_group_id: Optional[str] = None,
+    state_filter: Optional[str] = None,
+    max_results: int = 100,
+    next_token: Optional[str] = None,
+) -> dict:
+    """List ad-group-level negative keywords with optional filters.
+
+    :param campaign_id: Filter by campaign ID
+    :param ad_group_id: Filter by ad group ID
+    :param state_filter: Comma-separated states (ENABLED,PAUSED,ARCHIVED)
+    :param max_results: Max results per page (default 100)
+    :param next_token: Pagination token from previous response
+    """
+    from ..utils.http_client import get_authenticated_client
+
+    body: dict = {"maxResults": max_results}
+    if next_token:
+        body["nextToken"] = next_token
+    if state_filter:
+        states = [s.strip().upper() for s in state_filter.split(",")]
+        body["stateFilter"] = {"include": states}
+    if campaign_id:
+        body["campaignIdFilter"] = {"include": [campaign_id]}
+    if ad_group_id:
+        body["adGroupIdFilter"] = {"include": [ad_group_id]}
+
+    client = await get_authenticated_client()
+    headers = {"Accept": _AG_NEG_KW_CT, "Content-Type": _AG_NEG_KW_CT}
+    resp = await client.post(
+        "/sp/negativeKeywords/list",
+        json=body,
+        headers=headers,
+    )
+
+    if resp.status_code == 200:
+        data = resp.json()
+        items_raw = data.get("negativeKeywords", [])
+        items = []
+        for kw in items_raw:
+            items.append({
+                "keyword_id": kw.get("keywordId"),
+                "keyword_text": kw.get("keywordText"),
+                "match_type": kw.get("matchType"),
+                "campaign_id": kw.get("campaignId"),
+                "ad_group_id": kw.get("adGroupId"),
+                "state": kw.get("state"),
+            })
+        return {
+            "success": True,
+            "items": items,
+            "count": len(items),
+            "next_token": data.get("nextToken"),
+        }
+    return {
+        "success": False,
+        "error": f"HTTP {resp.status_code}: {resp.text[:500]}",
+        "items": [],
+        "count": 0,
+    }
+
+
+async def update_sp_ad_group_negative_keywords(
+    keyword_id: str,
+    state: Optional[str] = None,
+) -> dict:
+    """Update an ad-group-level negative keyword (state only).
+
+    :param keyword_id: Negative keyword ID
+    :param state: New state (ENABLED, PAUSED, ARCHIVED)
+    """
+    from ..utils.http_client import get_authenticated_client
+
+    neg_kw: dict = {"keywordId": keyword_id}
+    if state is not None:
+        neg_kw["state"] = state.upper()
+
+    client = await get_authenticated_client()
+    headers = {"Accept": _AG_NEG_KW_CT, "Content-Type": _AG_NEG_KW_CT}
+    resp = await client.put(
+        "/sp/negativeKeywords",
+        json={"negativeKeywords": [neg_kw]},
+        headers=headers,
+    )
+
+    if resp.status_code in (200, 207):
+        data = resp.json()
+        results = data.get("negativeKeywords", {})
+        success_list = results.get("success", [])
+        error_list = results.get("error", [])
+        if success_list:
+            return {
+                "success": True,
+                "keyword_id": keyword_id,
+                "message": f"Ad-group negative keyword {keyword_id} updated",
+                "updated_fields": {k: v for k, v in neg_kw.items() if k != "keywordId"},
+                "details": success_list[0],
+            }
+        elif error_list:
+            return {
+                "success": False,
+                "keyword_id": keyword_id,
+                "error": error_list[0].get("errors", error_list[0]),
+                "message": f"Failed to update ad-group negative keyword {keyword_id}",
+            }
+    return {
+        "success": False,
+        "keyword_id": keyword_id,
+        "error": f"HTTP {resp.status_code}: {resp.text[:500]}",
+        "message": "API request failed",
+    }
+
+
+# ---------------------------------------------------------------------------
 # SP Targets (product targeting — create / list / update)
 # ---------------------------------------------------------------------------
 

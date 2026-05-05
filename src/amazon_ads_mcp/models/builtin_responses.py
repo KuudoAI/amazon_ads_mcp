@@ -1042,6 +1042,7 @@ class NegativeKeywordItem(BaseModel):
     keyword_text: Optional[str] = None
     match_type: Optional[str] = None
     campaign_id: Optional[str] = None
+    ad_group_id: Optional[str] = None
     state: Optional[str] = None
 
 

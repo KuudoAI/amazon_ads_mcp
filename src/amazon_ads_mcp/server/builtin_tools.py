@@ -1733,6 +1733,70 @@ async def register_campaign_management_tools(server: FastMCP):
         return UpdateNegativeKeywordResponse(**result)
 
     # -----------------------------------------------------------------------
+    # Ad-group-level negative keywords (parallel to campaign-level above)
+    # -----------------------------------------------------------------------
+
+    @server.tool(
+        name="create_sp_ad_group_negative_keyword",
+        description="Create an ad-group-level negative keyword for Sponsored Products (match_type: NEGATIVE_EXACT or NEGATIVE_PHRASE)",
+    )
+    async def create_sp_ad_group_negative_keyword_tool(
+        ctx: Context,
+        campaign_id: str,
+        ad_group_id: str,
+        keyword_text: str,
+        match_type: str,
+        state: str = "ENABLED",
+    ) -> CreateNegativeKeywordResponse:
+        _require_active_profile()
+        result = await campaign_management.create_sp_ad_group_negative_keyword(
+            campaign_id=campaign_id,
+            ad_group_id=ad_group_id,
+            keyword_text=keyword_text,
+            match_type=match_type,
+            state=state,
+        )
+        return CreateNegativeKeywordResponse(**result)
+
+    @server.tool(
+        name="list_sp_ad_group_negative_keywords",
+        description="List ad-group-level Sponsored Products negative keywords, optionally filtered by campaign ID, ad group ID, and state",
+    )
+    async def list_sp_ad_group_negative_keywords_tool(
+        ctx: Context,
+        campaign_id: Optional[str] = None,
+        ad_group_id: Optional[str] = None,
+        state_filter: Optional[str] = None,
+        max_results: int = 100,
+        next_token: Optional[str] = None,
+    ) -> ListNegativeKeywordsResponse:
+        _require_active_profile()
+        result = await campaign_management.list_sp_ad_group_negative_keywords(
+            campaign_id=campaign_id,
+            ad_group_id=ad_group_id,
+            state_filter=state_filter,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return ListNegativeKeywordsResponse(**result)
+
+    @server.tool(
+        name="update_sp_ad_group_negative_keywords",
+        description="Update an ad-group-level Sponsored Products negative keyword (state only: pause/enable/archive)",
+    )
+    async def update_sp_ad_group_negative_keywords_tool(
+        ctx: Context,
+        keyword_id: str,
+        state: Optional[str] = None,
+    ) -> UpdateNegativeKeywordResponse:
+        _require_active_profile()
+        result = await campaign_management.update_sp_ad_group_negative_keywords(
+            keyword_id=keyword_id,
+            state=state,
+        )
+        return UpdateNegativeKeywordResponse(**result)
+
+    # -----------------------------------------------------------------------
     # Targeting clauses (targets) — manual PT + auto targeting expressions
     # -----------------------------------------------------------------------
 
