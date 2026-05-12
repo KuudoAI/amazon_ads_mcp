@@ -1345,7 +1345,10 @@ async def register_campaign_management_tools(server: FastMCP):
         name="update_sp_campaigns",
         description=(
             "Update a Sponsored Products campaign (rename, change budget, "
-            "pause/enable/archive, set placement bid adjustments, set bidding strategy). "
+            "pause/enable, set placement bid adjustments, set bidding strategy). "
+            "The SP v3 PUT /sp/campaigns endpoint only accepts state values "
+            "ENABLED or PAUSED — to archive a campaign, use archive_sp_campaign "
+            "(SP v3 routes archival through POST /sp/campaigns/delete). "
             "Placement adjustments (placement_top_pct, placement_product_page_pct, "
             "placement_rest_of_search_pct) are merged: omitted placements retain their "
             "current value. Each percentage must be 0-900."
@@ -1378,6 +1381,25 @@ async def register_campaign_management_tools(server: FastMCP):
             placement_product_page_pct=placement_product_page_pct,
             placement_rest_of_search_pct=placement_rest_of_search_pct,
             bidding_strategy=bidding_strategy,
+        )
+        return UpdateCampaignResponse(**result)
+
+    @server.tool(
+        name="archive_sp_campaign",
+        description=(
+            "Archive one Sponsored Products campaign permanently. "
+            "SP v3 splits state transitions (PUT /sp/campaigns — accepts only "
+            "ENABLED/PAUSED) from archival (POST /sp/campaigns/delete). "
+            "ARCHIVED is permanent and cannot be reversed through the API."
+        ),
+    )
+    async def archive_sp_campaign_tool(
+        ctx: Context,
+        campaign_id: str,
+    ) -> UpdateCampaignResponse:
+        _require_active_profile()
+        result = await campaign_management.archive_sp_campaign(
+            campaign_id=campaign_id,
         )
         return UpdateCampaignResponse(**result)
 

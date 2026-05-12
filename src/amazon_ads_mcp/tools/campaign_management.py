@@ -43,7 +43,8 @@ async def update_sp_campaigns(
 
     :param campaign_id: Campaign ID to update
     :param name: New campaign name
-    :param state: New state (ENABLED, PAUSED, ARCHIVED)
+    :param state: New state (ENABLED, PAUSED). The SP v3 PUT /sp/campaigns
+        endpoint rejects ARCHIVED — use archive_sp_campaign instead.
     :param budget_amount: New daily budget amount
     :param budget_type: Budget type (DAILY)
     :param start_date: Start date YYYYMMDD
@@ -190,6 +191,62 @@ async def update_sp_campaigns(
                 "campaign_id": campaign_id,
                 "error": err.get("errors", err),
                 "message": f"Failed to update campaign {campaign_id}",
+            }
+    return {
+        "success": False,
+        "campaign_id": campaign_id,
+        "error": f"HTTP {resp.status_code}: {resp.text[:500]}",
+        "message": "API request failed",
+    }
+
+
+# ---------------------------------------------------------------------------
+# SP Campaign archive
+# ---------------------------------------------------------------------------
+
+async def archive_sp_campaign(campaign_id: str) -> dict:
+    """Archive one Sponsored Products campaign.
+
+    SP v3 splits state transitions (PUT /sp/campaigns — accepts only
+    ENABLED/PAUSED) from archival (POST /sp/campaigns/delete). The 'delete'
+    endpoint is misnamed: it archives. ARCHIVED is permanent and cannot be
+    reversed through the API.
+
+    :param campaign_id: Campaign ID to archive
+    """
+    from ..utils.http_client import get_authenticated_client
+
+    client = await get_authenticated_client()
+    headers = {
+        "Accept": "application/vnd.spcampaign.v3+json",
+        "Content-Type": "application/vnd.spcampaign.v3+json",
+    }
+    resp = await client.post(
+        "/sp/campaigns/delete",
+        json={"campaignIdFilter": {"include": [campaign_id]}},
+        headers=headers,
+    )
+
+    if resp.status_code in (200, 207):
+        data = resp.json()
+        results = data.get("campaigns", {})
+        success_list = results.get("success", [])
+        error_list = results.get("error", [])
+        if success_list:
+            return {
+                "success": True,
+                "campaign_id": campaign_id,
+                "message": f"Campaign {campaign_id} archived",
+                "updated_fields": {"state": "ARCHIVED"},
+                "details": success_list[0],
+            }
+        elif error_list:
+            err = error_list[0]
+            return {
+                "success": False,
+                "campaign_id": campaign_id,
+                "error": err.get("errors", err),
+                "message": f"Failed to archive campaign {campaign_id}",
             }
     return {
         "success": False,
