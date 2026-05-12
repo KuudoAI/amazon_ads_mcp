@@ -73,6 +73,7 @@ SENSITIVE_HEADERS = {
     "set-cookie",
     "x-csrf-token",
     "x-access-token",
+    "x-amz-access-token",
     "x-refresh-token",
 }
 
@@ -502,7 +503,6 @@ def validate_url(url: str, allowed_schemes: Optional[List[str]] = None) -> str:
 _DEFAULT_ALLOWED_HOSTS = [
     ".amazonaws.com",
     ".cloudfront.net",
-    ".amazon.com",
 ]
 
 _BLOCKED_NETWORKS = [
@@ -552,15 +552,21 @@ def validate_download_url(
         raise ValidationError("Empty URL", field="url")
 
     parsed = urlparse(url)
-    if parsed.scheme not in ("http", "https"):
+    if parsed.scheme != "https":
         raise ValidationError(
-            f"Invalid scheme '{parsed.scheme}', must be http or https",
+            f"Invalid scheme '{parsed.scheme}', must be https",
             field="url",
         )
 
     hostname = parsed.hostname
     if not hostname:
         raise ValidationError("No hostname in URL", field="url")
+
+    override = os.environ.get("MCP_DOWNLOAD_HOST_ALLOWLIST")
+    if override:
+        allowed_host_suffixes = [
+            item.strip().lower() for item in override.split(",") if item.strip()
+        ]
 
     # Host suffix allowlist (opt-out via AMAZON_ADS_ALLOW_PRIVATE_DOWNLOAD_HOSTS)
     bypass = os.environ.get("AMAZON_ADS_ALLOW_PRIVATE_DOWNLOAD_HOSTS", "").lower()

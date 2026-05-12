@@ -18,7 +18,7 @@ services:
       # Server runtime
       - TRANSPORT=http
       - HOST=0.0.0.0
-      - PORT=8000
+      - PORT=${PORT:-8000}
       - LOG_LEVEL=INFO
       # AMAZON_AD_API_PACKAGES is set in .env (env_file values are overridden by
       # explicit environment entries, so we keep it in .env only)

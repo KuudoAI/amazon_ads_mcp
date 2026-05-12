@@ -13,6 +13,7 @@ import httpx
 
 from ...models import AuthCredentials, Identity, Token
 from ...utils.http import get_http_client
+from ...utils.security import sanitize_string
 from ..base import BaseAmazonAdsProvider, BaseIdentityProvider, ProviderConfig
 from ..registry import register_provider
 
@@ -89,6 +90,18 @@ class DirectAmazonAdsProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
         logger.info(
             f"Initializing Direct Amazon Ads provider for region {self._region}"
         )
+
+    def _has_refresh_token_available(self) -> bool:
+        if self.refresh_token:
+            return True
+        try:
+            from ..secure_token_store import get_secure_token_store
+
+            secure_store = get_secure_token_store()
+            token_entry = secure_store.get_token("oauth_refresh_token")
+            return bool(token_entry and token_entry.get("value"))
+        except Exception:
+            return False
 
     async def _get_client(self) -> httpx.AsyncClient:
         """
@@ -219,7 +232,9 @@ class DirectAmazonAdsProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
 
             if response.status_code != 200:
                 logger.error(
-                    f"Token refresh failed: {response.status_code} - {response.text}"
+                    "Token refresh failed: %s - %s",
+                    response.status_code,
+                    sanitize_string(response.text),
                 )
                 response.raise_for_status()
 
@@ -310,18 +325,21 @@ class DirectAmazonAdsProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
         :return: List containing the single direct auth identity
         :rtype: List[Identity]
         """
-        identity = Identity(
-            id="direct-auth",
-            type="amazon_ads_direct",
-            attributes={
-                "name": "Direct Amazon Ads Account",
-                "client_id": self.client_id,
-                "region": self._region,
-                "profile_id": self.profile_id,
-                "auth_method": "direct",
-            },
-        )
-        return [identity]
+        if not self._has_refresh_token_available():
+            return []
+        return [
+            Identity(
+                id="direct-auth",
+                type="amazon_ads_direct",
+                attributes={
+                    "name": "Direct Amazon Ads Account",
+                    "client_id": self.client_id,
+                    "region": self._region,
+                    "profile_id": self.profile_id,
+                    "auth_method": "direct",
+                },
+            )
+        ]
 
     async def get_identity(self, identity_id: str) -> Optional[Identity]:
         """

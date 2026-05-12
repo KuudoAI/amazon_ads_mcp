@@ -891,6 +891,14 @@ class JWTAuthenticationMiddleware(Middleware):
             self.logger.debug("Authentication disabled, skipping validation")
             return await call_next(context)
 
+        method = getattr(context, "method", None)
+        if method != "tools/call":
+            self.logger.debug(
+                "JWT middleware - allowing unauthenticated non-tool-call method: %s",
+                method,
+            )
+            return await call_next(context)
+
         try:
             # Check for JWT set by RefreshTokenMiddleware in context-safe storage
             jwt_token = jwt_token_var.get()

@@ -17,6 +17,8 @@ from typing import Optional
 import httpx
 from fastmcp import Context
 
+from ..utils.security import safe_log_dict, sanitize_headers, sanitize_string, sanitize_url
+
 logger = logging.getLogger(__name__)
 
 
@@ -123,11 +125,8 @@ class AuthHeaderHook:
         # Log final headers at DEBUG level only for production safety
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug("Final headers being sent to Amazon:")
-            for key, value in request.headers.items():
-                if "authorization" in key.lower():
-                    logger.debug(f"  {key}: {value[:50]}...")
-                else:
-                    logger.debug(f"  {key}: {value}")
+            for key, value in sanitize_headers(dict(request.headers)).items():
+                logger.debug("  %s: %s", key, value)
 
         return request
 
@@ -151,12 +150,19 @@ class AuthHeaderHook:
             error_detail = ""
             try:
                 error_body = response.json()
+                if isinstance(error_body, dict):
+                    error_body = safe_log_dict(error_body)
+                else:
+                    error_body = sanitize_string(str(error_body))
                 error_detail = f" - Error: {error_body}"
             except Exception:
-                error_detail = f" - Response: {response.text[:200]}"
+                error_detail = f" - Response: {sanitize_string(response.text)[:200]}"
 
-            logger.error(f"Received 401 Unauthorized - token may be expired or invalid{error_detail}")
-            logger.error(f"Request URL: {response.request.url}")
+            logger.error(
+                "Received 401 Unauthorized - token may be expired or invalid%s",
+                error_detail,
+            )
+            logger.error("Request URL: %s", sanitize_url(str(response.request.url)))
             logger.error(f"Request had headers: {list(response.request.headers.keys())}")
 
             # Check for specific auth headers
@@ -164,7 +170,9 @@ class AuthHeaderHook:
             if not auth_header:
                 logger.error("CRITICAL: No Authorization header in request!")
             elif not auth_header.startswith("Bearer "):
-                logger.error(f"CRITICAL: Authorization header missing 'Bearer ' prefix: {auth_header[:20]}...")
+                logger.error(
+                    "CRITICAL: Authorization header missing 'Bearer ' prefix"
+                )
 
         elif response.status_code == 403:
             logger.warning("Received 403 Forbidden - check permissions")

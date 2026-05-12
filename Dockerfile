@@ -109,7 +109,7 @@ LABEL org.opencontainers.image.title="amazon-ads-mcp" \
 
 # Runtime configuration. Keep parity with docker-compose.yaml's
 # `environment:` block; if you change the default port here also update the
-# EXPOSE line and the HEALTHCHECK URL below.
+# EXPOSE line below. The healthcheck reads PORT at runtime.
 ENV TRANSPORT=streamable-http \
     HOST=0.0.0.0 \
     PORT=8000
@@ -128,7 +128,8 @@ EXPOSE 8000
 # spec load, which can take several seconds on first boot.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD python -c "import urllib.request,sys; \
-sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=4).status == 200 else 1)" \
+port = __import__('os').environ.get('PORT', '8000'); \
+sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{port}/health', timeout=4).status == 200 else 1)" \
     || exit 1
 
 # Be explicit about the shutdown signal so `docker stop` / orchestrator

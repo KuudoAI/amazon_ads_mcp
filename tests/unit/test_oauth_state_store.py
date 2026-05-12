@@ -26,6 +26,55 @@ def test_state_validates_roundtrip():
     assert err is None
 
 
+def test_state_stores_caller_and_session_binding():
+    store = OAuthStateStore(secret_key="test-secret")
+    state = store.generate_state(
+        auth_url="https://example.com/auth",
+        caller_id="caller-1",
+        session_id="session-1",
+    )
+
+    entry = store.get_state_entry(state)
+
+    assert entry is not None
+    assert entry.caller_id == "caller-1"
+    assert entry.session_id == "session-1"
+
+
+def test_state_rejects_session_mismatch_without_consuming():
+    store = OAuthStateStore(secret_key="test-secret")
+    state = store.generate_state(
+        auth_url="https://example.com/auth",
+        session_id="session-1",
+    )
+
+    ok, err = store.validate_state(state, session_id="session-2")
+
+    assert ok is False
+    assert "Session" in err
+    assert store.get_state_entry(state).completed is False
+    ok, err = store.validate_state(state, session_id="session-1")
+    assert ok is True
+    assert err is None
+
+
+def test_state_rejects_caller_mismatch_without_consuming():
+    store = OAuthStateStore(secret_key="test-secret")
+    state = store.generate_state(
+        auth_url="https://example.com/auth",
+        caller_id="caller-1",
+    )
+
+    ok, err = store.validate_state(state, caller_id="caller-2")
+
+    assert ok is False
+    assert "Caller" in err
+    assert store.get_state_entry(state).completed is False
+    ok, err = store.validate_state(state, caller_id="caller-1")
+    assert ok is True
+    assert err is None
+
+
 def test_state_rejects_forged_signature():
     store = OAuthStateStore(secret_key="test-secret")
     state = store.generate_state(auth_url="https://example.com/auth")

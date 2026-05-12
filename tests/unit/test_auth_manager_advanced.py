@@ -60,6 +60,12 @@ class MultiIdentityProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
         return self._headers_identity_specific
 
 
+class DirectIdentityProvider(MultiIdentityProvider):
+    @property
+    def provider_type(self) -> str:
+        return "direct"
+
+
 class SingleIdentityProvider(BaseAmazonAdsProvider):
     def __init__(self, token_value="single-token"):
         self._token = Token(
@@ -216,6 +222,53 @@ async def test_single_identity_credentials_cached(auth_manager):
 
     assert creds_first.access_token == "single-token"
     assert creds_second.access_token == "single-token"
+
+
+@pytest.mark.asyncio
+async def test_direct_provider_selects_single_available_identity(auth_manager):
+    from amazon_ads_mcp.auth.session_state import (
+        get_active_identity,
+        reset_all_session_state,
+    )
+
+    reset_all_session_state()
+    identity = Identity(id="direct-auth", type="direct", attributes={})
+    auth_manager.provider = DirectIdentityProvider([identity])
+
+    await auth_manager.ensure_default_identity()
+
+    active = get_active_identity()
+    assert active is not None
+    assert active.id == "direct-auth"
+
+
+@pytest.mark.asyncio
+async def test_direct_provider_requires_selection_when_multiple_identities(auth_manager):
+    from amazon_ads_mcp.auth.session_state import reset_all_session_state
+
+    reset_all_session_state()
+    auth_manager.provider = DirectIdentityProvider([
+        Identity(id="one", type="direct", attributes={}),
+        Identity(id="two", type="direct", attributes={}),
+    ])
+
+    with pytest.raises(Exception) as excinfo:
+        await auth_manager.get_active_credentials()
+
+    assert getattr(excinfo.value, "code", "") == "IDENTITY_SELECTION_REQUIRED"
+
+
+@pytest.mark.asyncio
+async def test_direct_provider_reports_pending_when_no_identities(auth_manager):
+    from amazon_ads_mcp.auth.session_state import reset_all_session_state
+
+    reset_all_session_state()
+    auth_manager.provider = DirectIdentityProvider([])
+
+    with pytest.raises(Exception) as excinfo:
+        await auth_manager.get_active_credentials()
+
+    assert getattr(excinfo.value, "code", "") == "CREDENTIALS_PENDING"
 
 
 @pytest.mark.asyncio

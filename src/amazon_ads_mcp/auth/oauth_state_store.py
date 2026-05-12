@@ -69,6 +69,12 @@ class OAuthStateEntry(BaseModel):
     ip_address: Optional[str] = Field(
         default=None, description="IP address for validation"
     )
+    caller_id: Optional[str] = Field(
+        default=None, description="Layer 1 caller identifier that started the flow"
+    )
+    session_id: Optional[str] = Field(
+        default=None, description="MCP session identifier that started the flow"
+    )
     completed: bool = Field(default=False, description="Whether callback was received")
 
 
@@ -119,6 +125,8 @@ class OAuthStateStore:
         user_agent: Optional[str] = None,
         ip_address: Optional[str] = None,
         ttl_minutes: int = 10,
+        caller_id: Optional[str] = None,
+        session_id: Optional[str] = None,
     ) -> str:
         """
         Generate a secure OAuth state token.
@@ -157,6 +165,8 @@ class OAuthStateStore:
             auth_url=auth_url,
             user_agent=user_agent,
             ip_address=ip_address,
+            caller_id=caller_id,
+            session_id=session_id,
             expires_at=datetime.now(timezone.utc) + timedelta(minutes=ttl_minutes),
         )
 
@@ -171,6 +181,8 @@ class OAuthStateStore:
         state: str,
         user_agent: Optional[str] = None,
         ip_address: Optional[str] = None,
+        caller_id: Optional[str] = None,
+        session_id: Optional[str] = None,
     ) -> tuple[bool, Optional[str]]:
         """
         Validate an OAuth state token.
@@ -183,23 +195,47 @@ class OAuthStateStore:
         Returns:
             Tuple of (is_valid, error_message)
         """
+        is_valid, error, entry = self._validate_state_entry(
+            state=state,
+            user_agent=user_agent,
+            ip_address=ip_address,
+            caller_id=caller_id,
+            session_id=session_id,
+        )
+        if not is_valid or entry is None:
+            return False, error
+
+        entry.completed = True
+        self._save_store()
+
+        return True, None
+
+    def _validate_state_entry(
+        self,
+        state: str,
+        user_agent: Optional[str] = None,
+        ip_address: Optional[str] = None,
+        caller_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+    ) -> tuple[bool, Optional[str], Optional[OAuthStateEntry]]:
+        """Validate state metadata without consuming the state."""
         # Clean expired states first
         self._clean_expired()
 
         # Check if state exists
         if state not in self._memory_store:
-            return False, "Invalid or expired state"
+            return False, "Invalid or expired state", None
 
         entry = self._memory_store[state]
 
         # Check if already used
         if entry.completed:
             logger.warning("Attempted reuse of OAuth state")
-            return False, "State already used"
+            return False, "State already used", None
 
         # Check expiration
         if datetime.now(timezone.utc) > entry.expires_at:
-            return False, "State expired"
+            return False, "State expired", None
 
         # Validate HMAC signature. Recomputes the same MAC the emitter
         # produced; comparison is constant-time via hmac.compare_digest.
@@ -213,10 +249,10 @@ class OAuthStateStore:
 
             if not hmac.compare_digest(signature, expected_signature):
                 logger.warning("Invalid OAuth state signature")
-                return False, "Invalid state signature"
+                return False, "Invalid state signature", None
         except (ValueError, KeyError) as e:
             logger.warning(f"Malformed OAuth state: {e}")
-            return False, "Malformed state"
+            return False, "Malformed state", None
 
         # Optional: Validate user agent
         if entry.user_agent and user_agent and entry.user_agent != user_agent:
@@ -228,16 +264,24 @@ class OAuthStateStore:
             logger.warning("IP address mismatch in OAuth callback")
             # Could be VPN, mobile network change, etc - log but don't fail
 
-        # Mark as completed
-        entry.completed = True
-        self._save_store()
+        if entry.caller_id and caller_id and entry.caller_id != caller_id:
+            logger.warning("Caller mismatch in OAuth callback")
+            return False, "Caller mismatch", None
 
-        return True, None
+        if entry.session_id and session_id and entry.session_id != session_id:
+            logger.warning("Session mismatch in OAuth callback")
+            return False, "Session mismatch", None
+
+        return True, None, entry
 
     def get_auth_url(self, state: str) -> Optional[str]:
         """Get the auth URL for a given state."""
         entry = self._memory_store.get(state)
         return entry.auth_url if entry else None
+
+    def get_state_entry(self, state: str) -> Optional[OAuthStateEntry]:
+        """Return state metadata for a state token."""
+        return self._memory_store.get(state)
 
     def _clean_expired(self):
         """Remove expired state entries."""

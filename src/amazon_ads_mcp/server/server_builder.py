@@ -197,10 +197,9 @@ class ServerBuilder:
 
         # v1 cross-server envelope translator MUST be the OUTERMOST middleware.
         # Order matters in FastMCP: middleware appended first runs outermost
-        # for ``on_call_tool``. The envelope middleware catches every
-        # exception raised below it (including FastMCP ``ErrorHandlingMiddleware``
-        # transformations and tool-level guardrail rejections) and re-raises
-        # as a v1 envelope ``ToolError``. See openbridge-mcp/CONTRACT.md.
+        # for request-phase and tool-call hooks. The envelope middleware catches
+        # every exception raised below it and re-raises as a v1 envelope
+        # ``ToolError``. See openbridge-mcp/CONTRACT.md.
         from ..middleware.error_envelope_middleware import (
             create_error_envelope_middleware,
         )
@@ -209,6 +208,14 @@ class ServerBuilder:
         logger.info(
             "Added ErrorEnvelopeMiddleware (v1 contract) as the outermost middleware"
         )
+
+        from .inbound_auth import create_inbound_http_auth_middleware
+
+        configured_host = os.getenv("HOST") or settings.mcp_server_host
+        middleware_list.append(
+            create_inbound_http_auth_middleware(self.auth_manager, configured_host)
+        )
+        logger.info("Added inbound HTTP auth middleware (Layer 1 caller gate)")
 
         # Schema-driven pre-flight key normalization. Runs AFTER the envelope
         # translator (so ambiguity / no-match events still emerge as v1
@@ -946,6 +953,7 @@ class ServerBuilder:
                         user_agent=user_agent,
                         ip_address=ip_address,
                     )
+                    state_entry = state_store.get_state_entry(state) if is_valid else None
 
                     if not is_valid:
                         logger.warning(f"Invalid OAuth state: {error_message}")
@@ -988,6 +996,15 @@ class ServerBuilder:
                             )
 
                             secure_store = get_secure_token_store()
+                            token_metadata = {
+                                "scope": tokens.get("scope"),
+                                "oauth_caller_id": getattr(
+                                    state_entry, "caller_id", None
+                                ),
+                                "oauth_session_id": getattr(
+                                    state_entry, "session_id", None
+                                ),
+                            }
 
                             if "refresh_token" in tokens:
                                 secure_store.store_token(
@@ -996,7 +1013,7 @@ class ServerBuilder:
                                     token_type="refresh",
                                     expires_at=datetime.now(timezone.utc)
                                     + timedelta(days=365),
-                                    metadata={"scope": tokens.get("scope")},
+                                    metadata=token_metadata,
                                 )
 
                             if "access_token" in tokens:
@@ -1037,7 +1054,14 @@ class ServerBuilder:
                                     token=tokens["refresh_token"],
                                     expires_at=datetime.now(timezone.utc)
                                     + timedelta(days=365),
-                                    metadata={},
+                                    metadata={
+                                        "oauth_caller_id": getattr(
+                                            state_entry, "caller_id", None
+                                        ),
+                                        "oauth_session_id": getattr(
+                                            state_entry, "session_id", None
+                                        ),
+                                    },
                                 )
 
                             # Store access token
@@ -1062,7 +1086,9 @@ class ServerBuilder:
                         return HTMLResponse(html)
                     else:
                         # Error response
-                        error_msg = response.text
+                        from ..utils.security import sanitize_string
+
+                        error_msg = sanitize_string(response.text)
                         logger.error(
                             f"Token exchange failed: {response.status_code} - {error_msg}"
                         )

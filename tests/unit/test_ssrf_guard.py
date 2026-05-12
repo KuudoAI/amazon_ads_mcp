@@ -61,7 +61,7 @@ class TestValidateDownloadUrl:
     def test_rejects_metadata_ip(self):
         with pytest.raises(ValidationError, match="private/reserved"):
             validate_download_url(
-                "http://169.254.169.254/latest/meta-data/",
+                "https://169.254.169.254/latest/meta-data/",
                 allowed_host_suffixes=[],
             )
 
@@ -74,7 +74,7 @@ class TestValidateDownloadUrl:
     def test_rejects_private_ip(self):
         with pytest.raises(ValidationError, match="private/reserved"):
             validate_download_url(
-                "http://10.0.0.1/internal",
+                "https://10.0.0.1/internal",
                 allowed_host_suffixes=[],
             )
 
@@ -90,7 +90,7 @@ class TestValidateDownloadUrl:
 
     @patch.dict(os.environ, {"AMAZON_ADS_ALLOW_PRIVATE_DOWNLOAD_HOSTS": "true"})
     def test_bypass_env_var(self):
-        url = "http://localhost:9090/test"
+        url = "https://localhost:9090/test"
         assert validate_download_url(url) == url
 
     def test_rejects_no_hostname(self):

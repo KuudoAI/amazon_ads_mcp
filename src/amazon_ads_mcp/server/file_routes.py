@@ -17,6 +17,8 @@ Security:
 
 import json
 import logging
+import hmac
+import os
 import re
 from pathlib import Path
 from typing import Optional
@@ -24,6 +26,8 @@ from urllib.parse import quote
 
 from starlette.requests import Request
 from starlette.responses import FileResponse, JSONResponse, Response
+
+from .inbound_auth import authorize_inbound_http, get_provider_type
 
 logger = logging.getLogger(__name__)
 
@@ -528,17 +532,39 @@ async def _verify_download_auth(request: Request) -> Optional[JSONResponse]:
     """
     cfg = _get_settings()
     # Settings now loads from AMAZON_ADS_DOWNLOAD_AUTH_TOKEN or DOWNLOAD_AUTH_TOKEN
-    auth_token = cfg.download_auth_token
+    auth_token = (
+        cfg.download_auth_token
+        or os.getenv("AMAZON_ADS_DOWNLOAD_AUTH_TOKEN")
+        or os.getenv("DOWNLOAD_AUTH_TOKEN")
+    )
 
-    if not auth_token:
-        # Auth disabled - allow access
+    auth_mgr = get_auth_manager()
+    provider_type = get_provider_type(auth_mgr)
+    inbound = authorize_inbound_http(
+        request,
+        provider_type=provider_type,
+        configured_host=os.getenv("HOST") or cfg.mcp_server_host,
+        allow_oauth_callback=False,
+    )
+    if inbound.allowed:
         return None
 
-    # Check Authorization header
+    if not auth_token:
+        response = JSONResponse(
+            {
+                "error": "Unauthorized",
+                "error_code": "UNAUTHORIZED",
+                "hint": "Provide trusted proxy auth, a valid OpenBridge bearer, or use localhost",
+            },
+            status_code=401,
+        )
+        return _add_cors_headers(response)
+
+    # Legacy explicit download token support when configured.
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
         provided_token = auth_header.split(" ", 1)[1]
-        if provided_token == auth_token:
+        if hmac.compare_digest(provided_token, auth_token):
             return None  # Auth success
 
     response = JSONResponse(
