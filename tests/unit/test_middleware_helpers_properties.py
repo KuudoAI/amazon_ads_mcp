@@ -21,7 +21,6 @@ from __future__ import annotations
 import json
 import string
 
-import pytest
 from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 

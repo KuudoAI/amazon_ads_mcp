@@ -4,7 +4,7 @@ This module tests the accept header resolution functionality
 in the authenticated client for different API endpoints.
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import httpx
 import pytest

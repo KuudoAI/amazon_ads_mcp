@@ -29,7 +29,6 @@ from fastmcp import FastMCP
 
 from amazon_ads_mcp.models.builtin_responses import (
     EnableToolGroupResponse,
-    ToolGroupInfo,
     ToolGroupsResponse,
 )
 from amazon_ads_mcp.server.builtin_tools import register_tool_group_tools

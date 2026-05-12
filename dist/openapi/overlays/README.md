@@ -17,7 +17,7 @@ Overlays in this directory are:
 ## File format
 
 One overlay per OpenAPI namespace. Filename must match the spec stem:
-`openapi/overlays/<Namespace>.json`.
+`dist/openapi/overlays/<Namespace>.json`.
 
 ```json
 {

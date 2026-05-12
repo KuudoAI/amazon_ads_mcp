@@ -1536,7 +1536,7 @@ def create_openbridge_config() -> AuthConfig:
     auth_base = os.getenv(
         "OPENBRIDGE_AUTH_BASE_URL", "https://authentication.api.openbridge.io"
     ).rstrip("/")
-    endpoint_url = os.getenv("REFRESH_TOKEN_ENDPOINT", f"{auth_base}/auth/api/refresh")
+    endpoint_url = os.getenv("REFRESH_TOKEN_ENDPOINT", f"{auth_base}/auth/api/ref")
 
     config = create_json_api_refresh_token_config(
         endpoint_url=endpoint_url,

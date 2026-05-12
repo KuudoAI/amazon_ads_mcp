@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import string
 
-from hypothesis import HealthCheck, assume, given, settings
+from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 from amazon_ads_mcp.middleware.error_envelope import (

@@ -1,6 +1,6 @@
 {
   "namespace": "AdsAPIv1Beta",
-  "description": "Hand-authored transform rules that survive .build/ regeneration. See openapi/overlays/README.md for format.",
+  "description": "Hand-authored transform rules that survive .build/ regeneration. See dist/openapi/overlays/README.md for format.",
   "tool_overlays": [
     {
       "match": {"operationId": "AdsApiv1RetrieveReport"},

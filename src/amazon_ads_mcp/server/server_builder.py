@@ -399,11 +399,12 @@ class ServerBuilder:
           2. ``dist/openapi/resources/`` — production build output
           3. ``src/amazon_ads_mcp/resources/`` — wheel fallback
 
-        The hand-authored overlay file under ``openapi/overlays/`` is
-        ALWAYS loaded on top (when present). Overlays carry alias rules
-        (arg_aliases) that must survive the private ``.build/`` regen of
-        the base transform files. They live outside ``openapi/resources/``
-        so the regen pipeline can't touch them.
+        The hand-authored overlay file under ``dist/openapi/overlays/``
+        is ALWAYS loaded on top (when present). Overlays carry alias
+        rules (arg_aliases) that must survive the private ``.build/``
+        regen of the base transform files. They live under ``dist/`` —
+        the canonical home for OpenAPI deployment artifacts — so the
+        regen pipeline never touches them.
 
         Installation proceeds even when no base rules compiled — as long
         as the overlay provides at least one transform. This is the
@@ -432,7 +433,7 @@ class ServerBuilder:
             )
             return
 
-        overlays_dir = _Path("openapi/overlays")
+        overlays_dir = _Path("dist/openapi/overlays")
         if not overlays_dir.exists():
             overlays_dir = None  # type: ignore[assignment]
 

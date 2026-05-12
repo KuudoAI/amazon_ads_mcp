@@ -19,7 +19,6 @@ import base64
 
 from unittest.mock import MagicMock
 
-import pytest
 
 from amazon_ads_mcp.utils.media.negotiator import (
     EnhancedMediaTypeRegistry,
