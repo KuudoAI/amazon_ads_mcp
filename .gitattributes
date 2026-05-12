@@ -1,2 +1,8 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Packaged v1 report-fields catalog: SHA-256 in catalog_meta.json is a
+# byte-exact commit signal verified at runtime (see report_fields_v1_catalog.
+# _load_meta). Any line-ending translation breaks the integrity check on
+# Windows checkouts. Treat as binary so CRLF normalization never touches them.
+src/amazon_ads_mcp/resources/adsv1/*.json binary
