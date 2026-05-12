@@ -1899,9 +1899,13 @@ async def update_sp_targets(
     Also updates auto-campaign targeting expressions (close-match, loose-match,
     substitutes, complements) since those share the same /sp/targets endpoint.
 
+    The SP v3 PUT /sp/targets endpoint only accepts state values ENABLED
+    or PAUSED — to archive a target, use archive_sp_target, which routes
+    through POST /sp/targets/delete.
+
     :param target_id: Target ID (also called targetingClause ID)
     :param bid: New bid amount
-    :param state: New state (ENABLED, PAUSED, ARCHIVED)
+    :param state: New state (ENABLED, PAUSED)
     """
     from ..utils.http_client import get_authenticated_client
 
@@ -1938,6 +1942,60 @@ async def update_sp_targets(
                 "target_id": target_id,
                 "error": error_list[0].get("errors", error_list[0]),
                 "message": f"Failed to update target {target_id}",
+            }
+    return {
+        "success": False,
+        "target_id": target_id,
+        "error": f"HTTP {resp.status_code}: {resp.text[:500]}",
+        "message": "API request failed",
+    }
+
+
+async def archive_sp_target(target_id: str) -> dict:
+    """Archive one Sponsored Products target (targeting clause).
+
+    Also archives auto-campaign targeting expressions (close-match,
+    loose-match, substitutes, complements) since those share the same
+    /sp/targets endpoint family.
+
+    SP v3 splits state transitions (PUT /sp/targets — accepts only
+    ENABLED/PAUSED) from archival (POST /sp/targets/delete). The 'delete'
+    endpoint is misnamed: it archives. ARCHIVED is permanent and cannot be
+    reversed through the API. The response key is `targetingClauses` (not
+    `targets`), matching the PUT response shape.
+
+    :param target_id: Target ID (also called targetingClause ID)
+    """
+    from ..utils.http_client import get_authenticated_client
+
+    client = await get_authenticated_client()
+    headers = {"Accept": _TARGET_CT, "Content-Type": _TARGET_CT}
+    resp = await client.post(
+        "/sp/targets/delete",
+        json={"targetIdFilter": {"include": [target_id]}},
+        headers=headers,
+    )
+
+    if resp.status_code in (200, 207):
+        data = resp.json()
+        results = data.get("targetingClauses", {})
+        success_list = results.get("success", [])
+        error_list = results.get("error", [])
+        if success_list:
+            return {
+                "success": True,
+                "target_id": target_id,
+                "message": f"Target {target_id} archived",
+                "updated_fields": {"state": "ARCHIVED"},
+                "details": success_list[0],
+            }
+        elif error_list:
+            err = error_list[0]
+            return {
+                "success": False,
+                "target_id": target_id,
+                "error": err.get("errors", err),
+                "message": f"Failed to archive target {target_id}",
             }
     return {
         "success": False,

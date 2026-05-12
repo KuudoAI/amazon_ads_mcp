@@ -1946,7 +1946,13 @@ async def register_campaign_management_tools(server: FastMCP):
 
     @server.tool(
         name="update_sp_targets",
-        description="Update a Sponsored Products target (change bid or state). Also works on auto-campaign targeting expressions.",
+        description=(
+            "Update a Sponsored Products target (change bid or state). Also "
+            "works on auto-campaign targeting expressions. The SP v3 PUT "
+            "/sp/targets endpoint only accepts state values ENABLED or "
+            "PAUSED — to archive a target, use archive_sp_target (SP v3 "
+            "routes archival through POST /sp/targets/delete)."
+        ),
     )
     async def update_sp_targets_tool(
         ctx: Context,
@@ -1959,6 +1965,26 @@ async def register_campaign_management_tools(server: FastMCP):
             target_id=target_id,
             bid=bid,
             state=state,
+        )
+        return UpdateTargetResponse(**result)
+
+    @server.tool(
+        name="archive_sp_target",
+        description=(
+            "Archive one Sponsored Products target permanently. Also works "
+            "on auto-campaign targeting expressions. SP v3 splits state "
+            "transitions (PUT /sp/targets — accepts only ENABLED/PAUSED) "
+            "from archival (POST /sp/targets/delete). ARCHIVED is permanent "
+            "and cannot be reversed through the API."
+        ),
+    )
+    async def archive_sp_target_tool(
+        ctx: Context,
+        target_id: str,
+    ) -> UpdateTargetResponse:
+        _require_active_profile()
+        result = await campaign_management.archive_sp_target(
+            target_id=target_id,
         )
         return UpdateTargetResponse(**result)
 
