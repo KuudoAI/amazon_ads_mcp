@@ -465,8 +465,12 @@ async def update_sp_keywords(
 ) -> dict:
     """Update one Sponsored Products keyword.
 
+    The SP v3 PUT /sp/keywords endpoint only accepts state values ENABLED
+    or PAUSED — to archive a keyword, use archive_sp_keyword, which
+    routes through POST /sp/keywords/delete.
+
     :param keyword_id: Keyword ID to update
-    :param state: New state (ENABLED, PAUSED, ARCHIVED)
+    :param state: New state (ENABLED, PAUSED)
     :param bid: New bid amount
     """
     from ..utils.http_client import get_authenticated_client
@@ -507,6 +511,58 @@ async def update_sp_keywords(
                 "keyword_id": keyword_id,
                 "error": error_list[0].get("errors", error_list[0]),
                 "message": f"Failed to update keyword {keyword_id}",
+            }
+    return {
+        "success": False,
+        "keyword_id": keyword_id,
+        "error": f"HTTP {resp.status_code}: {resp.text[:500]}",
+        "message": "API request failed",
+    }
+
+
+async def archive_sp_keyword(keyword_id: str) -> dict:
+    """Archive one Sponsored Products keyword.
+
+    SP v3 splits state transitions (PUT /sp/keywords — accepts only
+    ENABLED/PAUSED) from archival (POST /sp/keywords/delete). The 'delete'
+    endpoint is misnamed: it archives. ARCHIVED is permanent and cannot be
+    reversed through the API.
+
+    :param keyword_id: Keyword ID to archive
+    """
+    from ..utils.http_client import get_authenticated_client
+
+    client = await get_authenticated_client()
+    headers = {
+        "Accept": "application/vnd.spKeyword.v3+json",
+        "Content-Type": "application/vnd.spKeyword.v3+json",
+    }
+    resp = await client.post(
+        "/sp/keywords/delete",
+        json={"keywordIdFilter": {"include": [keyword_id]}},
+        headers=headers,
+    )
+
+    if resp.status_code in (200, 207):
+        data = resp.json()
+        results = data.get("keywords", {})
+        success_list = results.get("success", [])
+        error_list = results.get("error", [])
+        if success_list:
+            return {
+                "success": True,
+                "keyword_id": keyword_id,
+                "message": f"Keyword {keyword_id} archived",
+                "updated_fields": {"state": "ARCHIVED"},
+                "details": success_list[0],
+            }
+        elif error_list:
+            err = error_list[0]
+            return {
+                "success": False,
+                "keyword_id": keyword_id,
+                "error": err.get("errors", err),
+                "message": f"Failed to archive keyword {keyword_id}",
             }
     return {
         "success": False,

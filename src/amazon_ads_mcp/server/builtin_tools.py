@@ -1472,7 +1472,12 @@ async def register_campaign_management_tools(server: FastMCP):
 
     @server.tool(
         name="update_sp_keywords",
-        description="Update a Sponsored Products keyword (change bid, pause/enable/archive)",
+        description=(
+            "Update a Sponsored Products keyword (change bid, pause/enable). "
+            "The SP v3 PUT /sp/keywords endpoint only accepts state values "
+            "ENABLED or PAUSED — to archive a keyword, use archive_sp_keyword "
+            "(SP v3 routes archival through POST /sp/keywords/delete)."
+        ),
     )
     async def update_sp_keywords_tool(
         ctx: Context,
@@ -1485,6 +1490,25 @@ async def register_campaign_management_tools(server: FastMCP):
             keyword_id=keyword_id,
             state=state,
             bid=bid,
+        )
+        return UpdateKeywordResponse(**result)
+
+    @server.tool(
+        name="archive_sp_keyword",
+        description=(
+            "Archive one Sponsored Products keyword permanently. "
+            "SP v3 splits state transitions (PUT /sp/keywords — accepts only "
+            "ENABLED/PAUSED) from archival (POST /sp/keywords/delete). "
+            "ARCHIVED is permanent and cannot be reversed through the API."
+        ),
+    )
+    async def archive_sp_keyword_tool(
+        ctx: Context,
+        keyword_id: str,
+    ) -> UpdateKeywordResponse:
+        _require_active_profile()
+        result = await campaign_management.archive_sp_keyword(
+            keyword_id=keyword_id,
         )
         return UpdateKeywordResponse(**result)
 
