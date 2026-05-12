@@ -320,6 +320,14 @@ class TestAuthManagerEndToEndIsolation:
         monkeypatch.setattr(AuthManager, "_setup_provider", lambda self: None)
         self.manager = AuthManager()
 
+        # AuthManager.__init__ seeds _default_profile_id from
+        # settings.effective_profile_id, which is loaded from
+        # AMAZON_AD_API_PROFILE_ID at process start. A populated .env
+        # leaks a real profile ID into the test and breaks the
+        # "clear → None" assertion below. Force-clear so the fixture
+        # behaves identically on dev machines and CI.
+        self.manager._default_profile_id = None
+
         provider = StubProvider()
         provider.add_identity(_make_identity("id-A"))
         provider.add_identity(_make_identity("id-B"))
