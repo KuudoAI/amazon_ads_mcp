@@ -105,6 +105,48 @@ async def test_authentication_error_becomes_auth_error_envelope():
     assert envelope["error_kind"] == "auth_error"
 
 
+@pytest.mark.asyncio
+async def test_request_phase_auth_tool_error_becomes_auth_error_envelope():
+    from amazon_ads_mcp.middleware.error_envelope_middleware import (
+        ErrorEnvelopeMiddleware,
+    )
+
+    middleware = ErrorEnvelopeMiddleware()
+    context = SimpleNamespace(
+        method="tools/call",
+        message=SimpleNamespace(name="secured_tool", arguments={}),
+    )
+
+    async def call_next(_ctx):
+        raise ToolError(
+            "Authentication required: MCP HTTP caller authorization is required"
+        )
+
+    with pytest.raises(ToolError) as exc_info:
+        await middleware.on_request(context, call_next)
+
+    envelope = json.loads(str(exc_info.value))
+    assert envelope["error_kind"] == "auth_error"
+    assert envelope["error_code"] == "AUTHENTICATION_ERROR"
+    assert envelope["tool"] == "secured_tool"
+
+
+@pytest.mark.asyncio
+async def test_non_tool_request_errors_pass_through_unwrapped():
+    from amazon_ads_mcp.middleware.error_envelope_middleware import (
+        ErrorEnvelopeMiddleware,
+    )
+
+    middleware = ErrorEnvelopeMiddleware()
+    context = SimpleNamespace(method="tools/list", message=None)
+
+    async def call_next(_ctx):
+        raise ToolError("Authentication required: should stay raw")
+
+    with pytest.raises(ToolError, match="should stay raw"):
+        await middleware.on_request(context, call_next)
+
+
 # ---------------------------------------------------------------------------
 # Idempotency — already-enveloped ToolError passes through
 # ---------------------------------------------------------------------------

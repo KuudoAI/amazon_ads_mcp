@@ -19,6 +19,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from ..config.settings import settings
+from ..exceptions import AuthenticationError
 from ..models import AuthCredentials, Identity
 from .session_state import (
     get_active_credentials as _ctx_get_credentials,
@@ -162,10 +163,8 @@ class AuthManager:
             self.provider = ProviderRegistry.create_provider(auth_method, config)
             logger.info(f"Initialized {auth_method} authentication provider")
 
-            # Set default identity for providers that have one
-            if auth_method == "direct":
-                self._default_identity_id = "direct-auth"
-            elif (
+            # Set explicit defaults only when configuration names one.
+            if (
                 auth_method == "openbridge"
                 and self.settings.openbridge_remote_identity_id
             ):
@@ -392,6 +391,54 @@ class AuthManager:
                 await self.set_active_identity(self._default_identity_id)
             except Exception as e:
                 logger.debug(f"Could not set default identity: {e}")
+            return
+
+        if _ctx_get_identity():
+            return
+
+        if self.provider and self.provider.provider_type == "direct":
+            identities = await self.list_identities()
+            if len(identities) == 1:
+                await self.set_active_identity(identities[0].id)
+            elif not identities:
+                logger.debug("No direct identity selected because no identities exist")
+            else:
+                logger.debug(
+                    "No direct identity selected because %d identities are available",
+                    len(identities),
+                )
+
+    async def _raise_no_active_identity(self) -> None:
+        """Raise a typed error when direct auth has no unambiguous identity."""
+        provider_type = self.provider.provider_type if self.provider else "unknown"
+        if provider_type == "direct":
+            identities = await self.list_identities()
+            if not identities:
+                exc = AuthenticationError(
+                    "No direct Amazon Ads identity credentials are configured. "
+                    "Register credentials or complete OAuth before calling "
+                    "operational tools.",
+                    details={"identity_count": 0},
+                )
+                exc.code = "CREDENTIALS_PENDING"
+                raise exc
+
+            exc = AuthenticationError(
+                "Multiple direct Amazon Ads identities are available. "
+                "Call set_active_identity before calling operational tools.",
+                details={
+                    "identity_count": len(identities),
+                    "identity_ids": [identity.id for identity in identities],
+                },
+            )
+            exc.code = "IDENTITY_SELECTION_REQUIRED"
+            raise exc
+
+        logger.error(
+            f"No active identity set for {provider_type}. "
+            f"Need to call set_active_identity() or configure default identity"
+        )
+        raise RuntimeError("No active identity set. Use set_active_identity() first.")
 
     def get_active_identity(self) -> Optional[Identity]:
         """Get the current active identity.
@@ -485,13 +532,7 @@ class AuthManager:
                 await self.ensure_default_identity()
                 active_identity = _ctx_get_identity()
                 if not active_identity:
-                    logger.error(
-                        f"No active identity set for {self.provider.provider_type}. "
-                        f"Need to call set_active_identity() or configure default identity"
-                    )
-                    raise RuntimeError(
-                        "No active identity set. Use set_active_identity() first."
-                    )
+                    await self._raise_no_active_identity()
 
             identity_id = active_identity.id
             logger.debug(

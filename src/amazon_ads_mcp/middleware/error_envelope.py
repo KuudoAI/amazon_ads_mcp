@@ -895,7 +895,7 @@ def _classify(exc: BaseException) -> _Classification:
                 error_kind="sandbox_runtime",
                 summary=(
                     f"Module {blocked!r} is not available in the Code Mode "
-                    "sandbox (blocked by Monty's stdlib policy)."
+                    "sandbox (blocked by Monty's stdlib allowlist)."
                 ),
                 details=[_detail_from_message(inner)],
                 hints=[
@@ -913,20 +913,31 @@ def _classify(exc: BaseException) -> _Classification:
             )
         # Other MontyRuntimeError causes — still sandbox_runtime, but the
         # more general SANDBOX_RUNTIME_ERROR error_code so agents can
-        # branch on cause.
+        # branch on cause. Hints ported from amazon_sp_mcp v7+ (SP
+        # owns the better-quality hint copy on this envelope; the
+        # earlier Ads version trailed off into "unsupported language
+        # features" without naming which features or pointing at the
+        # workaround). Cross-server-symmetric verbatim.
         return _Classification(
             error_kind="sandbox_runtime",
             summary=str(inner),
             details=[_detail_from_message(inner)],
             hints=[
-                "Inspect the message for the underlying sandbox limitation; "
-                "common causes: blocked filesystem/network calls, "
-                "unsupported language features.",
+                "Inspect the message for the underlying sandbox "
+                "limitation; common causes: blocked filesystem/network "
+                "calls, unsupported language features (class/match/"
+                "decorator definitions), or attribute access on a "
+                "built-in instance (which the Monty parser does not "
+                "expose).",
+                "If you need a richer language feature or capability, "
+                "expose it as a server-side tool and call it via "
+                "``await call_tool(...)`` from the execute sandbox.",
             ],
             error_code="SANDBOX_RUNTIME_ERROR",
             retryable=False,
             legacy_error_kind="sandbox_runtime",
         )
+
 
     # bare Exception → internal_error
     return _Classification(

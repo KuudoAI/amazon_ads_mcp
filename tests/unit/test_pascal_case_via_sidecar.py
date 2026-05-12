@@ -127,14 +127,14 @@ async def test_canonical_input_unchanged_through_sidecar(tmp_path, build_script)
 async def test_existing_overlay_aliases_still_fire_alongside_auto(
     tmp_path, build_script
 ):
-    """Hand-authored Ads overlays at openapi/overlays/*.json must keep
-    working unchanged. Loads the real overlay dir alongside the
+    """Hand-authored Ads overlays at dist/openapi/overlays/*.json must
+    keep working unchanged. Loads the real overlay dir alongside the
     auto-generated synthetic sidecar — proves auto-emission doesn't
     break existing reportId→reportIds rules."""
     from amazon_ads_mcp.server.sidecar_middleware import SidecarTransformMiddleware
 
     repo_root = Path(__file__).resolve().parents[2]
-    real_overlays = repo_root / "openapi" / "overlays"
+    real_overlays = repo_root / "dist" / "openapi" / "overlays"
     if not real_overlays.exists():
         pytest.skip("no overlays directory checked in")
 

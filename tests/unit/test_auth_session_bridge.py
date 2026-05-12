@@ -6,6 +6,7 @@ import pytest
 
 from amazon_ads_mcp.auth.session_state import (
     get_active_identity,
+    get_last_seen_token_fingerprint,
     reset_all_session_state,
     set_active_credentials,
     set_active_identity,
@@ -56,6 +57,53 @@ async def test_hydrate_auth_from_session_state():
     identity = get_active_identity()
     assert identity is not None
     assert identity.id == "id-1"
+    reset_all_session_state()
+
+
+@pytest.mark.asyncio
+async def test_hydrate_empty_session_clears_existing_contextvars():
+    from amazon_ads_mcp.auth.session_state import get_active_credentials
+
+    reset_all_session_state()
+    ctx = DummyFastMCPContext(with_session=True)
+    set_active_identity(Identity(id="stale", type="openbridge", attributes={}))
+    set_active_credentials(
+        AuthCredentials(
+            identity_id="stale",
+            access_token="token",
+            expires_at=datetime.now(timezone.utc) + timedelta(minutes=15),
+            base_url="https://example.com",
+            headers={},
+        )
+    )
+    set_active_profiles({"stale": "profile-1"})
+    set_last_seen_token_fingerprint("fp-stale")
+
+    await hydrate_auth_from_mcp_session(ctx)
+
+    assert get_active_identity() is None
+    assert get_active_credentials() is None
+    assert get_last_seen_token_fingerprint() is None
+    reset_all_session_state()
+
+
+@pytest.mark.asyncio
+async def test_hydrate_failure_clears_existing_contextvars(caplog):
+    reset_all_session_state()
+
+    class FailingContext(DummyFastMCPContext):
+        async def get_state(self, key):
+            raise RuntimeError("store unavailable")
+
+    ctx = FailingContext(with_session=True)
+    set_active_identity(Identity(id="stale", type="openbridge", attributes={}))
+    set_last_seen_token_fingerprint("fp-stale")
+
+    await hydrate_auth_from_mcp_session(ctx)
+
+    assert get_active_identity() is None
+    assert get_last_seen_token_fingerprint() is None
+    assert "Failed to hydrate auth session state" in caplog.text
     reset_all_session_state()
 
 

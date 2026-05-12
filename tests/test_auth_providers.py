@@ -234,6 +234,19 @@ class TestDirectProvider:
         assert identity.attributes["auth_method"] == "direct"
         assert identity.attributes["client_id"] == "test_client"
         assert identity.attributes["region"] == "na"
+
+    @pytest.mark.asyncio
+    async def test_direct_provider_without_refresh_token_lists_no_identity(self):
+        """Direct auth has no selectable identity until a refresh token exists."""
+        config = ProviderConfig(client_id="test_client", client_secret="test_secret")
+        provider = DirectAmazonAdsProvider(config)
+
+        with patch.object(
+            provider, "_has_refresh_token_available", return_value=False
+        ):
+            identities = await provider.list_identities()
+
+        assert identities == []
     
     @pytest.mark.asyncio
     async def test_direct_provider_get_credentials(self, direct_provider):

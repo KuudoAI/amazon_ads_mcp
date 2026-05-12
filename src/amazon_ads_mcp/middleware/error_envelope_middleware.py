@@ -29,6 +29,7 @@ from fastmcp.exceptions import NotFoundError as _FastMCPNotFoundError
 from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 
+from ..exceptions import AuthenticationError
 from .error_envelope import (
     build_envelope_from_exception,
     envelope_to_json,
@@ -41,6 +42,28 @@ logger = logging.getLogger(__name__)
 
 class ErrorEnvelopeMiddleware(Middleware):
     """Wrap tool calls in the v1 cross-server error envelope contract."""
+
+    async def on_request(
+        self,
+        context: MiddlewareContext,
+        call_next: Callable[[MiddlewareContext], Awaitable[Any]],
+    ) -> Any:
+        method = getattr(context, "method", None)
+        if method != "tools/call":
+            return await call_next(context)
+
+        try:
+            return await call_next(context)
+        except ToolError as exc:
+            if is_envelope_text(str(exc)):
+                raise
+            envelope = self._build_envelope(
+                self._coerce_request_exception(exc), context
+            )
+            raise ToolError(envelope_to_json(envelope)) from exc
+        except Exception as exc:
+            envelope = self._build_envelope(exc, context)
+            raise ToolError(envelope_to_json(envelope)) from exc
 
     async def on_call_tool(
         self,
@@ -60,6 +83,12 @@ class ErrorEnvelopeMiddleware(Middleware):
         except Exception as exc:
             envelope = self._build_envelope(exc, context)
             raise ToolError(envelope_to_json(envelope)) from exc
+
+    @staticmethod
+    def _coerce_request_exception(exc: ToolError) -> Exception:
+        if str(exc).startswith("Authentication required"):
+            return AuthenticationError(str(exc))
+        return exc
 
     def _build_envelope(self, exc: BaseException, context: Any) -> dict[str, Any]:
         tool_name = self._extract_tool_name(context)

@@ -891,6 +891,14 @@ class JWTAuthenticationMiddleware(Middleware):
             self.logger.debug("Authentication disabled, skipping validation")
             return await call_next(context)
 
+        method = getattr(context, "method", None)
+        if method != "tools/call":
+            self.logger.debug(
+                "JWT middleware - allowing unauthenticated non-tool-call method: %s",
+                method,
+            )
+            return await call_next(context)
+
         try:
             # Check for JWT set by RefreshTokenMiddleware in context-safe storage
             jwt_token = jwt_token_var.get()
@@ -1536,7 +1544,7 @@ def create_openbridge_config() -> AuthConfig:
     auth_base = os.getenv(
         "OPENBRIDGE_AUTH_BASE_URL", "https://authentication.api.openbridge.io"
     ).rstrip("/")
-    endpoint_url = os.getenv("REFRESH_TOKEN_ENDPOINT", f"{auth_base}/auth/api/refresh")
+    endpoint_url = os.getenv("REFRESH_TOKEN_ENDPOINT", f"{auth_base}/auth/api/ref")
 
     config = create_json_api_refresh_token_config(
         endpoint_url=endpoint_url,

@@ -392,8 +392,8 @@ class TestDownloadAuth:
         return request
 
     @pytest.mark.asyncio
-    async def test_auth_disabled_allows_access(self, mock_request):
-        """When no auth token configured, all requests allowed."""
+    async def test_auth_disabled_requires_inbound_auth(self, mock_request):
+        """When no legacy token is configured, public requests still need inbound auth."""
         from amazon_ads_mcp.server.file_routes import _verify_download_auth
 
         with patch.dict(os.environ, {}, clear=True):
@@ -404,7 +404,8 @@ class TestDownloadAuth:
 
                 result = await _verify_download_auth(mock_request)
 
-                assert result is None  # Access allowed
+                assert result is not None
+                assert result.status_code == 401
 
     @pytest.mark.asyncio
     async def test_missing_token_returns_401(self, mock_request):

@@ -277,7 +277,7 @@ class TestOpenbridgeConfig:
         monkeypatch.delenv("REFRESH_TOKEN_ENDPOINT", raising=False)
         c = create_openbridge_config()
         assert c.refresh_token_endpoint == (
-            "https://authentication.api.openbridge.io/auth/api/refresh"
+            "https://authentication.api.openbridge.io/auth/api/ref"
         )
 
     def test_explicit_refresh_endpoint_overrides_base(

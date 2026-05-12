@@ -24,7 +24,7 @@ from amazon_ads_mcp.server.sidecar_middleware import (
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RESOURCES_DIR = REPO_ROOT / "openapi" / "resources"
-OVERLAYS_DIR = REPO_ROOT / "openapi" / "overlays"
+OVERLAYS_DIR = REPO_ROOT / "dist" / "openapi" / "overlays"
 
 
 @pytest.fixture(autouse=True)

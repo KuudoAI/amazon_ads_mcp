@@ -295,6 +295,7 @@ def main() -> None:
 
     # Set the port in environment for OAuth redirect URI
     if args.transport in ("http", "streamable-http"):
+        os.environ["HOST"] = str(args.host)
         os.environ["PORT"] = str(args.port)
 
     # Register cleanup handlers
@@ -317,11 +318,19 @@ def main() -> None:
                 "streamable-http" if args.transport == "streamable-http" else "http"
             )
             logger.info("Starting %s server on %s:%d", transport, args.host, args.port)
+            from ..auth.manager import get_auth_manager
+            from .inbound_auth import create_inbound_http_auth_asgi_middleware
+
             # Use streamable-http transport which handles SSE properly
             mcp.run(
                 transport=transport,
                 host=args.host,
                 port=args.port,
+                middleware=[
+                    create_inbound_http_auth_asgi_middleware(
+                        get_auth_manager(), args.host
+                    )
+                ],
                 # Using default path to avoid redirect issues
             )
         else:

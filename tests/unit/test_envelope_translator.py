@@ -516,6 +516,9 @@ def test_module_not_found_in_sandbox_classified_as_sandbox_runtime():
     assert envelope["error_code"] == "SANDBOX_MODULE_BLOCKED"
     # Names the blocked module so agents can react
     assert "collections" in envelope["summary"]
+    # Round 4 D1 secondary: cross-server-symmetric wording — both
+    # servers say "stdlib allowlist", not "stdlib policy".
+    assert "stdlib allowlist" in envelope["summary"]
     # Hints must point at the real workaround (built-ins, call_tool)
     hint_text = " ".join(envelope["hints"])
     assert "call_tool" in hint_text
@@ -588,3 +591,17 @@ def test_execute_description_documents_sandbox_runtime_error_kind():
     # Negative regression: the prior shallow framing implied direct
     # attribute access works on built-in instances (it doesn't).
     assert "direct attribute access works" not in text
+    # Round 4 D3b: Monty version pin must be present so agents can
+    # tell which interpreter version this docstring's stdlib lists
+    # were probed against.
+    assert "pydantic_monty==0.0.11" in text
+    # Round 4 D5b: SP-style first/then session-scope cadence must be
+    # present (additive — does NOT replace the existing state_reason
+    # enumeration; that block is verified separately below).
+    assert "Call `get_session_state` first" in text
+    # The state_reason enumeration block was kept additively — pin it
+    # so a future "consolidation" PR doesn't silently drop the
+    # detail block thinking the new sentence supersedes it.
+    assert "no_mcp_session" in text
+    assert "token_swapped" in text
+    assert "bridge_unavailable" in text

@@ -17,9 +17,7 @@ Why property-based here:
 
 from __future__ import annotations
 
-import re
 
-import pytest
 from hypothesis import HealthCheck, assume, example, given, settings
 from hypothesis import strategies as st
 

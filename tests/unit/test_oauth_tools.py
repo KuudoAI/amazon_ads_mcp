@@ -16,6 +16,9 @@ class DummySettings:
 
 
 class DummyContext:
+    session_id = "session-123"
+    request_context = None
+
     def __init__(self):
         self.state = {}
 
@@ -30,19 +33,47 @@ class FakeStateStore:
     def __init__(self, state="state-token"):
         self.state = state
         self.generated = None
+        self.validated = None
         self.validation = (True, None)
 
-    def generate_state(self, auth_url, user_agent=None, ip_address=None, ttl_minutes=10):
+    def generate_state(
+        self,
+        auth_url,
+        user_agent=None,
+        ip_address=None,
+        ttl_minutes=10,
+        caller_id=None,
+        session_id=None,
+    ):
         self.generated = {
             "auth_url": auth_url,
             "user_agent": user_agent,
             "ip_address": ip_address,
             "ttl_minutes": ttl_minutes,
+            "caller_id": caller_id,
+            "session_id": session_id,
         }
         return self.state
 
-    def validate_state(self, state, user_agent=None, ip_address=None):
+    def validate_state(
+        self,
+        state,
+        user_agent=None,
+        ip_address=None,
+        caller_id=None,
+        session_id=None,
+    ):
+        self.validated = {
+            "state": state,
+            "user_agent": user_agent,
+            "ip_address": ip_address,
+            "caller_id": caller_id,
+            "session_id": session_id,
+        }
         return self.validation
+
+    def get_state_entry(self, state):
+        return types.SimpleNamespace(caller_id="caller-1", session_id="session-1")
 
 
 class FakeResponse:
@@ -87,6 +118,28 @@ async def test_start_oauth_flow_stores_state(monkeypatch):
     assert ctx.state["oauth_state"]["auth_url"] == result["auth_url"]
     assert state_store.generated["user_agent"] == "ua"
     assert state_store.generated["ip_address"] == "1.2.3.4"
+    assert state_store.generated["session_id"] == "session-123"
+    assert result["session_bound"] is True
+
+
+@pytest.mark.asyncio
+async def test_start_oauth_flow_binds_proxy_caller(monkeypatch):
+    state_store = FakeStateStore()
+    monkeypatch.setattr(oauth_module, "get_oauth_state_store", lambda: state_store)
+
+    class Request:
+        headers = {"X-MCP-Caller": "caller-123"}
+
+    class RequestContext:
+        request = Request()
+
+    ctx = DummyContext()
+    ctx.request_context = RequestContext()
+
+    oauth = OAuthTools(DummySettings())
+    await oauth.start_oauth_flow(ctx)
+
+    assert state_store.generated["caller_id"] == "caller-123"
 
 
 @pytest.mark.asyncio
@@ -262,6 +315,11 @@ async def test_handle_oauth_callback_success(monkeypatch):
     assert result["status"] == "success"
     assert ctx.state["oauth_tokens"]["access_token"] == "access"
     assert ctx.state["oauth_state"]["completed"] is True
+    assert state_store.validated["session_id"] == "session-123"
+    refresh_store_call = secure_store.store_token.call_args_list[0]
+    assert refresh_store_call.kwargs["metadata"]["oauth_caller_id"] == "caller-1"
+    refresh_call = auth_manager.set_token.await_args_list[0]
+    assert refresh_call.kwargs["metadata"]["oauth_session_id"] == "session-1"
 
 
 @pytest.mark.asyncio

@@ -19,7 +19,7 @@ from amazon_ads_mcp.server.sidecar_middleware import SidecarTransformMiddleware
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RESOURCES_DIR = REPO_ROOT / "openapi" / "resources"
-OVERLAYS_DIR = REPO_ROOT / "openapi" / "overlays"
+OVERLAYS_DIR = REPO_ROOT / "dist" / "openapi" / "overlays"
 
 
 def _middleware() -> SidecarTransformMiddleware:
@@ -27,9 +27,9 @@ def _middleware() -> SidecarTransformMiddleware:
 
     The base transform files under openapi/resources/ are gitignored and
     may or may not be present in a fresh checkout. Overlays under
-    openapi/overlays/ are source-controlled and always present — they're
-    the authoritative source for alias rules (survive the private
-    .build/ regen).
+    dist/openapi/overlays/ are source-controlled and always present —
+    they're the authoritative source for alias rules (survive the
+    private .build/ regen).
     """
     return SidecarTransformMiddleware(RESOURCES_DIR, overlays_dir=OVERLAYS_DIR)
 
@@ -114,8 +114,8 @@ async def test_middleware_stats_count_loaded_rules():
     middleware = _middleware()
     stats = middleware.stats()
     # We know at least the reportId alias rule loaded — it lives in
-    # openapi/overlays/AdsAPIv1All.json (source-controlled, present on
-    # every checkout). Base resources under openapi/resources/ are
+    # dist/openapi/overlays/AdsAPIv1All.json (source-controlled, present
+    # on every checkout). Base resources under openapi/resources/ are
     # gitignored and may be entirely absent on a fresh CI checkout, in
     # which case `rules` is 0 and every compiled transform comes from
     # an overlay. Sum both raw counters for the invariant.
@@ -153,8 +153,8 @@ async def test_missing_resources_dir_yields_empty_middleware(tmp_path):
         # alias leaves spendDimension floating at the top level and
         # triggers Amazon's cryptic "Expected null" — worse than the
         # "field required" the caller would otherwise see. Overlay rule
-        # for it is intentionally absent; see openapi/overlays/AdsAPIv1All.json
-        # for the rationale.
+        # for it is intentionally absent; see
+        # dist/openapi/overlays/AdsAPIv1All.json for the rationale.
     ],
 )
 async def test_singular_aliases_rewrite_on_both_prefixed_and_unprefixed(

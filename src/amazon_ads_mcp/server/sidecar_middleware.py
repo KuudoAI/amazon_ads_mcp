@@ -109,8 +109,9 @@ class SidecarTransformMiddleware(Middleware):
         self._load(resources_dir)
         # Overlays carry hand-authored alias / input_transform rules that
         # MUST survive the private .build/ regen of the primary transform
-        # files. They're source-controlled under openapi/overlays/ and
-        # loaded on top of whatever the transform files provided.
+        # files. They're source-controlled under dist/openapi/overlays/
+        # (the canonical OpenAPI deployment home) and loaded on top of
+        # whatever the transform files provided.
         if overlays_dir is not None:
             self._load_overlays(overlays_dir)
 
@@ -234,7 +235,7 @@ class SidecarTransformMiddleware(Middleware):
     def _load_overlays(self, overlays_dir: Path) -> None:
         """Merge hand-authored overlay rules on top of base rules.
 
-        Overlay file format (see openapi/overlays/README.md):
+        Overlay file format (see dist/openapi/overlays/README.md):
             {
               "namespace": "AdsAPIv1All",
               "tool_overlays": [

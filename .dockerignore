@@ -1,106 +1,32 @@
-# Include any files or directories that you don't want to be copied to your
-# container here (e.g., local build artifacts, temporary files, etc.).
-#
-# For more help, visit the .dockerignore file reference guide at
-# https://docs.docker.com/engine/reference/builder/#dockerignore-file
+# Keep Docker build context minimal and deterministic.
+# The Dockerfile only copies:
+# - pyproject.toml, uv.lock, README.md
+# - src/
+# - dist/openapi/resources/
+# - dist/openapi/overlays/
 
-# OS and editor artifacts
-**/.DS_Store
-**/.vscode
-**/.idea
-**/*.swp
-**/*.swo
-**/*~
+# Ignore everything by default.
+**
 
-# Version control
-.git
-.gitignore
-.github/
+# Keep Docker metadata.
+!.dockerignore
+!Dockerfile
 
-# Python artifacts
-**/__pycache__
-**/.venv
-**/venv/
-**/env/
-**/*.pyc
-**/*.pyo
-**/*.pyd
-**/*.pdb
-**/.pytest_cache
-**/.coverage
-**/htmlcov/
-**/.mypy_cache/
-**/.ruff_cache/
-**/*.egg-info/
-**/build/
-# dist/ contains OpenAPI resources needed at runtime - DO NOT IGNORE
-# dist/
-
-# Environment and secrets
-**/.env
-**/.env.*
-**/*.env
-**/.env.local
-**/.env.*.local
-**/*.key
-**/*.pem
-**/*.crt
-**/*.p12
-**/credentials.json
-**/secrets.yaml
-**/secrets.json
-**/secrets.dev.yaml
-**/values.dev.yaml
-
-# MCP Registry tokens
-.mcpregistry_*
-
-# Docker/Compose files (don't copy into image)
-**/docker-compose*
-**/compose*
-**/Dockerfile*
-**/.dockerignore
-
-# Node (if any JS tooling)
-**/node_modules
-**/npm-debug.log
-
-# Development artifacts
-.build
-.claude
-.debug
-**/*.log
-**/*.pid
-**/*.seed
-**/*.pid.lock
-
-# Test and documentation
-tests/
-docs/
-**/*.md
+# Keep dependency metadata and package source.
+!pyproject.toml
+!uv.lock
 !README.md
+!src/
+!src/**
 
-# Project specific
-patch_archive_fastmcp_fixed/
-openapi/resources/
-.chroma_db/
-notebooks/
-examples/credentials/
-examples/.env*
-
-# Temporary files
-**/tmp/
-**/temp/
-**/*.tmp
-**/*.bak
-**/*.backup
-**/*.old
-
-# Debug and profiling
-**/*.prof
-**/*.lprof
-**/core.*
-**/heapdump.*
-
-# Build outputs (except what we need)
-dist_upload/
+# Keep runtime OpenAPI artifacts used by the image.
+# Both resources/ and overlays/ live under dist/openapi/ — the canonical
+# deployment home for OpenAPI assets. Parents (!dist/, !dist/openapi/)
+# must be unignored before leaf-level whitelists take effect under
+# Docker's deny-by-default semantics.
+!dist/
+!dist/openapi/
+!dist/openapi/resources/
+!dist/openapi/resources/**
+!dist/openapi/overlays/
+!dist/openapi/overlays/**

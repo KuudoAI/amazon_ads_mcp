@@ -10,7 +10,13 @@ from pydantic import BaseModel, Field
 
 from ..auth.oauth_state_store import get_oauth_state_store
 from ..config.settings import Settings
+from ..server.inbound_auth import (
+    DEFAULT_CALLER_HEADER,
+    extract_bearer_token,
+    token_fingerprint,
+)
 from ..utils.region_config import RegionConfig
+from ..utils.security import sanitize_string
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +80,24 @@ class OAuthTools:
             )
             self.redirect_uri = f"http://localhost:{port}/auth/callback"
 
+    def _binding_from_context(self, ctx: Context) -> tuple[Optional[str], Optional[str]]:
+        """Extract non-secret caller/session metadata for OAuth state binding."""
+        session_id = getattr(ctx, "session_id", None)
+        request = None
+        request_context = getattr(ctx, "request_context", None)
+        if request_context is not None:
+            request = getattr(request_context, "request", None)
+
+        caller_id = None
+        if request is not None and hasattr(request, "headers"):
+            caller_id = request.headers.get(DEFAULT_CALLER_HEADER)
+            if not caller_id:
+                token = extract_bearer_token(request)
+                if token:
+                    caller_id = f"bearer:{token_fingerprint(token)}"
+
+        return caller_id, str(session_id) if session_id else None
+
     async def start_oauth_flow(
         self,
         ctx: Context,
@@ -87,6 +111,7 @@ class OAuthTools:
         """
         # Get secure state store
         state_store = get_oauth_state_store()
+        caller_id, session_id = self._binding_from_context(ctx)
 
         # Build base authorization URL
         base_auth_url = (
@@ -103,6 +128,8 @@ class OAuthTools:
             user_agent=user_agent,
             ip_address=ip_address,
             ttl_minutes=10,
+            caller_id=caller_id,
+            session_id=session_id,
         )
 
         # Add state to auth URL
@@ -121,6 +148,7 @@ class OAuthTools:
             "auth_url": auth_url,
             "message": "Visit the URL to authorize. The server will automatically handle the callback.",
             "expires_in_minutes": 10,
+            "session_bound": bool(session_id),
         }
 
     async def check_oauth_status(self, ctx: Context) -> Dict:
@@ -429,7 +457,7 @@ class OAuthTools:
             return {
                 "status": "error",
                 "message": f"Failed to refresh token: {response.status_code}",
-                "error": response.text,
+                "error": sanitize_string(response.text),
             }
 
     async def clear_oauth_tokens(self, ctx: Context) -> Dict:
@@ -461,9 +489,15 @@ class OAuthTools:
         """
         # Validate state using secure store
         state_store = get_oauth_state_store()
+        caller_id, session_id = self._binding_from_context(ctx)
         is_valid, error_message = state_store.validate_state(
-            state=state, user_agent=user_agent, ip_address=ip_address
+            state=state,
+            user_agent=user_agent,
+            ip_address=ip_address,
+            caller_id=caller_id,
+            session_id=session_id,
         )
+        state_entry = state_store.get_state_entry(state) if is_valid else None
 
         if not is_valid:
             logger.warning(f"OAuth state validation failed: {error_message}")
@@ -512,12 +546,18 @@ class OAuthTools:
                 secure_store = get_secure_token_store()
                 from datetime import datetime, timedelta, timezone
 
+                token_metadata = {
+                    "scope": token_response.get("scope"),
+                    "oauth_caller_id": getattr(state_entry, "caller_id", None),
+                    "oauth_session_id": getattr(state_entry, "session_id", None),
+                }
+
                 secure_store.store_token(
                     token_id="oauth_refresh_token",
                     token_value=tokens.refresh_token,
                     token_type="refresh",
                     expires_at=datetime.now(timezone.utc) + timedelta(days=365),
-                    metadata={"scope": token_response.get("scope")},
+                    metadata=token_metadata,
                 )
 
                 secure_store.store_token(
@@ -551,7 +591,10 @@ class OAuthTools:
                         token=tokens.refresh_token,
                         expires_at=datetime.now(timezone.utc)
                         + timedelta(days=365),  # Long-lived
-                        metadata={},
+                        metadata={
+                            "oauth_caller_id": getattr(state_entry, "caller_id", None),
+                            "oauth_session_id": getattr(state_entry, "session_id", None),
+                        },
                     )
 
                     # Store access token
@@ -587,7 +630,7 @@ class OAuthTools:
             return {
                 "status": "error",
                 "message": f"Failed to exchange code: {response.status_code}",
-                "error": response.text,
+                "error": sanitize_string(response.text),
             }
 
 

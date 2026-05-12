@@ -1,6 +1,6 @@
 """Pins Issue 6 (bug_fix_plan.md §6) — reportId singular alias transform.
 
-The alias is declared in openapi/overlays/AdsAPIv1All.json (source-
+The alias is declared in dist/openapi/overlays/AdsAPIv1All.json (source-
 controlled, survives the private .build/ regen — see bug.md follow-up).
 
 This test verifies the create_input_transform pipeline applies that rule
@@ -19,6 +19,7 @@ from amazon_ads_mcp.server.transform_executor import DeclarativeTransformExecuto
 
 OVERLAY_PATH = (
     Path(__file__).resolve().parents[2]
+    / "dist"
     / "openapi"
     / "overlays"
     / "AdsAPIv1All.json"
@@ -27,7 +28,7 @@ OVERLAY_PATH = (
 
 def _find_rule(operation_id: str) -> dict:
     """Overlay file stores rules under the `tool_overlays` key (see
-    openapi/overlays/README.md for format)."""
+    dist/openapi/overlays/README.md for format)."""
     data = json.loads(OVERLAY_PATH.read_text())
     for rule in data.get("tool_overlays", []):
         if rule.get("match", {}).get("operationId") == operation_id:
