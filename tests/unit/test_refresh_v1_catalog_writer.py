@@ -102,9 +102,12 @@ def test_crash_before_replace_leaves_tmp_but_no_target(monkeypatch, tmp_path: Pa
 
 def test_ensure_ascii_false_preserves_unicode(tmp_path: Path):
     """Non-ASCII chars stored verbatim (matches reused template)."""
+    # read_text() defaults to locale encoding (cp1252 on en-US Windows),
+    # which mis-decodes UTF-8 bytes — assert against utf-8 explicitly so
+    # the test verifies bytes-as-written, not bytes-as-locale-interprets.
     target = tmp_path / "out.json"
     save_json_atomic(target, {"name": "café"})
-    assert "café" in target.read_text()
+    assert "café" in target.read_text(encoding="utf-8")
 
 
 def test_creates_parent_dirs_if_missing(tmp_path: Path):
