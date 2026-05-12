@@ -1514,7 +1514,13 @@ async def register_campaign_management_tools(server: FastMCP):
 
     @server.tool(
         name="update_sp_product_ads",
-        description="Update a Sponsored Products product ad state (pause/enable/archive)",
+        description=(
+            "Update a Sponsored Products product ad state (pause/enable). "
+            "The SP v3 PUT /sp/productAds endpoint only accepts state values "
+            "ENABLED or PAUSED — to archive a product ad, use "
+            "archive_sp_product_ad (SP v3 routes archival through "
+            "POST /sp/productAds/delete)."
+        ),
     )
     async def update_sp_product_ads_tool(
         ctx: Context,
@@ -1525,6 +1531,25 @@ async def register_campaign_management_tools(server: FastMCP):
         result = await campaign_management.update_sp_product_ads(
             ad_id=ad_id,
             state=state,
+        )
+        return UpdateProductAdResponse(**result)
+
+    @server.tool(
+        name="archive_sp_product_ad",
+        description=(
+            "Archive one Sponsored Products product ad permanently. "
+            "SP v3 splits state transitions (PUT /sp/productAds — accepts only "
+            "ENABLED/PAUSED) from archival (POST /sp/productAds/delete). "
+            "ARCHIVED is permanent and cannot be reversed through the API."
+        ),
+    )
+    async def archive_sp_product_ad_tool(
+        ctx: Context,
+        ad_id: str,
+    ) -> UpdateProductAdResponse:
+        _require_active_profile()
+        result = await campaign_management.archive_sp_product_ad(
+            ad_id=ad_id,
         )
         return UpdateProductAdResponse(**result)
 

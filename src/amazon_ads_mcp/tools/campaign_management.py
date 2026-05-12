@@ -582,8 +582,12 @@ async def update_sp_product_ads(
 ) -> dict:
     """Update one Sponsored Products product ad (state only).
 
+    The SP v3 PUT /sp/productAds endpoint only accepts state values
+    ENABLED or PAUSED — to archive a product ad, use archive_sp_product_ad,
+    which routes through POST /sp/productAds/delete.
+
     :param ad_id: Product ad ID to update
-    :param state: New state (ENABLED, PAUSED, ARCHIVED)
+    :param state: New state (ENABLED, PAUSED)
     """
     from ..utils.http_client import get_authenticated_client
 
@@ -621,6 +625,60 @@ async def update_sp_product_ads(
                 "ad_id": ad_id,
                 "error": error_list[0].get("errors", error_list[0]),
                 "message": f"Failed to update product ad {ad_id}",
+            }
+    return {
+        "success": False,
+        "ad_id": ad_id,
+        "error": f"HTTP {resp.status_code}: {resp.text[:500]}",
+        "message": "API request failed",
+    }
+
+
+async def archive_sp_product_ad(ad_id: str) -> dict:
+    """Archive one Sponsored Products product ad.
+
+    SP v3 splits state transitions (PUT /sp/productAds — accepts only
+    ENABLED/PAUSED) from archival (POST /sp/productAds/delete). The
+    'delete' endpoint is misnamed: it archives. ARCHIVED is permanent and
+    cannot be reversed through the API. The filter key is `adIdFilter`
+    (not `productAdIdFilter`) because the ID field on a product ad is
+    `adId`.
+
+    :param ad_id: Product ad ID to archive
+    """
+    from ..utils.http_client import get_authenticated_client
+
+    client = await get_authenticated_client()
+    headers = {
+        "Accept": "application/vnd.spProductAd.v3+json",
+        "Content-Type": "application/vnd.spProductAd.v3+json",
+    }
+    resp = await client.post(
+        "/sp/productAds/delete",
+        json={"adIdFilter": {"include": [ad_id]}},
+        headers=headers,
+    )
+
+    if resp.status_code in (200, 207):
+        data = resp.json()
+        results = data.get("productAds", {})
+        success_list = results.get("success", [])
+        error_list = results.get("error", [])
+        if success_list:
+            return {
+                "success": True,
+                "ad_id": ad_id,
+                "message": f"Product ad {ad_id} archived",
+                "updated_fields": {"state": "ARCHIVED"},
+                "details": success_list[0],
+            }
+        elif error_list:
+            err = error_list[0]
+            return {
+                "success": False,
+                "ad_id": ad_id,
+                "error": err.get("errors", err),
+                "message": f"Failed to archive product ad {ad_id}",
             }
     return {
         "success": False,
