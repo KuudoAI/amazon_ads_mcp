@@ -30,7 +30,11 @@ def save_json_atomic(path: Path, data: Mapping[str, Any]) -> None:
 
     tmp = path.with_suffix(path.suffix + ".tmp")
     try:
-        with open(tmp, "w", encoding="utf-8") as f:
+        # newline="\n": force LF on all platforms. Default text-mode `open`
+        # writes platform newlines (CRLF on Windows), which would produce
+        # CRLF bytes locally on a Windows refresh run and burn the SHA-256
+        # commit signal in catalog_meta.json for every Linux/CI reader.
+        with open(tmp, "w", encoding="utf-8", newline="\n") as f:
             json.dump(data, f, indent=2, sort_keys=True, ensure_ascii=False)
             f.write("\n")
         # NOTE: keep as `os.replace(tmp, path)` so tests can monkeypatch
