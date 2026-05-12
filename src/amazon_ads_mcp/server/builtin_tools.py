@@ -1427,7 +1427,13 @@ async def register_campaign_management_tools(server: FastMCP):
 
     @server.tool(
         name="update_sp_ad_groups",
-        description="Update a Sponsored Products ad group (rename, change default bid, pause/enable/archive)",
+        description=(
+            "Update a Sponsored Products ad group (rename, change default bid, "
+            "pause/enable). The SP v3 PUT /sp/adGroups endpoint only accepts "
+            "state values ENABLED or PAUSED — to archive an ad group, use "
+            "archive_sp_ad_group (SP v3 routes archival through "
+            "POST /sp/adGroups/delete)."
+        ),
     )
     async def update_sp_ad_groups_tool(
         ctx: Context,
@@ -1442,6 +1448,25 @@ async def register_campaign_management_tools(server: FastMCP):
             name=name,
             state=state,
             default_bid=default_bid,
+        )
+        return UpdateAdGroupResponse(**result)
+
+    @server.tool(
+        name="archive_sp_ad_group",
+        description=(
+            "Archive one Sponsored Products ad group permanently. "
+            "SP v3 splits state transitions (PUT /sp/adGroups — accepts only "
+            "ENABLED/PAUSED) from archival (POST /sp/adGroups/delete). "
+            "ARCHIVED is permanent and cannot be reversed through the API."
+        ),
+    )
+    async def archive_sp_ad_group_tool(
+        ctx: Context,
+        ad_group_id: str,
+    ) -> UpdateAdGroupResponse:
+        _require_active_profile()
+        result = await campaign_management.archive_sp_ad_group(
+            ad_group_id=ad_group_id,
         )
         return UpdateAdGroupResponse(**result)
 

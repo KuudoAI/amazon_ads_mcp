@@ -344,9 +344,13 @@ async def update_sp_ad_groups(
 ) -> dict:
     """Update one Sponsored Products ad group.
 
+    The SP v3 PUT /sp/adGroups endpoint only accepts state values ENABLED
+    or PAUSED — to archive an ad group, use archive_sp_ad_group, which
+    routes through POST /sp/adGroups/delete.
+
     :param ad_group_id: Ad group ID to update
     :param name: New ad group name
-    :param state: New state (ENABLED, PAUSED, ARCHIVED)
+    :param state: New state (ENABLED, PAUSED)
     :param default_bid: New default bid amount
     """
     from ..utils.http_client import get_authenticated_client
@@ -389,6 +393,58 @@ async def update_sp_ad_groups(
                 "ad_group_id": ad_group_id,
                 "error": error_list[0].get("errors", error_list[0]),
                 "message": f"Failed to update ad group {ad_group_id}",
+            }
+    return {
+        "success": False,
+        "ad_group_id": ad_group_id,
+        "error": f"HTTP {resp.status_code}: {resp.text[:500]}",
+        "message": "API request failed",
+    }
+
+
+async def archive_sp_ad_group(ad_group_id: str) -> dict:
+    """Archive one Sponsored Products ad group.
+
+    SP v3 splits state transitions (PUT /sp/adGroups — accepts only
+    ENABLED/PAUSED) from archival (POST /sp/adGroups/delete). The 'delete'
+    endpoint is misnamed: it archives. ARCHIVED is permanent and cannot be
+    reversed through the API.
+
+    :param ad_group_id: Ad group ID to archive
+    """
+    from ..utils.http_client import get_authenticated_client
+
+    client = await get_authenticated_client()
+    headers = {
+        "Accept": "application/vnd.spAdGroup.v3+json",
+        "Content-Type": "application/vnd.spAdGroup.v3+json",
+    }
+    resp = await client.post(
+        "/sp/adGroups/delete",
+        json={"adGroupIdFilter": {"include": [ad_group_id]}},
+        headers=headers,
+    )
+
+    if resp.status_code in (200, 207):
+        data = resp.json()
+        results = data.get("adGroups", {})
+        success_list = results.get("success", [])
+        error_list = results.get("error", [])
+        if success_list:
+            return {
+                "success": True,
+                "ad_group_id": ad_group_id,
+                "message": f"Ad group {ad_group_id} archived",
+                "updated_fields": {"state": "ARCHIVED"},
+                "details": success_list[0],
+            }
+        elif error_list:
+            err = error_list[0]
+            return {
+                "success": False,
+                "ad_group_id": ad_group_id,
+                "error": err.get("errors", err),
+                "message": f"Failed to archive ad group {ad_group_id}",
             }
     return {
         "success": False,
