@@ -75,16 +75,19 @@ WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
 COPY dist/openapi/resources/ dist/openapi/resources/
 COPY dist/openapi/overlays/ dist/openapi/overlays/
+COPY scripts/docker-entrypoint.py /usr/local/bin/amazon-ads-mcp-entrypoint
 
 # Create the unprivileged 'app' user, the writable runtime directories, and
-# drop root. The container runs as `app` for the rest of the file.
+# leave startup as root long enough for the entrypoint to repair mounted
+# volume ownership before dropping privileges to `app`.
 # 750 (rwx for owner, r-x for group) is tighter than 755 and matches the
 # single-user model — no other accounts in this image need read access.
 RUN addgroup --system app && \
     adduser --system --ingroup app --home /app --no-create-home app && \
     mkdir -p /app/.cache/amazon-ads-mcp /app/data && \
     chown -R app:app /app && \
-    chmod 750 /app/.cache /app/.cache/amazon-ads-mcp /app/data
+    chmod 750 /app/.cache /app/.cache/amazon-ads-mcp /app/data && \
+    chmod 755 /usr/local/bin/amazon-ads-mcp-entrypoint
 
 # Build provenance: embed the commit SHA and build timestamp so the
 # running container can self-report which source it was built from.
@@ -114,8 +117,9 @@ ENV TRANSPORT=streamable-http \
     HOST=0.0.0.0 \
     PORT=8000
 
-# Drop root before the CMD runs.
-USER app
+# The entrypoint starts as root, fixes named-volume ownership, then execs
+# the command as the unprivileged app user.
+USER root
 
 EXPOSE 8000
 
@@ -137,4 +141,5 @@ sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{port}/health', timeout=
 # via FastMCP's lifespan hooks).
 STOPSIGNAL SIGTERM
 
+ENTRYPOINT ["amazon-ads-mcp-entrypoint"]
 CMD ["python", "-m", "amazon_ads_mcp.server", "--transport", "streamable-http", "--host", "0.0.0.0", "--port", "8000"]

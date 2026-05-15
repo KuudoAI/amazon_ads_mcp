@@ -319,6 +319,7 @@ class TestAuthManagerEndToEndIsolation:
         AuthManager.reset()
         monkeypatch.setattr(AuthManager, "_setup_provider", lambda self: None)
         self.manager = AuthManager()
+        self.manager._default_profile_id = None
 
         provider = StubProvider()
         provider.add_identity(_make_identity("id-A"))

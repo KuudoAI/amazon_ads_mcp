@@ -104,7 +104,7 @@ def test_ensure_ascii_false_preserves_unicode(tmp_path: Path):
     """Non-ASCII chars stored verbatim (matches reused template)."""
     target = tmp_path / "out.json"
     save_json_atomic(target, {"name": "café"})
-    assert "café" in target.read_text()
+    assert "café" in target.read_text(encoding="utf-8")
 
 
 def test_creates_parent_dirs_if_missing(tmp_path: Path):

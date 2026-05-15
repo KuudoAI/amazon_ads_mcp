@@ -423,6 +423,49 @@ class DownloadTooLargeError(MCPError):
         self.max_size = max_size
 
 
+class StorageUnavailableError(MCPError):
+    """Raised when server-side download storage is not writable.
+
+    :param path: Directory or file path that could not be written.
+    :type path: str
+    :param operation: Storage operation that failed.
+    :type operation: str
+    :param cause: Original filesystem exception.
+    :type cause: BaseException | None
+    """
+
+    def __init__(
+        self,
+        path: str,
+        operation: str = "write",
+        cause: BaseException | None = None,
+        **kwargs,
+    ):
+        details = kwargs.pop("details", {})
+        details.update(
+            {
+                "path": path,
+                "operation": operation,
+            }
+        )
+        if cause is not None:
+            details["cause_type"] = type(cause).__name__
+            details["cause"] = str(cause)
+        super().__init__(
+            f"Download storage is unavailable for {operation}: {path}",
+            category=ErrorCategory.INTERNAL,
+            status_code=507,
+            details=details,
+            user_message=(
+                "Server download storage is unavailable. Check directory "
+                "ownership and write permissions."
+            ),
+            **kwargs,
+        )
+        self.path = path
+        self.operation = operation
+
+
 # =============================================================================
 # Error Pattern Models
 # =============================================================================

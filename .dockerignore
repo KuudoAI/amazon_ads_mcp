@@ -2,6 +2,7 @@
 # The Dockerfile only copies:
 # - pyproject.toml, uv.lock, README.md
 # - src/
+# - scripts/docker-entrypoint.py
 # - dist/openapi/resources/
 # - dist/openapi/overlays/
 
@@ -18,6 +19,8 @@
 !README.md
 !src/
 !src/**
+!scripts/
+!scripts/docker-entrypoint.py
 
 # Keep runtime OpenAPI artifacts used by the image.
 # Both resources/ and overlays/ live under dist/openapi/ — the canonical
