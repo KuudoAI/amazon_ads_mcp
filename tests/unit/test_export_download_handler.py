@@ -5,6 +5,7 @@ downloading and processing Amazon Ads API exports.
 """
 
 import asyncio
+import builtins
 import gzip
 import hashlib
 import json
@@ -14,6 +15,7 @@ import httpx
 import pytest
 
 from amazon_ads_mcp.utils.errors import DownloadTooLargeError
+from amazon_ads_mcp.utils.errors import StorageUnavailableError
 from amazon_ads_mcp.utils.export_download_handler import ExportDownloadHandler
 
 
@@ -180,3 +182,42 @@ def test_download_export_streams_gzip(tmp_path: Path, monkeypatch):
     # Original .gz is preserved next to it
     gz_path = out.with_suffix(".csv.gz")
     assert gz_path.exists()
+
+
+def test_download_export_checks_storage_before_http(tmp_path: Path, monkeypatch):
+    handler = ExportDownloadHandler(base_dir=tmp_path)
+    real_open = builtins.open
+    http_attempted = False
+
+    def blocked_probe(path, *args, **kwargs):
+        if Path(path).name.startswith(".write-test-"):
+            raise PermissionError("permission denied")
+        return real_open(path, *args, **kwargs)
+
+    class FailingClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            nonlocal http_attempted
+            http_attempted = True
+            raise AssertionError("HTTP should not be attempted")
+
+        async def __aexit__(self, *args):
+            return None
+
+    monkeypatch.setattr(builtins, "open", blocked_probe)
+    monkeypatch.setattr(httpx, "AsyncClient", FailingClient)
+
+    with pytest.raises(StorageUnavailableError) as exc_info:
+        asyncio.run(
+            handler.download_export(
+                export_url=_download_url(),
+                export_id="abc",
+                export_type="campaigns",
+            )
+        )
+
+    assert http_attempted is False
+    assert exc_info.value.details["operation"] == "write_probe"
+    assert "reports/s3-reports" in exc_info.value.details["path"]

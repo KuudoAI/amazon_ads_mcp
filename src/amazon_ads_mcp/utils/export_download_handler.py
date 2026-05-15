@@ -38,6 +38,7 @@ import hashlib
 import json
 import logging
 import re
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -48,6 +49,16 @@ import httpx
 # S3 downloads use plain httpx client, not authenticated client
 
 logger = logging.getLogger(__name__)
+
+
+def _raise_storage_unavailable(path: Path, operation: str, exc: OSError) -> None:
+    from .errors import StorageUnavailableError
+
+    raise StorageUnavailableError(
+        path=str(path),
+        operation=operation,
+        cause=exc,
+    ) from exc
 
 
 class ExportDownloadHandler:
@@ -85,7 +96,10 @@ class ExportDownloadHandler:
         :type base_dir: Path | None
         """
         self.base_dir = base_dir or Path.cwd() / "data"
-        self.base_dir.mkdir(exist_ok=True)
+        try:
+            self.base_dir.mkdir(exist_ok=True)
+        except OSError as exc:
+            _raise_storage_unavailable(self.base_dir, "create_directory", exc)
         self.client_initialized = False
         logger.info(
             f"Download handler initialized with base directory: {self.base_dir}"
@@ -104,9 +118,26 @@ class ExportDownloadHandler:
         """
         if profile_id:
             profile_dir = self.base_dir / "profiles" / profile_id
-            profile_dir.mkdir(parents=True, exist_ok=True)
+            try:
+                profile_dir.mkdir(parents=True, exist_ok=True)
+            except OSError as exc:
+                _raise_storage_unavailable(profile_dir, "create_directory", exc)
             return profile_dir
         return self.base_dir
+
+    def _assert_directory_writable(self, directory: Path) -> None:
+        """Verify a download target directory can accept new files."""
+        probe = directory / f".write-test-{uuid.uuid4().hex}.tmp"
+        try:
+            with open(probe, "xb") as f:
+                f.write(b"")
+        except OSError as exc:
+            _raise_storage_unavailable(directory, "write_probe", exc)
+        finally:
+            try:
+                probe.unlink(missing_ok=True)
+            except OSError:
+                logger.debug("Failed to remove storage write probe: %s", probe)
 
     def get_resource_path(
         self,
@@ -203,7 +234,11 @@ class ExportDownloadHandler:
 
         # Create the directory structure
         resource_path = base / resource_type / sub_type
-        resource_path.mkdir(parents=True, exist_ok=True)
+        try:
+            resource_path.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            _raise_storage_unavailable(resource_path, "create_directory", exc)
+        self._assert_directory_writable(resource_path)
 
         return resource_path
 

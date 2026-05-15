@@ -37,7 +37,7 @@ from ..exceptions import (
     TransformError,
     ValidationError as AdsValidationError,
 )
-from ..utils.errors import ErrorCategory, MCPError
+from ..utils.errors import ErrorCategory, MCPError, StorageUnavailableError
 
 #: Cross-server envelope contract version. See openbridge-mcp/CONTRACT.md.
 ENVELOPE_VERSION = 1
@@ -1006,6 +1006,23 @@ def _classify_mcp_error(exc: MCPError) -> _Classification:
             hints=["Back off before retrying."],
             error_code="ADS_API_HTTP_429",
             retryable=True,
+            legacy_error_kind=legacy,
+        )
+
+    if isinstance(exc, StorageUnavailableError):
+        return _Classification(
+            error_kind="internal_error",
+            summary=str(exc.user_message or exc.message),
+            details=_details_from_mcp_error(exc),
+            hints=[
+                "Check ownership and write permissions for the configured "
+                "AMAZON_ADS_DOWNLOAD_DIR and profile-scoped reports "
+                "directories.",
+                "For Docker deployments, verify the mounted data volume is "
+                "writable by the MCP server process UID/GID.",
+            ],
+            error_code="STORAGE_UNAVAILABLE",
+            retryable=False,
             legacy_error_kind=legacy,
         )
 

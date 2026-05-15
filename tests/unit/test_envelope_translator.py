@@ -251,6 +251,24 @@ def test_mcp_error_all_nine_categories_have_explicit_mapping():
         )
 
 
+def test_storage_unavailable_maps_to_actionable_internal_error():
+    mod = _import_translator()
+    from amazon_ads_mcp.utils.errors import StorageUnavailableError
+
+    exc = StorageUnavailableError(
+        path="/app/data/profiles/123/reports/s3-reports",
+        operation="write_probe",
+        cause=PermissionError("permission denied"),
+    )
+    envelope = mod.build_envelope_from_exception(exc, tool_name="download_export")
+
+    _assert_envelope_shape(envelope, expected_kind="internal_error")
+    assert envelope["error_code"] == "STORAGE_UNAVAILABLE"
+    assert envelope["retryable"] is False
+    assert "UID/GID" in " ".join(envelope["hints"])
+    assert envelope["details"][0]["path"] == exc.details["path"]
+
+
 # ---------------------------------------------------------------------------
 # httpx HTTP errors
 # ---------------------------------------------------------------------------

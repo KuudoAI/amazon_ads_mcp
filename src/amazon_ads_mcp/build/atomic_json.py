@@ -30,7 +30,9 @@ def save_json_atomic(path: Path, data: Mapping[str, Any]) -> None:
 
     tmp = path.with_suffix(path.suffix + ".tmp")
     try:
-        with open(tmp, "w", encoding="utf-8") as f:
+        # Force LF on every platform so generated catalog hashes are stable
+        # across Windows, macOS, and Linux.
+        with open(tmp, "w", encoding="utf-8", newline="\n") as f:
             json.dump(data, f, indent=2, sort_keys=True, ensure_ascii=False)
             f.write("\n")
         # NOTE: keep as `os.replace(tmp, path)` so tests can monkeypatch

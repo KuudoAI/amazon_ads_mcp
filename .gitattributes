@@ -1,2 +1,7 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# The packaged v1 report-fields catalog is verified by byte-exact SHA-256
+# entries in catalog_meta.json. Keep JSON text-diffable while preventing
+# checkout newline conversion from invalidating those hashes on Windows.
+src/amazon_ads_mcp/resources/adsv1/*.json text eol=lf
