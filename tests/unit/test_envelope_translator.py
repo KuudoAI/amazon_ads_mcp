@@ -117,6 +117,18 @@ def test_authentication_error_maps_to_auth_error():
     assert envelope["retryable"] is False  # auth errors are not retryable without action
 
 
+def test_no_active_identity_runtime_error_maps_to_precondition_failed():
+    mod = _import_translator()
+
+    exc = RuntimeError("No active identity set. Use set_active_identity() first.")
+    envelope = mod.build_envelope_from_exception(exc, tool_name="amc_listInstances")
+
+    _assert_envelope_shape(envelope, expected_kind="precondition_failed")
+    assert envelope["error_code"] == "ACTIVE_IDENTITY_REQUIRED"
+    assert any("set_active_identity" in hint for hint in envelope["hints"])
+    assert "_meta" not in envelope
+
+
 def test_oauth_error_maps_to_auth_error():
     mod = _import_translator()
     from amazon_ads_mcp.exceptions import OAuthError
