@@ -319,14 +319,14 @@ class MontyDispatchSandboxProvider:
     which surfaces external-function exceptions as ``MontyRuntimeError``
     *outside* the sandbox — the script aborts before any in-sandbox
     ``try/except`` can catch them. This provider drives Monty manually
-    through ``start()`` + ``FunctionSnapshot.resume(exception=...)`` so
+    through ``start()`` + ``FunctionSnapshot.resume({"exception": ...})`` so
     exceptions are injected back into the VM and ordinary Python
     ``try/except`` semantics work for ``call_tool`` failures.
 
     Verified by repro:
       - ``run_async`` path: in-sandbox ``try/except RuntimeError`` does NOT
         catch external errors.
-      - ``start/resume`` path with ``resume(exception=RuntimeError(...))``:
+      - ``start/resume`` path with ``resume({"exception": RuntimeError(...)})``:
         the in-sandbox ``except RuntimeError`` catches as expected and the
         exception type is preserved.
 
@@ -370,7 +370,7 @@ class MontyDispatchSandboxProvider:
         # Pending future results, keyed by Monty call_id. A successful eager
         # await stashes the value here and we hand it to Monty when it asks
         # for the FutureSnapshot resolution. Failures take a different path
-        # (FunctionSnapshot.resume(exception=...)) because Monty's
+        # (FunctionSnapshot.resume({"exception": ...})) because Monty's
         # FutureSnapshot exception channel does NOT propagate to the
         # sandbox's surrounding try/except — only FunctionSnapshot exception
         # injection does. See class docstring + verified probes.
@@ -386,9 +386,11 @@ class MontyDispatchSandboxProvider:
                 if fn is None:
                     snapshot = await asyncio.to_thread(
                         snapshot.resume,
-                        exception=NameError(
-                            f"name {fn_name!r} is not defined"
-                        ),
+                        {
+                            "exception": NameError(
+                                f"name {fn_name!r} is not defined"
+                            )
+                        },
                     )
                     continue
 
@@ -406,7 +408,7 @@ class MontyDispatchSandboxProvider:
                         result = await result
                 except Exception as exc:
                     snapshot = await asyncio.to_thread(
-                        snapshot.resume, exception=exc
+                        snapshot.resume, {"exception": exc}
                     )
                     continue
 
@@ -416,7 +418,7 @@ class MontyDispatchSandboxProvider:
                 # resolve the future with the value we already computed.
                 pending[call_id] = {"return_value": result}
                 snapshot = await asyncio.to_thread(
-                    snapshot.resume, future=...
+                    snapshot.resume, {"future": ...}
                 )
                 continue
 

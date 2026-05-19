@@ -392,6 +392,38 @@ class TestCredentialsFingerprintGuard:
             await auth_manager.get_active_credentials()
 
     @pytest.mark.asyncio
+    async def test_no_token_with_hydrated_credentials_preserves_identity(
+        self, auth_manager
+    ):
+        """Session-persisted credentials can be used without reselecting identity."""
+        from amazon_ads_mcp.auth.session_state import (
+            set_active_credentials,
+            set_active_identity,
+            set_last_seen_token_fingerprint,
+            set_refresh_token_override,
+            token_fingerprint,
+        )
+
+        set_last_seen_token_fingerprint(token_fingerprint("tenant-a:secret"))
+        set_active_identity(
+            Identity(id="id-a", type="openbridge", attributes={"name": "A"})
+        )
+        set_active_credentials(
+            AuthCredentials(
+                identity_id="id-a",
+                access_token="session-token",
+                expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+                base_url="https://example.com",
+                headers={"Amazon-Advertising-API-ClientId": "client-id"},
+            )
+        )
+        set_refresh_token_override(None)
+
+        credentials = await auth_manager.get_active_credentials()
+
+        assert credentials.access_token == "session-token"
+
+    @pytest.mark.asyncio
     async def test_same_fingerprint_preserves_identity(self, auth_manager):
         """Same token fingerprint does not trigger state clearing."""
         from amazon_ads_mcp.auth.session_state import (

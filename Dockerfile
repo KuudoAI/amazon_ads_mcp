@@ -105,8 +105,8 @@ ENV AMAZON_ADS_MCP_GIT_SHA=$GIT_SHA \
 # `org.opencontainers.image.source` at build time.
 LABEL org.opencontainers.image.title="amazon-ads-mcp" \
       org.opencontainers.image.description="Amazon Ads MCP server (FastMCP + Code Mode)" \
-      org.opencontainers.image.source="https://github.com/openbridge/amazon_ads_mcp" \
-      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.source="https://github.com/KuudoAI/amazon_ads_mcp" \
+      org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.revision="$GIT_SHA" \
       org.opencontainers.image.created="$BUILD_TIME"
 

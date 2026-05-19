@@ -45,6 +45,7 @@ ENVELOPE_VERSION = 1
 #: Subset of the master taxonomy this server emits. Closed list.
 SUPPORTED_ERROR_KINDS: tuple[str, ...] = (
     "mcp_input_validation",
+    "precondition_failed",
     "ads_api_http",
     "auth_error",
     "rate_limited",
@@ -649,6 +650,17 @@ def _is_fastmcp_not_found_error(exc: BaseException) -> bool:
     return isinstance(exc, FastMCPNotFoundError)
 
 
+def _is_no_active_identity_precondition(exc: BaseException) -> bool:
+    """Return True for the known missing-active-identity precondition."""
+    if not isinstance(exc, RuntimeError):
+        return False
+    message = str(exc)
+    return (
+        "No active identity set" in message
+        and "set_active_identity" in message
+    )
+
+
 def _is_monty_runtime_error(exc: BaseException) -> bool:
     """Detect Monty's ``MontyError`` / ``MontyRuntimeError`` from the
     Code Mode sandbox.
@@ -705,6 +717,19 @@ def _classify(exc: BaseException) -> _Classification:
     # Order matters: more-specific Pydantic / httpx checks first, then the
     # AmazonAdsMCPError hierarchy (most-specific subclasses first), then
     # MCPError, then the catch-all.
+
+    if _is_no_active_identity_precondition(exc):
+        return _Classification(
+            error_kind="precondition_failed",
+            summary="No active identity is set for this session.",
+            details=[_detail_from_message(exc)],
+            hints=[
+                "Call set_active_identity with a valid identity_id before calling operational tools.",
+            ],
+            error_code="ACTIVE_IDENTITY_REQUIRED",
+            retryable=False,
+            legacy_error_kind=None,
+        )
 
     if _is_pydantic_validation_error(exc) or _is_fastmcp_validation_error(exc):
         return _classify_validation(exc)
