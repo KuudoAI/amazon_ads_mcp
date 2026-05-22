@@ -48,6 +48,7 @@ _V1_ENTRY = {
         "Unsupported fields usually return HTTP 400 with unknown field errors.",
     ],
     "status": "empirically-validated-minimal",
+    "validation_modes": ["query", "validate", "lookup", "validate_body"],
 }
 
 _RP_ENTRY = {
@@ -81,6 +82,7 @@ _RP_ENTRY = {
         "required_root_fields": ["configuration", "startDate", "endDate"],
     },
     "status": "schema-derived",
+    "validation_modes": ["validate_body"],
 }
 
 _BR_ENTRY = {
@@ -105,6 +107,7 @@ _BR_ENTRY = {
         ],
     },
     "status": "schema-derived",
+    "validation_modes": ["validate_body"],
 }
 
 _MMM_ENTRY = {
@@ -127,6 +130,7 @@ _MMM_ENTRY = {
         ],
     },
     "status": "schema-derived",
+    "validation_modes": ["validate_body"],
 }
 
 

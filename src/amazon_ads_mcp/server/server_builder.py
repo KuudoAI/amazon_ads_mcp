@@ -616,7 +616,11 @@ class ServerBuilder:
             logger.debug("Parsed AMAZON_AD_API_PACKAGES: %s", requested)
         else:
             # Use packages.json defaults when available; otherwise fall back to a safe minimal set
-            fallback_defaults = ["profiles", "accounts-ads-accounts"]
+            fallback_defaults = [
+                "profiles",
+                "accounts-ads-accounts",
+                "reporting-version-3",
+            ]
             requested = set(default_tokens or fallback_defaults)
             logger.info("Using default package allowlist: %s", ", ".join(sorted(requested)))
 

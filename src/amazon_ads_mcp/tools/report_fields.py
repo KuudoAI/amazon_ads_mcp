@@ -51,6 +51,7 @@ _CATALOG: Dict[str, Dict[str, Any]] = {
             "Unsupported fields usually return HTTP 400 with unknown field errors.",
         ],
         "field_groups": _ADSAPI_V1_SAFE_FIELDS,
+        "validation_modes": ["query", "validate", "lookup", "validate_body"],
     },
     REPORTING_V3_CREATE: {
         "description": "Reporting v3 async report request schema guide",
@@ -89,6 +90,7 @@ _CATALOG: Dict[str, Dict[str, Any]] = {
                 "item_fields": ["field", "values[]"],
             },
         },
+        "validation_modes": ["validate_body"],
     },
     BRAND_METRICS_CREATE: {
         "description": "Brand Metrics report request schema guide",
@@ -112,6 +114,7 @@ _CATALOG: Dict[str, Dict[str, Any]] = {
                 "lookBackPeriod": ["1W", "1M", "1CM", "1w", "1m", "1cm"],
             },
         },
+        "validation_modes": ["validate_body"],
     },
     MMM_CREATE: {
         "description": "Marketing Mix Modeling report request schema guide",
@@ -133,6 +136,7 @@ _CATALOG: Dict[str, Dict[str, Any]] = {
                 "timeUnit": ["DAILY", "WEEKLY"],
             },
         },
+        "validation_modes": ["validate_body"],
     },
 }
 

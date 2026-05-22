@@ -11,14 +11,17 @@ from pathlib import Path
 
 
 APP_USER = "app"
-DEFAULT_RUNTIME_DIRS = ("/app/data", "/app/.cache")
+DEFAULT_RUNTIME_DIRS = ("/app/.cache",)
+DEFAULT_SHARED_SUBDIRS = ("/app/data/uploads",)
 
 
 def _runtime_dirs() -> list[Path]:
     dirs = {Path(p) for p in DEFAULT_RUNTIME_DIRS}
+    for value in DEFAULT_SHARED_SUBDIRS:
+        dirs.add(Path(value))
     for env_name in ("AMAZON_ADS_DOWNLOAD_DIR", "AMAZON_ADS_CACHE_DIR"):
         value = os.environ.get(env_name)
-        if value:
+        if value and Path(value) != Path("/app/data"):
             dirs.add(Path(value))
     return sorted(dirs)
 
@@ -53,7 +56,9 @@ def _drop_privileges(uid: int, gid: int) -> None:
     os.setgroups([])
     os.setgid(gid)
     os.setuid(uid)
-    os.environ.setdefault("HOME", "/app")
+    os.environ["HOME"] = "/app"
+    os.environ.setdefault("XDG_CACHE_HOME", "/app/.cache")
+    os.environ.setdefault("XDG_DATA_HOME", "/app/.local/share")
 
 
 def main() -> None:
