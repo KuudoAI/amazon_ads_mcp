@@ -199,6 +199,145 @@ def test_validate_body_with_validate_fields_rejected() -> None:
     assert exc.value.code == "INVALID_MODE_ARGS"
 
 
+def _reporting_v3_body(**overrides) -> dict:
+    body = {
+        "startDate": "2026-05-20",
+        "endDate": "2026-05-20",
+        "configuration": {
+            "adProduct": "SPONSORED_PRODUCTS",
+            "reportTypeId": "spCampaigns",
+            "columns": [
+                "campaignId",
+                "campaignName",
+                "impressions",
+                "clicks",
+                "cost",
+            ],
+            "groupBy": ["campaign"],
+            "format": "GZIP_JSON",
+            "timeUnit": "DAILY",
+        },
+    }
+    body.update(overrides)
+    return body
+
+
+def test_validate_body_accepts_reporting_v3_create_report_payload() -> None:
+    result = report_fields_handle(
+        mode="validate_body",
+        operation="rp_createAsyncReport",
+        body=_reporting_v3_body(),
+    )
+    payload = result.model_dump(exclude_none=True)
+    assert payload["operation"] == "rp_createAsyncReport"
+    assert payload["valid"] is True
+    assert payload["shape_errors"] == []
+    assert payload["unknown_fields"] == []
+
+
+def test_validate_body_reporting_v3_flags_nested_shape_errors() -> None:
+    body = _reporting_v3_body(unexpected=True)
+    body["configuration"] = {
+        "adProduct": "SPONSORED_PRODUCTS",
+        "reportTypeId": "spCampaigns",
+        "groupBy": ["campaign"],
+        "format": "CSV",
+        "timeUnit": "HOURLY",
+        "extraConfig": True,
+    }
+
+    result = report_fields_handle(
+        mode="validate_body",
+        operation="rp_createAsyncReport",
+        body=body,
+    )
+    payload = result.model_dump(exclude_none=True)
+
+    assert payload["valid"] is False
+    assert payload["unknown_fields"] == ["unexpected", "configuration.extraConfig"]
+    assert "configuration.columns" in payload["missing_required"]
+    errors = {(e["code"], e["field"]) for e in payload["shape_errors"]}
+    assert ("SCHEMA_REQUIRED", "configuration.columns") in errors
+    assert ("SCHEMA_ENUM_MISMATCH", "configuration.format") in errors
+    assert ("SCHEMA_ENUM_MISMATCH", "configuration.timeUnit") in errors
+
+
+def test_validate_body_accepts_brand_metrics_payload() -> None:
+    result = report_fields_handle(
+        mode="validate_body",
+        operation="br_generateBrandMetricsReport",
+        body={
+            "format": "JSON",
+            "lookBackPeriod": "1W",
+            "metrics": ["totalDetailPageViews"],
+        },
+    )
+    payload = result.model_dump(exclude_none=True)
+    assert payload["operation"] == "br_generateBrandMetricsReport"
+    assert payload["valid"] is True
+    assert payload["shape_errors"] == []
+
+
+def test_validate_body_brand_metrics_flags_unknown_and_enum_errors() -> None:
+    result = report_fields_handle(
+        mode="validate_body",
+        operation="br_generateBrandMetricsReport",
+        body={"format": "XML", "lookBackPeriod": "2W", "extra": True},
+    )
+    payload = result.model_dump(exclude_none=True)
+    assert payload["valid"] is False
+    assert payload["unknown_fields"] == ["extra"]
+    errors = {(e["code"], e["field"]) for e in payload["shape_errors"]}
+    assert ("SCHEMA_ENUM_MISMATCH", "format") in errors
+    assert ("SCHEMA_ENUM_MISMATCH", "lookBackPeriod") in errors
+
+
+def test_validate_body_accepts_mmm_payload() -> None:
+    result = report_fields_handle(
+        mode="validate_body",
+        operation="mmm_createMmmReport",
+        body={
+            "startDate": "2026-05-18",
+            "endDate": "2026-05-24",
+            "configuration": {
+                "brandGroupId": "brand-group-1",
+                "geoDimension": "COUNTRY",
+                "metricsType": "MEDIA_ONLY",
+                "timeUnit": "WEEKLY",
+            },
+        },
+    )
+    payload = result.model_dump(exclude_none=True)
+    assert payload["operation"] == "mmm_createMmmReport"
+    assert payload["valid"] is True
+    assert payload["shape_errors"] == []
+
+
+def test_validate_body_mmm_flags_required_and_enum_errors() -> None:
+    result = report_fields_handle(
+        mode="validate_body",
+        operation="mmm_createMmmReport",
+        body={
+            "startDate": "2026-05-18",
+            "configuration": {
+                "brandGroupId": "brand-group-1",
+                "geoDimension": "STATE",
+                "metricsType": "MEDIA_ONLY",
+            },
+        },
+    )
+    payload = result.model_dump(exclude_none=True)
+    assert payload["valid"] is False
+    assert set(payload["missing_required"]) == {
+        "endDate",
+        "configuration.timeUnit",
+    }
+    errors = {(e["code"], e["field"]) for e in payload["shape_errors"]}
+    assert ("SCHEMA_REQUIRED", "endDate") in errors
+    assert ("SCHEMA_REQUIRED", "configuration.timeUnit") in errors
+    assert ("SCHEMA_ENUM_MISMATCH", "configuration.geoDimension") in errors
+
+
 # ---- runtime middleware hint enricher (live SCHEMA_ADDITIONAL_PROPERTIES)
 
 

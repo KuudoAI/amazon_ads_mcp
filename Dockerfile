@@ -19,6 +19,8 @@
 
 # Pinned base versions. Bump together when upgrading toolchain.
 ARG PYTHON_VERSION=3.14
+ARG APP_UID=10001
+ARG APP_GID=10001
 
 # Pull the uv standalone binary as a build-stage helper image. Pinning
 # the uv tag (not :latest) keeps `uv sync` reproducible across builds.
@@ -63,6 +65,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # ---------------------------------------------------------------------------
 FROM python:${PYTHON_VERSION}-slim-bookworm AS runtime
 
+ARG APP_UID=10001
+ARG APP_GID=10001
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/opt/venv/bin:$PATH"
@@ -82,8 +87,9 @@ COPY scripts/docker-entrypoint.py /usr/local/bin/amazon-ads-mcp-entrypoint
 # volume ownership before dropping privileges to `app`.
 # 750 (rwx for owner, r-x for group) is tighter than 755 and matches the
 # single-user model — no other accounts in this image need read access.
-RUN addgroup --system app && \
-    adduser --system --ingroup app --home /app --no-create-home app && \
+RUN groupadd --system --gid "${APP_GID}" app && \
+    useradd --system --uid "${APP_UID}" --gid app --home-dir /app \
+        --shell /usr/sbin/nologin app && \
     mkdir -p /app/.cache/amazon-ads-mcp /app/data && \
     chown -R app:app /app && \
     chmod 750 /app/.cache /app/.cache/amazon-ads-mcp /app/data && \

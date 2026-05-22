@@ -333,6 +333,11 @@ def _resolve_v1(operation: str) -> Optional[str]:
     return None
 
 
+def _resolve_catalog_operation(operation: str) -> Optional[str]:
+    """Resolve *operation* to any operation listed by list_report_fields."""
+    return baseline_mod.resolve_operation_key(operation)
+
+
 # ---------- handler dispatch --------------------------------------------
 
 
@@ -798,6 +803,212 @@ _CREATE_REPORT_REQUIRED_KEYS: frozenset[str] = frozenset(
     {"accessRequestedAccounts"}
 )
 
+_REPORTING_V3_ROOT_KEYS: frozenset[str] = frozenset(
+    {"configuration", "endDate", "name", "startDate"}
+)
+_REPORTING_V3_REQUIRED_KEYS: frozenset[str] = frozenset(
+    {"configuration", "endDate", "startDate"}
+)
+_REPORTING_V3_CONFIG_KEYS: frozenset[str] = frozenset(
+    {
+        "adProduct",
+        "columns",
+        "filters",
+        "format",
+        "groupBy",
+        "reportTypeId",
+        "timeUnit",
+    }
+)
+_REPORTING_V3_REQUIRED_CONFIG_KEYS: frozenset[str] = frozenset(
+    {"adProduct", "columns", "format", "groupBy", "reportTypeId", "timeUnit"}
+)
+_REPORTING_V3_ENUMS: Dict[str, List[str]] = {
+    "configuration.adProduct": [
+        "ALL",
+        "DEMAND_SIDE_PLATFORM",
+        "SPONSORED_BRANDS",
+        "SPONSORED_DISPLAY",
+        "SPONSORED_PRODUCTS",
+        "SPONSORED_TELEVISION",
+    ],
+    "configuration.format": ["GZIP_JSON"],
+    "configuration.timeUnit": ["DAILY", "SUMMARY"],
+}
+
+_BRAND_METRICS_ROOT_KEYS: frozenset[str] = frozenset(
+    {
+        "brandName",
+        "categoryPath",
+        "categoryTreeName",
+        "format",
+        "lookBackPeriod",
+        "metrics",
+        "reportEndDate",
+        "reportStartDate",
+    }
+)
+_BRAND_METRICS_ENUMS: Dict[str, List[str]] = {
+    "format": ["CSV", "JSON"],
+    "lookBackPeriod": ["1W", "1M", "1CM", "1w", "1m", "1cm"],
+}
+
+_MMM_ROOT_KEYS: frozenset[str] = frozenset(
+    {
+        "configuration",
+        "description",
+        "dueDate",
+        "endDate",
+        "reportName",
+        "startDate",
+    }
+)
+_MMM_REQUIRED_KEYS: frozenset[str] = frozenset(
+    {"configuration", "endDate", "startDate"}
+)
+_MMM_CONFIG_KEYS: frozenset[str] = frozenset(
+    {"brandGroupId", "geoDimension", "metricsType", "timeUnit"}
+)
+_MMM_REQUIRED_CONFIG_KEYS: frozenset[str] = frozenset(
+    {"brandGroupId", "geoDimension", "metricsType", "timeUnit"}
+)
+_MMM_ENUMS: Dict[str, List[str]] = {
+    "configuration.geoDimension": ["COUNTRY", "DMA", "POSTAL_CODE"],
+    "configuration.metricsType": ["MEDIA_AND_SALES", "MEDIA_ONLY"],
+    "configuration.timeUnit": ["DAILY", "WEEKLY"],
+}
+
+
+def _schema_required_error(field: str) -> Dict[str, Any]:
+    return {
+        "code": "SCHEMA_REQUIRED",
+        "field": field,
+        "issue": f"Required field missing: '{field}'.",
+    }
+
+
+def _schema_enum_error(field: str, value: Any, allowed: List[str]) -> Dict[str, Any]:
+    return {
+        "code": "SCHEMA_ENUM_MISMATCH",
+        "field": field,
+        "issue": f"{field} must be one of: {', '.join(allowed)}.",
+        "allowed": list(allowed),
+        "actual": value,
+    }
+
+
+def _schema_type_error(field: str, expected_type: str, value: Any) -> Dict[str, Any]:
+    return {
+        "code": "SCHEMA_TYPE_MISMATCH",
+        "field": field,
+        "issue": f"{field or 'body'} must be {expected_type}.",
+        "expected_type": expected_type,
+        "received_type": type(value).__name__,
+    }
+
+
+def _append_unknown_keys(
+    unknown_fields: List[str],
+    container: Dict[str, Any],
+    allowed: frozenset[str],
+    *,
+    prefix: str = "",
+) -> None:
+    for key in container.keys():
+        if key not in allowed:
+            unknown_fields.append(f"{prefix}.{key}" if prefix else key)
+
+
+def _append_missing_required(
+    shape_errors: List[Dict[str, Any]],
+    container: Dict[str, Any],
+    required: frozenset[str],
+    *,
+    prefix: str = "",
+) -> None:
+    for field in sorted(required):
+        if field not in container:
+            full_path = f"{prefix}.{field}" if prefix else field
+            shape_errors.append(_schema_required_error(full_path))
+
+
+def _append_enum_errors(
+    shape_errors: List[Dict[str, Any]],
+    body: Dict[str, Any],
+    enum_specs: Dict[str, List[str]],
+) -> None:
+    for path, allowed in enum_specs.items():
+        current: Any = body
+        found = True
+        for part in path.split("."):
+            if not isinstance(current, dict) or part not in current:
+                found = False
+                break
+            current = current[part]
+        if found and current not in allowed:
+            shape_errors.append(_schema_enum_error(path, current, allowed))
+
+
+def _generic_body_validation(
+    *,
+    operation: str,
+    body: Any,
+    root_keys: frozenset[str],
+    required_root: frozenset[str] = frozenset(),
+    config_keys: Optional[frozenset[str]] = None,
+    required_config: frozenset[str] = frozenset(),
+    enum_specs: Optional[Dict[str, List[str]]] = None,
+) -> ValidateBodyReportFieldsResponse:
+    shape_errors: List[Dict[str, Any]] = []
+    unknown_fields: List[str] = []
+
+    if not isinstance(body, dict):
+        shape_errors.append(_schema_type_error("", "an object", body))
+    else:
+        _append_unknown_keys(unknown_fields, body, root_keys)
+        _append_missing_required(shape_errors, body, required_root)
+
+        if config_keys is not None and "configuration" in body:
+            configuration = body.get("configuration")
+            if isinstance(configuration, dict):
+                _append_unknown_keys(
+                    unknown_fields,
+                    configuration,
+                    config_keys,
+                    prefix="configuration",
+                )
+                _append_missing_required(
+                    shape_errors,
+                    configuration,
+                    required_config,
+                    prefix="configuration",
+                )
+            else:
+                shape_errors.append(
+                    _schema_type_error("configuration", "an object", configuration)
+                )
+
+        _append_enum_errors(shape_errors, body, enum_specs or {})
+
+    missing_required = sorted(
+        e["field"]
+        for e in shape_errors
+        if e.get("code") == "SCHEMA_REQUIRED" and e.get("field")
+    )
+
+    return ValidateBodyReportFieldsResponse(
+        mode="validate_body",
+        success=True,
+        operation=operation,
+        valid=not shape_errors and not unknown_fields,
+        shape_errors=shape_errors,
+        unknown_fields=unknown_fields,
+        missing_required=missing_required,
+        deprecated_shape_hints=[],
+        suggested_replacements={},
+        operator_misuse=[],
+    )
+
 
 def _handle_validate_body(
     inp: ReportFieldsInput,
@@ -810,12 +1021,39 @@ def _handle_validate_body(
     — runs alongside it; agents call validate_body for whole-request
     correctness and validate for cherry-picked field-list correctness.
     """
-    resolved = _resolve_v1(inp.operation)
+    resolved = _resolve_catalog_operation(inp.operation)
     if resolved is None:
         raise ReportFieldsToolError(
             ReportFieldsErrorCode.UNSUPPORTED_OPERATION,
-            "validate_body mode supports only "
-            "allv1_AdsApiv1CreateReport.",
+            "validate_body mode supports only operations returned by "
+            "list_report_fields.",
+        )
+    if resolved == baseline_mod.REPORTING_V3_CREATE:
+        return _generic_body_validation(
+            operation=resolved,
+            body=inp.body,
+            root_keys=_REPORTING_V3_ROOT_KEYS,
+            required_root=_REPORTING_V3_REQUIRED_KEYS,
+            config_keys=_REPORTING_V3_CONFIG_KEYS,
+            required_config=_REPORTING_V3_REQUIRED_CONFIG_KEYS,
+            enum_specs=_REPORTING_V3_ENUMS,
+        )
+    if resolved == baseline_mod.BRAND_METRICS_CREATE:
+        return _generic_body_validation(
+            operation=resolved,
+            body=inp.body,
+            root_keys=_BRAND_METRICS_ROOT_KEYS,
+            enum_specs=_BRAND_METRICS_ENUMS,
+        )
+    if resolved == baseline_mod.MMM_CREATE:
+        return _generic_body_validation(
+            operation=resolved,
+            body=inp.body,
+            root_keys=_MMM_ROOT_KEYS,
+            required_root=_MMM_REQUIRED_KEYS,
+            config_keys=_MMM_CONFIG_KEYS,
+            required_config=_MMM_REQUIRED_CONFIG_KEYS,
+            enum_specs=_MMM_ENUMS,
         )
 
     body = inp.body or {}

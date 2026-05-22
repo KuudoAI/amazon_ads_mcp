@@ -71,6 +71,37 @@ async def test_load_package_allowlist_defaults(tmp_path, builder, monkeypatch):
     assert allowlist == {"Profiles"}
 
 
+@pytest.mark.asyncio
+async def test_load_package_allowlist_empty_defaults_include_reporting_v3(
+    tmp_path, builder, monkeypatch
+):
+    resources_dir = tmp_path / "resources"
+    resources_dir.mkdir()
+    (resources_dir / "AccountsProfiles.json").write_text("{}")
+    (resources_dir / "AccountsAdsAccounts.json").write_text("{}")
+    (resources_dir / "ReportingVersion3.json").write_text("{}")
+
+    packages = {
+        "aliases": {
+            "profiles": "AccountsProfiles",
+            "accounts-ads-accounts": "AccountsAdsAccounts",
+            "reporting-version-3": "ReportingVersion3",
+        },
+        "defaults": [],
+    }
+    (resources_dir / "packages.json").write_text(json.dumps(packages))
+
+    monkeypatch.delenv("AMAZON_AD_API_PACKAGES", raising=False)
+
+    allowlist = await builder._load_package_allowlist(resources_dir)
+
+    assert allowlist == {
+        "AccountsProfiles",
+        "AccountsAdsAccounts",
+        "ReportingVersion3",
+    }
+
+
 
 # Code mode tests removed — code_mode_enabled is now a settings property,
 # not a ServerBuilder method. See config/settings.py.
