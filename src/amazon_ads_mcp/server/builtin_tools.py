@@ -951,14 +951,16 @@ Note: Requires HTTP transport (not stdio).
                 hint="Use list_downloads to see available files",
             )
 
-        # Build URL with proper encoding
-        base_url = str(request.base_url).rstrip("/")
+        # Build URL with proper encoding. Resolve the base URL through the
+        # same hardened helper the download routes use so this tool and the
+        # route that actually serves the file agree: prefer
+        # AMAZON_ADS_PUBLIC_BASE_URL, honor X-Forwarded-Proto/Host only when
+        # AMAZON_ADS_TRUST_FORWARDED_HEADERS=true, else fall back to the raw
+        # request base URL. Trusting forwarded headers unconditionally would
+        # let a client forge download URLs pointing at an attacker domain.
+        from .file_routes import _get_base_url
 
-        # Handle forwarded headers from reverse proxy
-        forwarded_proto = request.headers.get("X-Forwarded-Proto")
-        forwarded_host = request.headers.get("X-Forwarded-Host")
-        if forwarded_proto and forwarded_host:
-            base_url = f"{forwarded_proto}://{forwarded_host}"
+        base_url = _get_base_url(request)
 
         # URL-encode path segments
         encoded_path = "/".join(
