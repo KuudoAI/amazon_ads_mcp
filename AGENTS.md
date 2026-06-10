@@ -174,9 +174,26 @@ report_fields(mode="query", category="metric", search="cost", limit=20,
 - Byte-cap measurement factors `drop` in, so dropping populated arrays
   can also avoid description clipping when the post-drop payload fits.
 
-`category="filter"` and `category="time"` are accepted but return empty
-results in this release — use `list_report_fields(operation=...)` for
-filter/time baselines on other report APIs.
+`category="time"` returns the curated, doc-sourced time-grain catalog: the
+seven v1 reporting time dimensions (`hour/date/day/week/month/year/
+dateRange.value`) enriched with `date_range_presets`, `historical_data`, and
+`max_report_pull` per grain. These windows are NOT in the OpenAPI spec, so
+they close the time-axis equivalent of the field-discovery 400 loop (e.g.
+`hour.value` caps at a 14-day pull; `date.value` allows a 120-day pull but a
+15-month lookback). The overlay is a curated constant in
+`report_fields_v1_catalog.py` (not generated `dimensions.json`), so it does
+not affect catalog-drift checks, and it surfaces ONLY under `category="time"`
+— dimension/metric/`fields=[...]` output stays byte-identical.
+
+```
+report_fields(mode="query", category="time")           # all 7 grains + windows
+report_fields(mode="query", category="time",
+              drop=["date_range_presets"])              # name + window only
+```
+
+`category="filter"` is accepted but returns empty (no filter records in the
+v1 catalog yet) — use `list_report_fields(operation=...)` for filter
+baselines on other report APIs.
 
 ### Environment variables
 

@@ -175,16 +175,64 @@ def test_category_dimension_filters_correctly(small_catalog):
 
 
 def test_category_filter_returns_empty(small_catalog):
-    """filter/time accepted but return empty — no informational note added (§D.2)."""
+    """filter accepted but returns empty — no records in the v1 catalog (§D.2)."""
     r = handle(mode="query", category="filter")
     assert r.fields == []
     assert r.total_matching == 0
 
 
-def test_category_time_returns_empty(small_catalog):
-    r = handle(mode="query", category="time")
-    assert r.fields == []
-    assert r.total_matching == 0
+def test_category_time_returns_grains(small_catalog):
+    """category="time" returns the curated doc-sourced grain records with
+    reporting-window metadata, independent of the loaded catalog (the
+    small_catalog fixture has no time dimensions)."""
+    r = handle(mode="query", category="time", limit=100)
+    ids = [e.field_id for e in r.fields]
+    assert ids == [
+        "date.value",
+        "dateRange.value",
+        "day.value",
+        "hour.value",
+        "month.value",
+        "week.value",
+        "year.value",
+    ]
+    assert r.total_matching == 7
+
+    by_id = {e.field_id: e for e in r.fields}
+    # Tightest window: hour caps at 14 days of pull + 14 days lookback.
+    hour = by_id["hour.value"]
+    assert hour.category == "time"
+    assert hour.max_report_pull == "14 days"
+    assert hour.historical_data == "14 days"
+    assert hour.date_range_presets == [
+        "Today",
+        "Yesterday",
+        "Last 7 days",
+        "This week",
+        "Last week",
+    ]
+    # Date grain: 120-day pull but 15-month lookback (the classic 400 trap).
+    assert by_id["date.value"].max_report_pull == "120 days"
+    assert by_id["date.value"].historical_data == "15 months"
+    # Widest: year/dateRange pull the full 72 months.
+    assert by_id["year.value"].max_report_pull == "72 months"
+    assert by_id["dateRange.value"].historical_data == "72 months"
+
+
+def test_category_time_grains_absent_from_dimension_path(small_catalog):
+    """The curated time overlay must NOT leak into the dimension/metric or
+    all-category paths — those stay catalog-truth and byte-identical."""
+    dims = handle(mode="query", category="dimension")
+    assert [e.field_id for e in dims.fields] == ["campaign.id", "campaign.name"]
+    for e in dims.fields:
+        assert e.date_range_presets is None
+        assert e.max_report_pull is None
+        assert e.historical_data is None
+
+    # Search runs over the catalog pool, not the time overlay — a grain id
+    # would only appear here if the overlay leaked into the general path.
+    searched = handle(mode="query", search="hour", limit=100)
+    assert "hour.value" not in {e.field_id for e in searched.fields}
 
 
 def test_search_substring_on_both_field_id_and_display_name(small_catalog):

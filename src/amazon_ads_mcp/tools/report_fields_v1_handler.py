@@ -437,6 +437,12 @@ def _record_to_entry(
         description=record.get("description") if include_description else None,
         required_fields=list(record.get("required_fields") or []),
         complementary_fields=list(record.get("complementary_fields") or []),
+        # Curated time-grain window overlay (category="time" records only).
+        # None for every dimension/metric record → dropped by exclude_none,
+        # keeping non-time output byte-identical to the prior shape.
+        date_range_presets=_nonempty_or_none("date_range_presets"),
+        historical_data=record.get("historical_data"),
+        max_report_pull=record.get("max_report_pull"),
         compatible_dimensions=_nonempty_or_none("compatible_dimensions"),
         incompatible_dimensions=_nonempty_or_none("incompatible_dimensions"),
         # Round 13 Phase D: parallel field-id arrays. Display strings
@@ -527,8 +533,12 @@ def _select_query_records(inp: ReportFieldsInput) -> List[Dict[str, Any]]:
     Does NOT apply pagination, search, fields-lookup, or v3 gating;
     those are layered on top.
     """
-    # category=filter or time → empty; they carry no records in v1 catalog yet (§D.2).
-    if inp.category in ("filter", "time"):
+    # category=time → curated doc-sourced grain records (presets + historical
+    # data + max report pull). category=filter stays empty: the v1 catalog
+    # carries no filter records yet (§D.2).
+    if inp.category == "time":
+        return list(catalog_mod.get_time_records())
+    if inp.category == "filter":
         return []
 
     if inp.category == "dimension":

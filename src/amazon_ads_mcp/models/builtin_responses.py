@@ -731,6 +731,19 @@ class ReportFieldEntry(BaseModel):
     v3_name_dsp: Optional[str] = None
     v3_name_sponsored_ads: Optional[str] = None
 
+    # v1 time-grain reporting windows (curated, doc-sourced). Populated only
+    # on records returned via ``category="time"``; None (and dropped via
+    # exclude_none) for every dimension/metric record, so non-time output is
+    # byte-identical to the prior shape. Source: Amazon Ads "Reporting time
+    # periods" guide — the date-range presets plus the historical-data and
+    # max-report-pull windows that bound a valid CreateReport time selection
+    # for each grain. Strings are verbatim from the doc (e.g. "15 months",
+    # "120 days") rather than normalized to days, since the doc mixes day and
+    # month units and month→day conversion would encode false precision.
+    date_range_presets: Optional[List[str]] = None
+    historical_data: Optional[str] = None
+    max_report_pull: Optional[str] = None
+
     source: Optional[CatalogSourceMeta] = None  # detail lookup only
 
 
