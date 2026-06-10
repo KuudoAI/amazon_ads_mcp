@@ -223,6 +223,151 @@ def get_metrics() -> List[Dict[str, Any]]:
     return _load_records("metrics")
 
 
+# ---------- curated time-grain windows (category="time") -----------------
+#
+# Doc-sourced overlay for the v1 reporting API's time grains. The packaged
+# OpenAPI spec does NOT enumerate per-grain date-range presets or the
+# historical-data / max-report-pull windows, so an LLM otherwise guesses a
+# time selection and eats an HTTP 400 — the same field-discovery failure the
+# rest of report_fields closes, extended to the time axis.
+#
+# This is a CURATED CONSTANT, not generated catalog content. It deliberately
+# lives in code (not in dimensions.json) so the refresh pipeline's
+# catalog-drift / idempotency guards stay green and the loader's "four named
+# files" contract is untouched. The descriptive text (display_name,
+# short_description, data_type) mirrors the corresponding catalog dimension
+# records so the two views agree.
+#
+# Mapping note: the Amazon doc lists a "Day of week" grain with no
+# corresponding catalog field_id (the catalog's ``day.value`` is "Day of
+# Month"), so it is intentionally omitted rather than mapped to a phantom id.
+#
+# Source: Amazon Ads "Reporting — time periods" guide (date-range presets,
+# historical data, and max report pull per time dimension).
+_TIME_PRESETS_HOUR = ["Today", "Yesterday", "Last 7 days", "This week", "Last week"]
+_TIME_PRESETS_DATE = _TIME_PRESETS_HOUR + [
+    "Last 30 days",
+    "This month",
+    "Last month",
+    "Last 90 days",
+    "This quarter",
+]
+_TIME_PRESETS_YEARLY = _TIME_PRESETS_DATE + ["This year"]
+_TIME_PRESETS_FULL = _TIME_PRESETS_YEARLY + ["Last year"]
+
+#: Time-grain records in catalog-record shape, carrying the curated window
+#: overlay. ``category="time"`` so they read as a distinct discovery facet;
+#: the same field_ids also exist as ``category="dimension"`` catalog records
+#: (their compatibility-graph home). Returned via :func:`get_time_records`.
+TIME_GRAIN_RECORDS: List[Dict[str, Any]] = [
+    {
+        "field_id": "hour.value",
+        "display_name": "Hour (Primary Key)",
+        "data_type": "LONG",
+        "category": "time",
+        "provenance": "documented",
+        "short_description": "The hour of the day associated with the report.",
+        "required_fields": [],
+        "complementary_fields": [],
+        "date_range_presets": list(_TIME_PRESETS_HOUR),
+        "historical_data": "14 days",
+        "max_report_pull": "14 days",
+    },
+    {
+        "field_id": "date.value",
+        "display_name": "Date (Primary Key)",
+        "data_type": "DATE",
+        "category": "time",
+        "provenance": "documented",
+        "short_description": "The date included in the report.",
+        "required_fields": [],
+        "complementary_fields": [],
+        "date_range_presets": list(_TIME_PRESETS_DATE),
+        "historical_data": "15 months",
+        "max_report_pull": "120 days",
+    },
+    {
+        "field_id": "day.value",
+        "display_name": "Day of Month (Primary Key)",
+        "data_type": "LONG",
+        "category": "time",
+        "provenance": "documented",
+        "short_description": "The day of the month associated with the report.",
+        "required_fields": [],
+        "complementary_fields": [],
+        "date_range_presets": list(_TIME_PRESETS_YEARLY),
+        "historical_data": "15 months",
+        "max_report_pull": "15 months",
+    },
+    {
+        "field_id": "week.value",
+        "display_name": "Week (Primary Key)",
+        "data_type": "LONG",
+        "category": "time",
+        "provenance": "documented",
+        "short_description": "The week of the year associated with the report.",
+        "required_fields": [],
+        "complementary_fields": [],
+        "date_range_presets": list(_TIME_PRESETS_YEARLY),
+        "historical_data": "15 months",
+        "max_report_pull": "15 months",
+    },
+    {
+        "field_id": "month.value",
+        "display_name": "Month (Primary Key)",
+        "data_type": "LONG",
+        "category": "time",
+        "provenance": "documented",
+        "short_description": "The month of the year associated with the report.",
+        "required_fields": [],
+        "complementary_fields": [],
+        "date_range_presets": list(_TIME_PRESETS_FULL),
+        "historical_data": "72 months",
+        "max_report_pull": "25 months",
+    },
+    {
+        "field_id": "year.value",
+        "display_name": "Year (Primary Key)",
+        "data_type": "LONG",
+        "category": "time",
+        "provenance": "documented",
+        "short_description": "The year associated with the report.",
+        "required_fields": [],
+        "complementary_fields": [],
+        "date_range_presets": list(_TIME_PRESETS_FULL),
+        "historical_data": "72 months",
+        "max_report_pull": "72 months",
+    },
+    {
+        "field_id": "dateRange.value",
+        "display_name": "Date range (Primary Key)",
+        "data_type": "DATE_RANGE",
+        "category": "time",
+        "provenance": "documented",
+        "short_description": "The date range associated with the report.",
+        "required_fields": [],
+        "complementary_fields": [],
+        "date_range_presets": list(_TIME_PRESETS_FULL),
+        "historical_data": "72 months",
+        "max_report_pull": "72 months",
+    },
+]
+
+
+def get_time_records() -> List[Dict[str, Any]]:
+    """Return deep copies of the curated time-grain records.
+
+    Independent of the loaded catalog files — the window overlay is a
+    code-level constant, so this works even when the on-disk catalog has no
+    time dimensions. Copies are returned so callers can mutate freely
+    without corrupting the shared constant.
+    """
+    return [
+        {**rec, "date_range_presets": list(rec["date_range_presets"])}
+        for rec in TIME_GRAIN_RECORDS
+    ]
+
+
 def lookup_field(field_id: str) -> Optional[Dict[str, Any]]:
     """O(routing+linear) single-field detail lookup.
 
