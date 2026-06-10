@@ -368,6 +368,26 @@ def get_time_records() -> List[Dict[str, Any]]:
     ]
 
 
+#: O(1) lookup of the curated window overlay by grain field_id.
+_TIME_WINDOW_BY_ID: Dict[str, Dict[str, Any]] = {
+    rec["field_id"]: rec for rec in TIME_GRAIN_RECORDS
+}
+
+
+def get_time_window(field_id: str) -> Optional[Dict[str, Any]]:
+    """Return the curated reporting-window overlay for a time-grain field_id.
+
+    Returns a copy with keys ``date_range_presets``, ``historical_data``,
+    ``max_report_pull`` (plus the descriptive fields), or None when
+    ``field_id`` is not one of the seven v1 time grains. Used by
+    ``mode="validate"`` date-window pre-flight.
+    """
+    rec = _TIME_WINDOW_BY_ID.get(field_id)
+    if rec is None:
+        return None
+    return {**rec, "date_range_presets": list(rec["date_range_presets"])}
+
+
 def lookup_field(field_id: str) -> Optional[Dict[str, Any]]:
     """O(routing+linear) single-field detail lookup.
 

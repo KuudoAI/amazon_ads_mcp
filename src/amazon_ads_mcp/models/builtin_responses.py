@@ -772,6 +772,38 @@ class QueryReportFieldsResponse(BaseModel):
     deprecations: List[Dict[str, Any]] = Field(default_factory=list)
 
 
+class TimeWindowValidation(BaseModel):
+    """Result of the ``mode="validate"`` date-range pre-flight.
+
+    Present only when the caller supplies ``start_date`` + ``end_date`` and
+    exactly one time grain in ``validate_fields``. Reports whether the
+    requested window fits the grain's reporting limits — the
+    ``max_report_pull`` span cap and the ``historical_data`` lookback — so an
+    LLM catches a too-wide or too-old window before CreateReport returns 400.
+
+    All boundaries are computed with calendar-correct month arithmetic
+    (e.g. "15 months" is 15 calendar months back from the reference date,
+    not 15×30 days), so no false day-count precision is introduced.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    grain: str
+    start_date: str
+    end_date: str
+    #: (end_date - start_date) in calendar days — informational.
+    requested_span_days: int
+    max_report_pull: str
+    within_max_report_pull: bool
+    historical_data: str
+    within_historical_data: bool
+    #: The latest of the two computed floors — the earliest start_date that
+    #: would satisfy BOTH the pull cap and the lookback limit.
+    earliest_allowed_start: str
+    #: Human-readable, one per violated constraint. Empty ⇒ window is valid.
+    problems: List[str] = Field(default_factory=list)
+
+
 class ValidateReportFieldsResponse(BaseModel):
     """Response for `report_fields(mode="validate", ...)`."""
 
@@ -785,6 +817,9 @@ class ValidateReportFieldsResponse(BaseModel):
     missing_required: Dict[str, List[str]] = Field(default_factory=dict)
     incompatible_pairs: List[Tuple[str, str]] = Field(default_factory=list)
     suggested_replacements: Dict[str, List[str]] = Field(default_factory=dict)
+    #: Date-range pre-flight — populated only when start_date/end_date are
+    #: supplied with exactly one time grain. None ⇒ no window check ran.
+    time_window: Optional[TimeWindowValidation] = None
 
 
 class LookupReportFieldEntry(BaseModel):

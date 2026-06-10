@@ -150,6 +150,21 @@ report_fields(mode="validate",
 # → unknown_fields, missing_required, incompatible_pairs, suggested_replacements
 ```
 
+Pre-flight the requested date range too — pass `start_date`/`end_date`
+(ISO `YYYY-MM-DD`) alongside exactly one time grain in `validate_fields`:
+```
+report_fields(mode="validate",
+              validate_fields=["hour.value"],
+              start_date="2026-05-01", end_date="2026-06-10")
+# → time_window: {grain, within_max_report_pull, within_historical_data,
+#                 earliest_allowed_start, problems[...]}
+```
+The window is checked against that grain's `max_report_pull` span cap and
+`historical_data` lookback (the curated `category="time"` overlay), using
+calendar-correct month math. A window with problems flips `valid` to false.
+`start_date`/`end_date` are validate-mode only and must be supplied together;
+a date range with zero or more than one time grain raises `INVALID_MODE_ARGS`.
+
 Slim the response when compatibility arrays aren't needed
 (autocomplete, name-only enumeration, existence checks):
 ```
