@@ -165,6 +165,17 @@ calendar-correct month math. A window with problems flips `valid` to false.
 `start_date`/`end_date` are validate-mode only and must be supplied together;
 a date range with zero or more than one time grain raises `INVALID_MODE_ARGS`.
 
+Or check a named preset against the grain's supported set (case-insensitive):
+```
+report_fields(mode="validate",
+              validate_fields=["hour.value"],
+              date_range_preset="Last 90 days")
+# → preset: {grain, supported: false, supported_presets: [...]}; valid=false
+```
+`date_range_preset` is validate-mode only and also requires exactly one time
+grain. It composes with `start_date`/`end_date` — both pre-flights run and
+either failing flips `valid` to false.
+
 Slim the response when compatibility arrays aren't needed
 (autocomplete, name-only enumeration, existence checks):
 ```

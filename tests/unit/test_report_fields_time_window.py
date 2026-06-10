@@ -223,3 +223,96 @@ def test_window_args_rejected_in_query_mode():
     with pytest.raises(ReportFieldsToolError) as exc:
         handle(mode="query", category="time", start_date="2026-05-01")
     assert "mode='validate' only" in str(exc.value)
+
+
+# ---------------------------------------------------------------------------
+# date_range_preset pre-flight
+# ---------------------------------------------------------------------------
+
+
+def test_preset_supported_is_valid():
+    r = handle(
+        mode="validate",
+        validate_fields=["date.value"],
+        date_range_preset="Last 90 days",
+    )
+    assert r.preset is not None
+    assert r.preset.grain == "date.value"
+    assert r.preset.supported is True
+    assert "Last 90 days" in r.preset.supported_presets
+    assert r.valid is True
+
+
+def test_preset_unsupported_for_narrow_grain():
+    # hour.value supports only short presets — "Last 90 days" is not one.
+    r = handle(
+        mode="validate",
+        validate_fields=["hour.value"],
+        date_range_preset="Last 90 days",
+    )
+    assert r.preset.supported is False
+    assert r.preset.supported_presets == [
+        "Today",
+        "Yesterday",
+        "Last 7 days",
+        "This week",
+        "Last week",
+    ]
+    assert r.valid is False
+
+
+def test_preset_match_is_case_insensitive():
+    r = handle(
+        mode="validate",
+        validate_fields=["hour.value"],
+        date_range_preset="last 7 DAYS",
+    )
+    assert r.preset.supported is True
+    # Caller's input is echoed verbatim; canonical list is unchanged.
+    assert r.preset.date_range_preset == "last 7 DAYS"
+    assert r.valid is True
+
+
+def test_no_preset_leaves_preset_none():
+    r = handle(mode="validate", validate_fields=["date.value"])
+    assert r.preset is None
+
+
+def test_preset_without_time_grain_raises():
+    with pytest.raises(ReportFieldsToolError) as exc:
+        handle(
+            mode="validate",
+            validate_fields=["campaign.id"],
+            date_range_preset="Last 30 days",
+        )
+    assert "time grain" in str(exc.value)
+
+
+def test_preset_with_multiple_grains_raises():
+    with pytest.raises(ReportFieldsToolError) as exc:
+        handle(
+            mode="validate",
+            validate_fields=["date.value", "month.value"],
+            date_range_preset="Last 30 days",
+        )
+    assert "one time grain" in str(exc.value)
+
+
+def test_preset_rejected_in_query_mode():
+    with pytest.raises(ReportFieldsToolError) as exc:
+        handle(mode="query", category="time", date_range_preset="Today")
+    assert "mode='validate' only" in str(exc.value)
+
+
+def test_preset_and_window_checks_compose():
+    # Both pre-flights run together against the same single grain.
+    r = handle(
+        mode="validate",
+        validate_fields=["date.value"],
+        start_date="2026-05-01",
+        end_date="2026-05-31",
+        date_range_preset="This quarter",
+    )
+    assert r.time_window is not None and r.time_window.problems == []
+    assert r.preset is not None and r.preset.supported is True
+    assert r.valid is True

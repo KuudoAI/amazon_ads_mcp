@@ -804,6 +804,25 @@ class TimeWindowValidation(BaseModel):
     problems: List[str] = Field(default_factory=list)
 
 
+class PresetValidation(BaseModel):
+    """Result of the ``mode="validate"`` date-range preset check.
+
+    Present only when the caller supplies ``date_range_preset`` and exactly
+    one time grain in ``validate_fields``. Reports whether the named preset
+    (e.g. "Last 90 days") is one the grain supports — narrower grains like
+    ``hour.value`` only support short presets. Matching is case-insensitive;
+    ``date_range_preset`` echoes the caller's input verbatim while
+    ``supported_presets`` lists the grain's canonical preset names.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    grain: str
+    date_range_preset: str
+    supported: bool
+    supported_presets: List[str] = Field(default_factory=list)
+
+
 class ValidateReportFieldsResponse(BaseModel):
     """Response for `report_fields(mode="validate", ...)`."""
 
@@ -820,6 +839,9 @@ class ValidateReportFieldsResponse(BaseModel):
     #: Date-range pre-flight — populated only when start_date/end_date are
     #: supplied with exactly one time grain. None ⇒ no window check ran.
     time_window: Optional[TimeWindowValidation] = None
+    #: Preset pre-flight — populated only when date_range_preset is supplied
+    #: with exactly one time grain. None ⇒ no preset check ran.
+    preset: Optional[PresetValidation] = None
 
 
 class LookupReportFieldEntry(BaseModel):

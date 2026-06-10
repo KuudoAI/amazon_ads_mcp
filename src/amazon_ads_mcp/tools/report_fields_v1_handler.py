@@ -30,6 +30,7 @@ from ..models.builtin_responses import (
     CatalogSourceMeta,
     LookupReportFieldEntry,
     LookupReportFieldsResponse,
+    PresetValidation,
     QueryReportFieldsResponse,
     ReportFieldEntry,
     TimeWindowValidation,
@@ -107,6 +108,12 @@ class ReportFieldsInput(BaseModel):
     # validate-mode only; both-or-neither.
     start_date: Optional[str] = None
     end_date: Optional[str] = None
+
+    # A named date-range preset (e.g. "Last 90 days") to check against the
+    # selected time grain's supported presets. validate-mode only; requires
+    # exactly one time grain in ``validate_fields``. Matching is
+    # case-insensitive (see ``_validate_preset``).
+    date_range_preset: Optional[str] = None
 
     # --- lookup-mode args (Round 13 B-5) ---
     # Look up exactly the requested field IDs and return them in request
@@ -205,12 +212,17 @@ def _any_window_arg_set(inp: ReportFieldsInput) -> bool:
     return inp.start_date is not None or inp.end_date is not None
 
 
+def _any_preflight_arg_set(inp: ReportFieldsInput) -> bool:
+    """Any validate-mode date pre-flight arg (window dates or preset)."""
+    return _any_window_arg_set(inp) or inp.date_range_preset is not None
+
+
 def _check_mode_args(inp: ReportFieldsInput) -> None:
-    if inp.mode != "validate" and _any_window_arg_set(inp):
+    if inp.mode != "validate" and _any_preflight_arg_set(inp):
         raise ReportFieldsToolError(
             ReportFieldsErrorCode.INVALID_MODE_ARGS,
-            "start_date / end_date are date-range pre-flight args for "
-            "mode='validate' only",
+            "start_date / end_date / date_range_preset are date-range "
+            "pre-flight args for mode='validate' only",
         )
     if inp.mode == "query":
         if _any_validate_arg_set(inp):
@@ -1215,8 +1227,37 @@ def _parse_iso_date(value: str, field_name: str) -> date:
         )
 
 
+def _time_grains_in(inp: ReportFieldsInput) -> List[str]:
+    """validate_fields entries that are curated time grains, in order."""
+    return [
+        fid for fid in (inp.validate_fields or [])
+        if catalog_mod.get_time_window(fid) is not None
+    ]
+
+
+def _resolve_single_grain(time_grains: List[str], arg_label: str) -> str:
+    """Return the sole time grain or raise INVALID_MODE_ARGS.
+
+    A date/preset pre-flight is meaningful against exactly one time
+    dimension; zero or many is a caller mistake worth surfacing loudly.
+    """
+    if not time_grains:
+        raise ReportFieldsToolError(
+            ReportFieldsErrorCode.INVALID_MODE_ARGS,
+            f"{arg_label} requires exactly one time grain in validate_fields "
+            "to pre-flight against (e.g. date.value). Use "
+            "report_fields(mode='query', category='time') to list grains.",
+        )
+    if len(time_grains) > 1:
+        raise ReportFieldsToolError(
+            ReportFieldsErrorCode.INVALID_MODE_ARGS,
+            f"only one time grain may be pre-flighted; got {sorted(time_grains)}",
+        )
+    return time_grains[0]
+
+
 def _validate_time_window(
-    inp: ReportFieldsInput, known_set: set[str]
+    inp: ReportFieldsInput, time_grains: List[str]
 ) -> Optional[TimeWindowValidation]:
     """Pre-flight the requested date range against the time grain's limits.
 
@@ -1236,26 +1277,7 @@ def _validate_time_window(
             "date range",
         )
 
-    # Which validate_fields entries are curated time grains?
-    grains = [
-        fid for fid in (inp.validate_fields or [])
-        if catalog_mod.get_time_window(fid) is not None
-    ]
-    if not grains:
-        raise ReportFieldsToolError(
-            ReportFieldsErrorCode.INVALID_MODE_ARGS,
-            "start_date/end_date require exactly one time grain in "
-            "validate_fields to pre-flight against (e.g. date.value). Use "
-            "report_fields(mode='query', category='time') to list grains.",
-        )
-    if len(grains) > 1:
-        raise ReportFieldsToolError(
-            ReportFieldsErrorCode.INVALID_MODE_ARGS,
-            f"only one time grain may be pre-flighted against a date range; "
-            f"got {sorted(grains)}",
-        )
-
-    grain = grains[0]
+    grain = _resolve_single_grain(time_grains, "start_date/end_date")
     start = _parse_iso_date(inp.start_date, "start_date")
     end = _parse_iso_date(inp.end_date, "end_date")
     if end < start:
@@ -1316,6 +1338,33 @@ def _validate_time_window(
         within_historical_data=within_hist,
         earliest_allowed_start=earliest.isoformat(),
         problems=problems,
+    )
+
+
+def _validate_preset(
+    inp: ReportFieldsInput, time_grains: List[str]
+) -> Optional[PresetValidation]:
+    """Check a named date-range preset against the grain's supported set.
+
+    Returns None when no preset is requested. Raises INVALID_MODE_ARGS when
+    a preset is given without exactly one time grain. Matching is
+    case-insensitive so "last 90 days" resolves to "Last 90 days"; an
+    unsupported preset flips the response ``valid`` flag to False.
+    """
+    if inp.date_range_preset is None:
+        return None
+
+    grain = _resolve_single_grain(time_grains, "date_range_preset")
+    window = catalog_mod.get_time_window(grain) or {}
+    supported_presets = list(window.get("date_range_presets") or [])
+    requested = inp.date_range_preset.strip().lower()
+    supported = any(p.strip().lower() == requested for p in supported_presets)
+
+    return PresetValidation(
+        grain=grain,
+        date_range_preset=inp.date_range_preset,
+        supported=supported,
+        supported_presets=supported_presets,
     )
 
 
@@ -1397,16 +1446,19 @@ def _handle_validate(inp: ReportFieldsInput) -> ValidateReportFieldsResponse:
             if sugg:
                 suggested[bad] = sugg
 
-    # Date-range pre-flight (None unless start_date/end_date supplied).
-    # Usage mistakes raise INVALID_MODE_ARGS; a window with problems flips
-    # ``valid`` to False alongside the field-level checks.
-    time_window = _validate_time_window(inp, known_set)
+    # Date-range pre-flight (None unless the relevant args are supplied).
+    # Usage mistakes raise INVALID_MODE_ARGS; a window with problems or an
+    # unsupported preset flips ``valid`` to False alongside field checks.
+    time_grains = _time_grains_in(inp)
+    time_window = _validate_time_window(inp, time_grains)
+    preset = _validate_preset(inp, time_grains)
 
     valid = (
         not unknown
         and not missing_required
         and not incompatible_pairs
         and not (time_window is not None and time_window.problems)
+        and not (preset is not None and not preset.supported)
     )
 
     response = ValidateReportFieldsResponse(
@@ -1419,6 +1471,7 @@ def _handle_validate(inp: ReportFieldsInput) -> ValidateReportFieldsResponse:
         incompatible_pairs=incompatible_pairs,
         suggested_replacements=suggested,
         time_window=time_window,
+        preset=preset,
     )
     return response
 
