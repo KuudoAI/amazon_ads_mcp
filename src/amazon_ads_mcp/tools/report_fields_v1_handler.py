@@ -16,11 +16,12 @@ loader). It never opens files directly.
 
 from __future__ import annotations
 
+import calendar
 import json
 import logging
 import os
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, List, Literal, Optional, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -29,8 +30,10 @@ from ..models.builtin_responses import (
     CatalogSourceMeta,
     LookupReportFieldEntry,
     LookupReportFieldsResponse,
+    PresetValidation,
     QueryReportFieldsResponse,
     ReportFieldEntry,
+    TimeWindowValidation,
     ValidateBodyReportFieldsResponse,
     ValidateReportFieldsResponse,
 )
@@ -96,6 +99,21 @@ class ReportFieldsInput(BaseModel):
 
     # --- validate-mode args ---
     validate_fields: Optional[List[str]] = None
+
+    # --- validate-mode date-range pre-flight (time-window check) ---
+    # ISO ``YYYY-MM-DD`` bounds for the would-be CreateReport period. When
+    # both are set alongside exactly one time grain in ``validate_fields``,
+    # the handler checks the window against that grain's max_report_pull span
+    # cap and historical_data lookback (see ``_validate_time_window``).
+    # validate-mode only; both-or-neither.
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+
+    # A named date-range preset (e.g. "Last 90 days") to check against the
+    # selected time grain's supported presets. validate-mode only; requires
+    # exactly one time grain in ``validate_fields``. Matching is
+    # case-insensitive (see ``_validate_preset``).
+    date_range_preset: Optional[str] = None
 
     # --- lookup-mode args (Round 13 B-5) ---
     # Look up exactly the requested field IDs and return them in request
@@ -190,7 +208,22 @@ def _any_validate_body_arg_set(inp: ReportFieldsInput) -> bool:
     return inp.body is not None
 
 
+def _any_window_arg_set(inp: ReportFieldsInput) -> bool:
+    return inp.start_date is not None or inp.end_date is not None
+
+
+def _any_preflight_arg_set(inp: ReportFieldsInput) -> bool:
+    """Any validate-mode date pre-flight arg (window dates or preset)."""
+    return _any_window_arg_set(inp) or inp.date_range_preset is not None
+
+
 def _check_mode_args(inp: ReportFieldsInput) -> None:
+    if inp.mode != "validate" and _any_preflight_arg_set(inp):
+        raise ReportFieldsToolError(
+            ReportFieldsErrorCode.INVALID_MODE_ARGS,
+            "start_date / end_date / date_range_preset are date-range "
+            "pre-flight args for mode='validate' only",
+        )
     if inp.mode == "query":
         if _any_validate_arg_set(inp):
             raise ReportFieldsToolError(
@@ -1136,6 +1169,205 @@ def _handle_validate_body(
     )
 
 
+# ---------- validate-mode date-range pre-flight ------------------------
+
+
+def _today() -> date:
+    """Current UTC date. Indirected so tests can pin "now".
+
+    The historical-data lookback is measured from today, so window
+    verdicts depend on the wall clock; tests monkeypatch this.
+    """
+    return datetime.now(timezone.utc).date()
+
+
+def _subtract_months(d: date, months: int) -> date:
+    """Subtract *months* calendar months from *d*, clamping the day.
+
+    Calendar-correct: "1 month before Mar 31" → Feb 28/29, not a fixed
+    30-day step. Used so "15 months"/"25 months" windows land on the
+    right calendar boundary instead of an approximate day count.
+    """
+    total = (d.year * 12 + (d.month - 1)) - months
+    year, month_index = divmod(total, 12)
+    month = month_index + 1
+    last_day = calendar.monthrange(year, month)[1]
+    return date(year, month, min(d.day, last_day))
+
+
+#: Parses a window spec like "120 days" or "15 months" (case-insensitive).
+_WINDOW_SPEC_RE = re.compile(r"^\s*(\d+)\s+(day|days|month|months)\s*$", re.IGNORECASE)
+
+
+def _window_floor(reference: date, spec: str) -> Optional[date]:
+    """Earliest date allowed by *spec* measured back from *reference*.
+
+    "120 days" → reference − 120 days; "15 months" → 15 calendar months
+    before reference. Returns None when *spec* is not a recognized
+    "<n> day(s)|month(s)" string, so callers fail open rather than guess.
+    """
+    m = _WINDOW_SPEC_RE.match(spec or "")
+    if not m:
+        return None
+    n = int(m.group(1))
+    unit = m.group(2).lower()
+    if unit.startswith("day"):
+        return reference - timedelta(days=n)
+    return _subtract_months(reference, n)
+
+
+def _parse_iso_date(value: str, field_name: str) -> date:
+    """Parse a strict ``YYYY-MM-DD`` date or raise INVALID_MODE_ARGS."""
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        raise ReportFieldsToolError(
+            ReportFieldsErrorCode.INVALID_MODE_ARGS,
+            f"{field_name} must be an ISO date (YYYY-MM-DD); got {value!r}",
+        )
+
+
+def _time_grains_in(inp: ReportFieldsInput) -> List[str]:
+    """validate_fields entries that are curated time grains, in order."""
+    return [
+        fid for fid in (inp.validate_fields or [])
+        if catalog_mod.get_time_window(fid) is not None
+    ]
+
+
+def _resolve_single_grain(time_grains: List[str], arg_label: str) -> str:
+    """Return the sole time grain or raise INVALID_MODE_ARGS.
+
+    A date/preset pre-flight is meaningful against exactly one time
+    dimension; zero or many is a caller mistake worth surfacing loudly.
+    """
+    if not time_grains:
+        raise ReportFieldsToolError(
+            ReportFieldsErrorCode.INVALID_MODE_ARGS,
+            f"{arg_label} requires exactly one time grain in validate_fields "
+            "to pre-flight against (e.g. date.value). Use "
+            "report_fields(mode='query', category='time') to list grains.",
+        )
+    if len(time_grains) > 1:
+        raise ReportFieldsToolError(
+            ReportFieldsErrorCode.INVALID_MODE_ARGS,
+            f"only one time grain may be pre-flighted; got {sorted(time_grains)}",
+        )
+    return time_grains[0]
+
+
+def _validate_time_window(
+    inp: ReportFieldsInput, time_grains: List[str]
+) -> Optional[TimeWindowValidation]:
+    """Pre-flight the requested date range against the time grain's limits.
+
+    Returns None when no window check is requested (neither date set).
+    Raises INVALID_MODE_ARGS for usage mistakes the caller must fix
+    (one date without the other, unparseable date, end before start, or
+    a date range with zero / more than one time grain to check against).
+    Otherwise returns a verdict factored into the response ``valid`` flag.
+    """
+    if not _any_window_arg_set(inp):
+        return None
+
+    if inp.start_date is None or inp.end_date is None:
+        raise ReportFieldsToolError(
+            ReportFieldsErrorCode.INVALID_MODE_ARGS,
+            "start_date and end_date must both be provided to pre-flight a "
+            "date range",
+        )
+
+    grain = _resolve_single_grain(time_grains, "start_date/end_date")
+    start = _parse_iso_date(inp.start_date, "start_date")
+    end = _parse_iso_date(inp.end_date, "end_date")
+    if end < start:
+        raise ReportFieldsToolError(
+            ReportFieldsErrorCode.INVALID_MODE_ARGS,
+            f"end_date ({inp.end_date}) must be on or after start_date "
+            f"({inp.start_date})",
+        )
+
+    window = catalog_mod.get_time_window(grain) or {}
+    max_pull = window.get("max_report_pull", "")
+    historical = window.get("historical_data", "")
+    today = _today()
+
+    problems: List[str] = []
+
+    # Future end date — data does not exist yet.
+    if end > today:
+        problems.append(
+            f"end_date ({inp.end_date}) is in the future; reporting data is "
+            f"only available through today ({today.isoformat()})"
+        )
+
+    # Span cap: start must not predate end − max_report_pull.
+    pull_floor = _window_floor(end, max_pull)
+    within_pull = True
+    if pull_floor is not None and start < pull_floor:
+        within_pull = False
+        problems.append(
+            f"requested range exceeds the {max_pull} max report pull for "
+            f"{grain}: start_date {inp.start_date} is earlier than the "
+            f"allowed {pull_floor.isoformat()} (end_date − {max_pull})"
+        )
+
+    # Lookback cap: start must not predate today − historical_data.
+    hist_floor = _window_floor(today, historical)
+    within_hist = True
+    if hist_floor is not None and start < hist_floor:
+        within_hist = False
+        problems.append(
+            f"start_date {inp.start_date} predates the {historical} of "
+            f"historical data retained for {grain}: earliest available is "
+            f"{hist_floor.isoformat()}"
+        )
+
+    # Earliest start that satisfies BOTH floors (the binding one).
+    floors = [f for f in (pull_floor, hist_floor) if f is not None]
+    earliest = max(floors) if floors else start
+
+    return TimeWindowValidation(
+        grain=grain,
+        start_date=inp.start_date,
+        end_date=inp.end_date,
+        requested_span_days=(end - start).days,
+        max_report_pull=max_pull,
+        within_max_report_pull=within_pull,
+        historical_data=historical,
+        within_historical_data=within_hist,
+        earliest_allowed_start=earliest.isoformat(),
+        problems=problems,
+    )
+
+
+def _validate_preset(
+    inp: ReportFieldsInput, time_grains: List[str]
+) -> Optional[PresetValidation]:
+    """Check a named date-range preset against the grain's supported set.
+
+    Returns None when no preset is requested. Raises INVALID_MODE_ARGS when
+    a preset is given without exactly one time grain. Matching is
+    case-insensitive so "last 90 days" resolves to "Last 90 days"; an
+    unsupported preset flips the response ``valid`` flag to False.
+    """
+    if inp.date_range_preset is None:
+        return None
+
+    grain = _resolve_single_grain(time_grains, "date_range_preset")
+    window = catalog_mod.get_time_window(grain) or {}
+    supported_presets = list(window.get("date_range_presets") or [])
+    requested = inp.date_range_preset.strip().lower()
+    supported = any(p.strip().lower() == requested for p in supported_presets)
+
+    return PresetValidation(
+        grain=grain,
+        date_range_preset=inp.date_range_preset,
+        supported=supported,
+        supported_presets=supported_presets,
+    )
+
+
 # ---------- validate-mode ----------------------------------------------
 
 
@@ -1214,7 +1446,20 @@ def _handle_validate(inp: ReportFieldsInput) -> ValidateReportFieldsResponse:
             if sugg:
                 suggested[bad] = sugg
 
-    valid = not unknown and not missing_required and not incompatible_pairs
+    # Date-range pre-flight (None unless the relevant args are supplied).
+    # Usage mistakes raise INVALID_MODE_ARGS; a window with problems or an
+    # unsupported preset flips ``valid`` to False alongside field checks.
+    time_grains = _time_grains_in(inp)
+    time_window = _validate_time_window(inp, time_grains)
+    preset = _validate_preset(inp, time_grains)
+
+    valid = (
+        not unknown
+        and not missing_required
+        and not incompatible_pairs
+        and not (time_window is not None and time_window.problems)
+        and not (preset is not None and not preset.supported)
+    )
 
     response = ValidateReportFieldsResponse(
         mode="validate",
@@ -1225,6 +1470,8 @@ def _handle_validate(inp: ReportFieldsInput) -> ValidateReportFieldsResponse:
         missing_required=missing_required,
         incompatible_pairs=incompatible_pairs,
         suggested_replacements=suggested,
+        time_window=time_window,
+        preset=preset,
     )
     return response
 
