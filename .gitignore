@@ -349,3 +349,4 @@ profile_output/
 # MCP Registry tokens
 .mcpregistry_*
 dfg.txt
+openapi/resources/packages.json

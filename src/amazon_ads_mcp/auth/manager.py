@@ -514,18 +514,44 @@ class AuthManager:
                                 active_identity.id,
                             )
                     else:
-                        should_clear = True
-                        logger.warning(
-                            "No token on request but session has token-scoped identity — "
-                            "clearing stale tenant state (identity=%s)",
-                            active_identity.id,
-                        )
+                        session_creds = _ctx_get_credentials()
+                        if (
+                            session_creds
+                            and session_creds.identity_id == active_identity.id
+                            and datetime.now(timezone.utc) < session_creds.expires_at
+                        ):
+                            logger.debug(
+                                "No token on request, using valid session credentials "
+                                "for identity %s",
+                                active_identity.id,
+                            )
+                        else:
+                            should_clear = True
+                            logger.warning(
+                                "No token on request but session has token-scoped "
+                                "identity and no valid session credentials — clearing "
+                                "stale tenant state (identity=%s)",
+                                active_identity.id,
+                            )
 
                 if should_clear:
                     _ctx_set_identity(None)
                     _ctx_set_credentials(None)
                     _ctx_set_profiles(None)
                     active_identity = None
+
+                if active_identity:
+                    session_creds = _ctx_get_credentials()
+                    if (
+                        session_creds
+                        and session_creds.identity_id == active_identity.id
+                        and datetime.now(timezone.utc) < session_creds.expires_at
+                    ):
+                        logger.debug(
+                            "Using session-hydrated credentials for identity %s",
+                            active_identity.id,
+                        )
+                        return session_creds
 
             if not active_identity:
                 # Try to use configured default
