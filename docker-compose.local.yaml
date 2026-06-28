@@ -9,6 +9,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        APP_UID: "10001"
+        APP_GID: "10001"
     image: amazon-ads-mcp:local
     container_name: amazon-ads-mcp-local
     env_file:
@@ -24,7 +27,7 @@ services:
       - AMAZON_ADS_TOKEN_PERSIST=${AMAZON_ADS_TOKEN_PERSIST:-true}
       - AMAZON_ADS_CACHE_DIR=/app/.cache/amazon-ads-mcp
       # Download directory
-      - AMAZON_ADS_DOWNLOAD_DIR=/app/data
+      - AMAZON_ADS_DOWNLOAD_DIR=/app/data/uploads/amazon-ads-mcp
     ports:
       - "${PORT:-9080}:${PORT:-8000}"
     volumes:

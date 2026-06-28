@@ -10,6 +10,8 @@ services:
         #          docker compose build amazon-ads-mcp
         GIT_SHA: ${GIT_SHA:-unknown}
         BUILD_TIME: ${BUILD_TIME:-unknown}
+        APP_UID: "10001"
+        APP_GID: "10001"
     image: amazon-ads-mcp:latest
     container_name: amazon-ads-mcp
     env_file:
@@ -20,12 +22,15 @@ services:
       - HOST=0.0.0.0
       - PORT=${PORT:-8000}
       - LOG_LEVEL=INFO
-      # AMAZON_AD_API_PACKAGES is set in .env (env_file values are overridden by
-      # explicit environment entries, so we keep it in .env only)
+      # Mount every packaged Amazon Ads OpenAPI resource. Explicit Compose
+      # values override .env, so this enables the full tool catalog in Docker.
+      - >-
+        AMAZON_AD_API_PACKAGES=profiles,test-account,forecasts,brand-stores-management,campaign-manage,accounts-manager-accounts,accounts-ads-accounts,accounts-portfolios,accounts-billing,accounts-account-budgets,audiences-discovery,reporting-version-3,brand-benchmarks,brand-metrics,stores-analytics,sponsored-products,sp-suggested-keywords,sponsored-brands-v4,sponsored-brands-v3,sponsored-display,dsp-measurement,dsp-advertisers,dsp-audiences,dsp-conversions,dsp-target-kpi-recommendations,amazon-attribution,audience-insights,partner-opportunities,tactical-recommendations,persona-builder,creative-assets,change-history,data-provider-data,products-metadata,products-eligibility,unified-pre-moderation-results,moderation-results,amazon-marketing-stream,locations,exports-snapshots,marketing-mix-modeling,reach-forecasting,amc-administration,amc-workflow,amc-rule-audience,amc-ad-audience,ads-api-v1-sp,ads-api-v1-sb,ads-api-v1-dsp,ads-api-v1-sd,ads-api-v1-st,ads-api-v1-all,ads-api-v1-beta
       # Token persistence (disabled by default for security)
       # Set to 'true' to cache refresh tokens across restarts (see docs for security implications)
       - AMAZON_ADS_TOKEN_PERSIST=false
       - AMAZON_ADS_CACHE_DIR=/app/.cache/amazon-ads-mcp
+      - AMAZON_ADS_DOWNLOAD_DIR=/app/data/uploads/amazon-ads-mcp
       # Authentication method - set to 'openbridge' for header-based auth
       - AMAZON_ADS_AUTH_METHOD=openbridge
       # OpenBridge auth defaults are now built-in:
@@ -44,8 +49,9 @@ services:
     ports:
       - "${PORT:-8000}:${PORT:-8000}"
     volumes:
-      # Persist downloaded exports/reports
-      - downloads:/app/data
+      # Shared durable storage with Agent Factory, Code Factory, and Amazon SP MCP.
+      # Amazon Ads writes service-owned artifacts under /app/data/uploads/amazon-ads-mcp.
+      - shared-execution-data:/app/data
       # Persist token cache across container restarts
       - cache:/app/.cache
     command: [
@@ -56,5 +62,6 @@ services:
     ]
  
 volumes:
-  downloads: {}
+  shared-execution-data:
+    external: true
   cache: {}

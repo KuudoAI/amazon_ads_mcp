@@ -442,7 +442,12 @@ class ServerBuilder:
 
         overlays_dir = _Path("dist/openapi/overlays")
         if not overlays_dir.exists():
-            overlays_dir = None  # type: ignore[assignment]
+            # Wheel installs have no dist/ tree; staging places overlays
+            # under the packaged resources dir (see stage_wheel_resources).
+            packaged_overlays = packaged_resources / "overlays"
+            overlays_dir = (  # type: ignore[assignment]
+                packaged_overlays if packaged_overlays.exists() else None
+            )
 
         middleware = SidecarTransformMiddleware(
             resources_dir, overlays_dir=overlays_dir
@@ -839,28 +844,38 @@ class ServerBuilder:
 
         Token reduction: 98.4% for 55+ tools (34,971 -> 547 tokens).
 
-        :raises ImportError: If ``fastmcp[code-mode]`` extra is not installed
+        Fails soft: when the ``code-mode`` extra (``pydantic_monty``) is not
+        installed, log a clear warning and leave the full tool catalog
+        exposed instead of crashing startup. ``CODE_MODE`` defaults to on,
+        but the base install does not pull the extra — a hard failure here
+        left stdio clients with a silent disconnect and no tools at all
+        (issue #91). Exposing the full catalog is the correct, usable
+        fallback (it is exactly what ``CODE_MODE=false`` does).
         """
         from .code_mode import create_code_mode_transform
 
         try:
             transform = create_code_mode_transform()
-            self.server.add_transform(transform)
+        except ImportError as exc:
+            logger.warning(
+                "CODE_MODE is enabled but the 'code-mode' extra is not "
+                "installed (%s). Falling back to the full tool catalog. "
+                "Install with: pip install 'amazon-ads-mcp[code-mode]' "
+                "(or set CODE_MODE=false to silence this warning).",
+                exc,
+            )
+            return
 
-            tools = await self.server.list_tools()
-            tool_names = [t.name for t in tools]
-            logger.info(
-                "Code mode active: %d meta-tools exposed (%s). "
-                "Original tools accessible via execute.",
-                len(tools),
-                ", ".join(tool_names),
-            )
-        except ImportError:
-            logger.error(
-                "Code mode requires the 'code-mode' extra. "
-                "Install with: pip install 'fastmcp[code-mode]>=3.1.0'"
-            )
-            raise
+        self.server.add_transform(transform)
+
+        tools = await self.server.list_tools()
+        tool_names = [t.name for t in tools]
+        logger.info(
+            "Code mode active: %d meta-tools exposed (%s). "
+            "Original tools accessible via execute.",
+            len(tools),
+            ", ".join(tool_names),
+        )
 
     async def _strip_output_schemas(self):
         """Strip outputSchema from all registered tools.
