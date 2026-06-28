@@ -1,12 +1,10 @@
 [project]
 name = "amazon-ads-mcp"
-version = "0.3.22"
+version = "0.3.23"
 description = "Amazon Ads API MCP Server - Implementation for Amazon Advertising API"
 readme = "README.md"
 requires-python = ">=3.10,<4.0"
-
 dependencies = [ "fastmcp[tasks]>=3.3.1,<4", "python-dotenv>=1.2.1", "pydantic>=2.12.5", "pydantic-settings>=2.12.0", "httpx[http2]>=0.28.1", "pyjwt>=2.10.1", "cryptography>=41.0.0", "openai>=1.109.1", "PyYAML>=6.0.2", "tiktoken>=0.12.0", "jsonschema>=4.25.1",]
-
 [[project.authors]]
 name = "Amazon Ads API MCP SDK"
 
@@ -33,28 +31,15 @@ description = "Amazon Ads API MCP Server - Implementation for Amazon Advertising
 authors = [ "Amazon Ads API MCP SDK",]
 readme = "README.md"
 license = "MIT"
-# Build-time / maintainer-only tooling kept out of the distributed package.
-# `build/` (catalog refresh, integrity, wheel-resource staging) runs from a
-# source checkout, and `tool_audit/` is a dev audit CLI — neither is imported
-# on any runtime path. Excluding them keeps the wheel to its runtime surface.
-exclude = [
-    "src/amazon_ads_mcp/build/**/*",
-    "src/amazon_ads_mcp/tool_audit/**/*",
-]
+exclude = [ "src/amazon_ads_mcp/build/**/*", "src/amazon_ads_mcp/tool_audit/**/*",]
 [[tool.poetry.packages]]
 include = "amazon_ads_mcp"
 from = "src"
 
-# Top-level OpenAPI specs + media/manifest/transform sidecars + packages.json,
-# staged from dist/openapi/resources/ at build time by
-# `python -m amazon_ads_mcp.build.stage_wheel_resources` (issue #91). Build
-# the wheel directly from source (`build --wheel` / `uv build --wheel`) so
-# these gitignored-but-staged files are picked up.
 [[tool.poetry.include]]
 path = "src/amazon_ads_mcp/resources/*.json"
 format = "wheel"
 
-# Arg-alias overlays, staged from dist/openapi/overlays/ alongside the specs.
 [[tool.poetry.include]]
 path = "src/amazon_ads_mcp/resources/overlays/*.json"
 format = "wheel"
