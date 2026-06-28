@@ -187,6 +187,17 @@ openapi/resources/*
 !openapi/overlays/
 !openapi/overlays/**
 
+# Wheel-staged runtime resources. The canonical home for built OpenAPI
+# artifacts is dist/openapi/{resources,overlays}/ (committed). At wheel
+# build time `python -m amazon_ads_mcp.build.stage_wheel_resources` copies
+# them into the package tree so pip installs ship a self-contained resource
+# set (issue #91). Those staged copies must NOT be committed — they are
+# regenerated from dist/ on every build and would otherwise drift.
+# NB: only top-level *.json is ignored; the committed adsv1/ and contract/
+# subpackages are unaffected.
+src/amazon_ads_mcp/resources/*.json
+src/amazon_ads_mcp/resources/overlays/
+
 # Build directories
 # .build/ contains essential build scripts - DO NOT IGNORE
 build/

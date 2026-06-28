@@ -23,6 +23,14 @@ cd amazon-ads-mcp
 uv venv
 uv sync
 
+# Configure credentials and packages before starting
+export AUTH_METHOD=direct
+export AMAZON_AD_API_CLIENT_ID="your-client-id"
+export AMAZON_AD_API_CLIENT_SECRET="your-client-secret"
+export AMAZON_AD_API_REFRESH_TOKEN="your-refresh-token"
+export AMAZON_ADS_REGION="na"  # Options: na, eu, fe
+export AMAZON_AD_API_PACKAGES="profiles,accounts-ads-accounts,reporting-version-3,ads-api-v1-all"
+
 # Run the server (stdio mode for Claude Desktop)
 uv run python -m amazon_ads_mcp.server
 
@@ -40,8 +48,16 @@ cd amazon-ads-mcp
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-# Install from pyproject.toml
-pip install .
+# Install from pyproject.toml with the Code Mode sandbox runtime
+pip install ".[code-mode]"
+
+# Configure credentials and packages before starting
+export AUTH_METHOD=direct
+export AMAZON_AD_API_CLIENT_ID="your-client-id"
+export AMAZON_AD_API_CLIENT_SECRET="your-client-secret"
+export AMAZON_AD_API_REFRESH_TOKEN="your-refresh-token"
+export AMAZON_ADS_REGION="na"  # Options: na, eu, fe
+export AMAZON_AD_API_PACKAGES="profiles,accounts-ads-accounts,reporting-version-3,ads-api-v1-all"
 
 # Run the server (stdio mode for Claude Desktop)
 python -m amazon_ads_mcp.server
@@ -49,6 +65,11 @@ python -m amazon_ads_mcp.server
 # Or run with HTTP transport
 python -m amazon_ads_mcp.server --transport http --port 9080
 ```
+
+If you install without the `code-mode` extra, startup still succeeds. When
+`CODE_MODE=true` and the sandbox runtime is missing, the server logs a warning
+and exposes the full tool catalog. Set `CODE_MODE=false` to make that full
+catalog behavior explicit.
 
 ### Path 2: Run with Docker (Recommended for Production)
 
@@ -89,8 +110,12 @@ docker build -t amazon-ads-mcp .
 docker run -d \
   --name amazon-ads-mcp \
   -p 9080:9080 \
+  -e AUTH_METHOD=direct \
   -e AMAZON_AD_API_CLIENT_ID="your-client-id" \
   -e AMAZON_AD_API_CLIENT_SECRET="your-client-secret" \
+  -e AMAZON_AD_API_REFRESH_TOKEN="your-refresh-token" \
+  -e AMAZON_ADS_REGION="na" \
+  -e AMAZON_AD_API_PACKAGES="profiles,accounts-ads-accounts,reporting-version-3,ads-api-v1-all" \
   amazon-ads-mcp
 ```
 
@@ -104,13 +129,26 @@ docker run -d \
 Set the following environment variables:
 
 ```bash
+# Direct Amazon Ads authentication
+export AUTH_METHOD=direct
+export AMAZON_AD_API_CLIENT_ID="your-client-id"
+export AMAZON_AD_API_CLIENT_SECRET="your-client-secret"
+export AMAZON_AD_API_REFRESH_TOKEN="your-refresh-token"
 
 # Region Configuration (optional, defaults to "na")
 export AMAZON_ADS_REGION="na"  # Options: na, eu, fe
-# Optional: Pre-authorized refresh token for server owner
-# This allows the server owner to skip the OAuth flow
-export AMAZON_AD_API_REFRESH_TOKEN="your-refresh-token"
+
+# API packages to expose as MCP tools
+export AMAZON_AD_API_PACKAGES="profiles,accounts-ads-accounts,reporting-version-3,ads-api-v1-all"
 ```
+
+Package notes:
+- `reporting-version-3` exposes report tools such as `rp_createAsyncReport`
+  and `rp_getAsyncReport`.
+- `ads-api-v1-all` exposes merged v1 report tools such as
+  `allv1_AdsApiv1CreateReport`.
+- `ads-api-v1-sp` and `ads-api-v1-sb` expose product-specific v1 tools with
+  `spv1_` and `sbv1_` prefixes.
 
 
 
@@ -212,4 +250,3 @@ For **Production**:
 - Missing `cryptography` library will **refuse** to persist tokens unless `AMAZON_ADS_ALLOW_PLAINTEXT_PERSIST=true` (not recommended)
 - Invalid encryption keys trigger warnings and fallback to machine-derived keys
 - Production environments (`ENV=production`) issue warnings when using machine-derived keys
-

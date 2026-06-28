@@ -152,6 +152,58 @@ class TestCodeModeDependencyGuard:
                 create_code_mode_transform()
 
 
+class TestApplyCodeModeFailSoft:
+    """_apply_code_mode degrades gracefully when the extra is missing.
+
+    CODE_MODE defaults to on, but the base install does not pull the
+    code-mode extra. A hard crash here left stdio clients with a silent
+    disconnect and zero tools (issue #91). The server must instead fall
+    back to exposing the full tool catalog.
+    """
+
+    @pytest.mark.asyncio
+    async def test_apply_code_mode_swallows_import_error(self):
+        """Missing extra -> no raise, no transform applied (full catalog)."""
+        from amazon_ads_mcp.server.server_builder import ServerBuilder
+
+        fake_server = SimpleNamespace(
+            add_transform=MagicMock(),
+            list_tools=AsyncMock(return_value=[]),
+        )
+        fake_self = SimpleNamespace(server=fake_server)
+
+        with patch(
+            "amazon_ads_mcp.server.code_mode.create_code_mode_transform",
+            side_effect=ImportError(
+                "Code mode requires the 'code-mode' extra."
+            ),
+        ):
+            # Must NOT raise — the server stays up with the full catalog.
+            await ServerBuilder._apply_code_mode(fake_self)
+
+        fake_server.add_transform.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_apply_code_mode_applies_transform_when_available(self):
+        """Extra present -> transform applied as before."""
+        from amazon_ads_mcp.server.server_builder import ServerBuilder
+
+        sentinel = object()
+        fake_server = SimpleNamespace(
+            add_transform=MagicMock(),
+            list_tools=AsyncMock(return_value=[]),
+        )
+        fake_self = SimpleNamespace(server=fake_server)
+
+        with patch(
+            "amazon_ads_mcp.server.code_mode.create_code_mode_transform",
+            return_value=sentinel,
+        ):
+            await ServerBuilder._apply_code_mode(fake_self)
+
+        fake_server.add_transform.assert_called_once_with(sentinel)
+
+
 # ---------------------------------------------------------------------------
 # Discovery tool composition tests
 # ---------------------------------------------------------------------------

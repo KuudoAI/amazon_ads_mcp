@@ -183,6 +183,11 @@ For more information, see Amazon's [Campaign Management Overview](https://advert
 
 We recommend running Amazon Ads API MCP with 🐳 [Docker](https://docs.docker.com/get-started/). Build the image from this repository (there is no supported `docker pull` for a third-party registry image here—use the `Dockerfile` and `docker-compose.yaml` in the repo).
 
+For bespoke installs such as pip, source checkouts, custom virtualenvs,
+non-Docker deployments, or Code Mode extra handling, use the
+[**Installation Guide**](INSTALL.md). The README keeps the Docker quick path
+short; `INSTALL.md` has the full install matrix and verification steps.
+
 ```bash
 git clone https://github.com/KuudoAI/amazon-ads-mcp.git
 cd amazon-ads-mcp
@@ -216,7 +221,8 @@ Stop the server:
 docker compose down
 ```
 
-For full installation instructions, including verification, upgrading, and developer setup, see the [**Installation Guide**](INSTALL.md).
+For verification, upgrading, developer setup, and non-Docker installation
+paths, see the [**Installation Guide**](INSTALL.md).
 
 ## Configuration
 

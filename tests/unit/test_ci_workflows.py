@@ -15,7 +15,9 @@ import pytest
 
 yaml = pytest.importorskip("yaml")  # PyYAML ships with the project already.
 
-CI_PATH = Path(__file__).resolve().parents[2] / ".github" / "workflows" / "ci.yml"
+WORKFLOWS_DIR = Path(__file__).resolve().parents[2] / ".github" / "workflows"
+CI_PATH = WORKFLOWS_DIR / "ci.yml"
+RELEASE_PATH = WORKFLOWS_DIR / "release.yml"
 
 REQUIRED_JOBS = {
     # catalog-drift and catalog-idempotency intentionally excluded —
@@ -32,3 +34,33 @@ def test_ci_workflow_contains_required_jobs():
     jobs = data.get("jobs") or {}
     missing = REQUIRED_JOBS - jobs.keys()
     assert not missing, f"missing required CI jobs: {sorted(missing)}"
+
+
+def test_release_stages_resources_before_building_wheel():
+    """Release must stage OpenAPI resources before building, from source.
+
+    Guards the issue #91 packaging fix: if the staging step is dropped, or
+    the build reverts to the default sdist->wheel path (which drops the
+    gitignored staged files), the published wheel registers 0 API tools.
+    A presence + ordering check on the build step keeps this from silently
+    regressing.
+    """
+    assert RELEASE_PATH.exists(), f"expected release workflow at {RELEASE_PATH}"
+    text = RELEASE_PATH.read_text()
+
+    stage_marker = "stage_wheel_resources.py"
+    build_marker = "build --sdist --wheel"
+
+    assert stage_marker in text, (
+        "release.yml must run stage_wheel_resources before building "
+        "(issue #91); marker not found"
+    )
+    assert build_marker in text, (
+        "release.yml must build the wheel from source via "
+        f"`python -m build --sdist --wheel` (issue #91); '{build_marker}' "
+        "not found — the default sdist->wheel path drops staged resources"
+    )
+    assert text.index(stage_marker) < text.index(build_marker), (
+        "release.yml runs the wheel build before staging resources; "
+        "staging must come first (issue #91)"
+    )
