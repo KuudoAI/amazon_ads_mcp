@@ -18,6 +18,8 @@ yaml = pytest.importorskip("yaml")  # PyYAML ships with the project already.
 WORKFLOWS_DIR = Path(__file__).resolve().parents[2] / ".github" / "workflows"
 CI_PATH = WORKFLOWS_DIR / "ci.yml"
 RELEASE_PATH = WORKFLOWS_DIR / "release.yml"
+DOCKERFILE_PATH = Path(__file__).resolve().parents[2] / "Dockerfile"
+DOCKERIGNORE_PATH = Path(__file__).resolve().parents[2] / ".dockerignore"
 
 REQUIRED_JOBS = {
     # catalog-drift and catalog-idempotency intentionally excluded —
@@ -76,4 +78,42 @@ def test_release_preflights_resources_before_building():
         "release.yml runs the build before the resource pre-flight; "
         "--check must come first so a hollow dist/ stops the release "
         "(issue #91)"
+    )
+
+
+def test_dockerfile_copies_in_tree_build_backend_before_project_install():
+    """Docker project install needs build_package.py beside pyproject.toml."""
+    assert DOCKERFILE_PATH.exists(), f"expected Dockerfile at {DOCKERFILE_PATH}"
+    text = DOCKERFILE_PATH.read_text()
+
+    backend_marker = "build_package.py"
+    project_install_marker = (
+        "uv sync --no-dev --frozen --extra code-mode --no-editable"
+    )
+
+    assert backend_marker in text, (
+        "Dockerfile must copy build_package.py before installing the project; "
+        "pyproject.toml uses it as an in-tree PEP 517 backend."
+    )
+    assert text.index(backend_marker) < text.rindex(project_install_marker), (
+        "Dockerfile copies build_package.py after the project install; "
+        "the in-tree build backend must be present before `uv sync` builds "
+        "amazon-ads-mcp."
+    )
+
+
+def test_dockerignore_keeps_in_tree_build_backend():
+    """Docker build context must include the in-tree PEP 517 backend."""
+    assert DOCKERIGNORE_PATH.exists(), (
+        f"expected .dockerignore at {DOCKERIGNORE_PATH}"
+    )
+    lines = {
+        line.strip()
+        for line in DOCKERIGNORE_PATH.read_text().splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
+
+    assert "!build_package.py" in lines, (
+        ".dockerignore denies everything by default, so it must explicitly "
+        "keep build_package.py for Docker's `COPY build_package.py ./` step."
     )

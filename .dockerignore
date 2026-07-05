@@ -1,6 +1,6 @@
 # Keep Docker build context minimal and deterministic.
 # The Dockerfile only copies:
-# - pyproject.toml, uv.lock, README.md
+# - pyproject.toml, uv.lock, README.md, build_package.py
 # - src/
 # - scripts/docker-entrypoint.py
 # - dist/openapi/resources/
@@ -17,6 +17,7 @@
 !pyproject.toml
 !uv.lock
 !README.md
+!build_package.py
 !src/
 !src/**
 !scripts/

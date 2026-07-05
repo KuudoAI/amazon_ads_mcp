@@ -56,6 +56,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --no-dev --frozen --extra code-mode --no-install-project --no-editable
 
 # Now bring in the project itself and install it on top of the cached deps.
+# pyproject.toml uses build_package.py as an in-tree PEP 517 backend.
+COPY build_package.py ./
 COPY src/ src/
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --no-dev --frozen --extra code-mode --no-editable
