@@ -134,19 +134,15 @@ class SidecarTransformMiddleware(Middleware):
         must use the same map or its keys won't match the tools in the
         server.
         """
-        for candidate in (
-            resources_dir / "packages.json",
-            resources_dir.parent / "packages.json",
-            Path("openapi/resources/packages.json"),
-            Path("dist/openapi/resources/packages.json"),
-            Path("openapi/packages.json"),
-        ):
+        from ..utils.resource_paths import find_packages_json
+
+        candidate = find_packages_json(resources_dir)
+        if candidate is not None:
             try:
-                if candidate.exists():
-                    pkg = _json_load(candidate)
-                    return dict(pkg.get("prefixes") or {})
+                pkg = _json_load(candidate)
+                return dict(pkg.get("prefixes") or {})
             except Exception:
-                continue
+                pass
         return {}
 
     def _register_rule(
