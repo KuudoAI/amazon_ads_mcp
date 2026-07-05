@@ -36,31 +36,44 @@ def test_ci_workflow_contains_required_jobs():
     assert not missing, f"missing required CI jobs: {sorted(missing)}"
 
 
-def test_release_stages_resources_before_building_wheel():
-    """Release must stage OpenAPI resources before building, from source.
-
-    Guards the issue #91 packaging fix: if the staging step is dropped, or
-    the build reverts to the default sdist->wheel path (which drops the
-    gitignored staged files), the published wheel registers 0 API tools.
-    A presence + ordering check on the build step keeps this from silently
-    regressing.
-    """
+def _release_build_step_script() -> str:
+    """Return the `run` script of the release workflow's Build package step."""
     assert RELEASE_PATH.exists(), f"expected release workflow at {RELEASE_PATH}"
-    text = RELEASE_PATH.read_text()
+    data = yaml.safe_load(RELEASE_PATH.read_text())
+    for job in (data.get("jobs") or {}).values():
+        for step in job.get("steps") or []:
+            run = step.get("run") or ""
+            if "python -m build" in run:
+                return run
+    pytest.fail("release.yml has no step running `python -m build`")
 
-    stage_marker = "stage_wheel_resources.py"
+
+def test_release_preflights_resources_before_building():
+    """Release must pre-flight dist resources before building both artifacts.
+
+    Guards the issue #91 packaging fix: staging happens inside the
+    build_package.py PEP 517 backend on every wheel build, so the release's
+    job is (1) fail loudly via `--check` when dist/openapi is hollow and
+    (2) build both sdist and wheel. Parsing the actual build step's `run`
+    script (instead of whole-file text.index) keeps comments elsewhere in
+    the workflow from satisfying or defeating the ordering check.
+    """
+    script = _release_build_step_script()
+
+    check_marker = "stage_wheel_resources.py --check"
     build_marker = "build --sdist --wheel"
 
-    assert stage_marker in text, (
-        "release.yml must run stage_wheel_resources before building "
-        "(issue #91); marker not found"
+    assert check_marker in script, (
+        "release.yml's build step must run the stage_wheel_resources.py "
+        "--check pre-flight (issue #91); marker not found in the step script"
     )
-    assert build_marker in text, (
-        "release.yml must build the wheel from source via "
+    assert build_marker in script, (
+        "release.yml must build both artifacts via "
         f"`python -m build --sdist --wheel` (issue #91); '{build_marker}' "
-        "not found — the default sdist->wheel path drops staged resources"
+        "not found in the build step script"
     )
-    assert text.index(stage_marker) < text.index(build_marker), (
-        "release.yml runs the wheel build before staging resources; "
-        "staging must come first (issue #91)"
+    assert script.index(check_marker) < script.index(build_marker), (
+        "release.yml runs the build before the resource pre-flight; "
+        "--check must come first so a hollow dist/ stops the release "
+        "(issue #91)"
     )

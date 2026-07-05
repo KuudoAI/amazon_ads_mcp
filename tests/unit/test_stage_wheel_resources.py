@@ -89,3 +89,21 @@ def test_stage_is_idempotent(tmp_path: Path):
     second = sw.stage(resources, overlays, dest)
 
     assert first == second == {"resources": 3, "overlays": 1}
+
+
+def test_check_requires_specs_and_overlays(tmp_path: Path):
+    """--check gates BOTH sources: a hollow overlays dir must fail the
+    release pre-flight, or wheels ship without arg-alias overlays."""
+    resources, overlays, _ = _seed_dist(tmp_path)
+    empty = tmp_path / "empty"
+    empty.mkdir()
+
+    def check(res: Path, ovl: Path) -> int:
+        return sw.main(
+            ["--check", "--resources-src", str(res), "--overlays-src", str(ovl)]
+        )
+
+    assert check(resources, overlays) == 0
+    assert check(resources, empty) == 1  # overlays empty
+    assert check(resources, tmp_path / "missing") == 1  # overlays absent
+    assert check(empty, overlays) == 1  # specs empty

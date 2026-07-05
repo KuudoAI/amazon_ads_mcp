@@ -252,16 +252,17 @@ jobs:
         if: success()
         run: |
           pip install build
-          # Stage runtime OpenAPI resources (specs, sidecars, packages.json,
-          # overlays) from dist/openapi/ into the package tree so the wheel
-          # ships a self-contained resource set. Without this, pip installs
-          # register zero API tools (issue #91). Run as a standalone file
-          # (stdlib-only) — the project itself is not installed in this job.
+          # Pre-flight: fail the release if dist/openapi/{resources,overlays}
+          # is missing or empty. Staging itself happens inside the build
+          # backend (build_package.py stages on every wheel build), so a
+          # wheel with zero API tools (issue #91) cannot ship — but a hollow
+          # dist/ tree must stop the release here, loudly. Run as a
+          # standalone file (stdlib-only) — the project itself is not
+          # installed in this job.
           python src/amazon_ads_mcp/build/stage_wheel_resources.py --check
-          python src/amazon_ads_mcp/build/stage_wheel_resources.py
-          # Build to a clean directory to avoid non-package files. Build the
-          # wheel directly from the source tree (NOT the default sdist->wheel
-          # path) so the staged-but-gitignored resources are included.
+          # Build to a clean directory to avoid non-package files. The sdist
+          # carries dist/openapi + the stager, so sdist->wheel rebuilds stage
+          # themselves too.
           mkdir -p dist_upload
           python -m build --sdist --wheel --outdir dist_upload
 
