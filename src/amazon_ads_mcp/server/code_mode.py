@@ -524,6 +524,24 @@ def create_auth_bridging_sandbox_provider(inner: Any) -> AuthBridgingSandboxProv
     return AuthBridgingSandboxProvider(inner)
 
 
+def code_mode_runtime_available() -> bool:
+    """Report whether the code-mode extra's runtime imports resolve.
+
+    ``ServerBuilder.build()`` probes this BEFORE making any
+    code-mode-conditional decision (progressive disclosure, tool-group
+    builtins), so a missing extra downgrades to genuine CODE_MODE=false
+    behavior instead of a half-configured hybrid.
+    """
+    try:
+        from fastmcp.experimental.transforms import (  # noqa: F401
+            code_mode as _fastmcp_code_mode,
+        )
+        import pydantic_monty  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
 def create_code_mode_transform():
     """Create a configured CodeMode transform instance.
 

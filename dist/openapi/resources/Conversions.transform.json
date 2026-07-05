@@ -1,0 +1,250 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "Conversions",
+  "tools": [
+    {
+      "match": {
+        "operationId": "dspAmazonAdTagGetEventsByAdTagId"
+      },
+      "pagination": {
+        "param_name": "nextToken",
+        "response_key": "nextToken",
+        "all_pages": false,
+        "limit_param": "maxResults",
+        "default_limit": 100
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AdTagId",
+            "to": "adTagId"
+          },
+          {
+            "from": "SearchTerm",
+            "to": "searchTerm"
+          },
+          {
+            "from": "StartDateTime",
+            "to": "startDateTime"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          },
+          {
+            "from": "EndDateTime",
+            "to": "endDateTime"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "dspAmazonAdTagGetAdTagByAdvertiserId"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "dspAmazonBatchGetConversionDefinitionsForOrders"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "dspAmazonCreateConversionDefinitions"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "dspAmazonUpdateConversionDefinitions"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "dspAmazonDeletionRequest"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "dspAmazonIngestConversionData"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "dspAmazonListConversionDefinitions"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "dspAmazonGetAdTagAssociatedEvent"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "ConversionDefinitionId",
+            "to": "conversionDefinitionId"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "dspAmazonUpdateAdTagAssociatedEvent"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "ConversionDefinitionId",
+            "to": "conversionDefinitionId"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "dspAmazonGetAssociatedMobileAppForConversionDefinition"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "ConversionDefinitionId",
+            "to": "conversionDefinitionId"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "dspAmazonBatchCreateMobileMeasurementPartnerAppRegistration"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "dspAmazonBatchUpdateMobileMeasurementPartnerAppRegistration"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "dspAmazonDeleteMeasurementPartnerAppRegistrations"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "dspAmazonListMobileMeasurementPartnerAppRegistrations"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "dspAmazonGetAssociatedConversionDefinitionsForOrder"
+      },
+      "pagination": {
+        "param_name": "nextToken",
+        "response_key": "nextToken",
+        "all_pages": false,
+        "limit_param": "maxResults",
+        "default_limit": 100
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "OrderId",
+            "to": "orderId"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "dspAmazonUpdateAssociatedConversionDefinitionsForOrder"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "OrderId",
+            "to": "orderId"
+          }
+        ]
+      }
+    }
+  ]
+}

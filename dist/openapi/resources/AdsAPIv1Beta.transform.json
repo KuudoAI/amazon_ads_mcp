@@ -1,0 +1,953 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "AdsAPIv1Beta",
+  "tools": [
+    {
+      "match": {
+        "operationId": "CreateAccountCombinationInvitation"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AccountCombinationInvitations",
+            "to": "accountCombinationInvitations"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "CreateAdvertiserAccount"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AdvertiserAccounts",
+            "to": "advertiserAccounts"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "CreateAdvertiserProductGroupEligibility"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AdvertiserProductGroupEligibilities",
+            "to": "advertiserProductGroupEligibilities"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "CreateEvent"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "Events",
+            "to": "events"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "CreateGeoLocation"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "GeoLocations",
+            "to": "geoLocations"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPAdsApiv1CreateInventoryGroup"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InventoryGroups",
+            "to": "inventoryGroups"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "CreateLinearTvIncrementalReachForecast"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "LinearTvIncrementalReachForecasts",
+            "to": "linearTvIncrementalReachForecasts"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "CreateLinearTvReachForecast"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "LinearTvReachForecasts",
+            "to": "linearTvReachForecasts"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "CreateLocationIndex"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "LocationIndexes",
+            "to": "locationIndexes"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "CreateManagerAccount"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "ManagerAccounts",
+            "to": "managerAccounts"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "AdsApiv1CreateReport"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AccessRequestedAccounts",
+            "to": "accessRequestedAccounts"
+          },
+          {
+            "from": "Reports",
+            "to": "reports"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPAdsApiv1CreateSupplierAdProductPrice"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "SupplierAdProductPrices",
+            "to": "supplierAdProductPrices"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPAdsApiv1CreateSupplierProposal"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "SupplierProposals",
+            "to": "supplierProposals"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPAdsApiv1CreateSupplierProposedDealForecast"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "SupplierProposedDealForecasts",
+            "to": "supplierProposedDealForecasts"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPAdsApiv1CreateSupplierProposedDeal"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "SupplierProposedDeals",
+            "to": "supplierProposedDeals"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPListDealPlanningMetrics"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "AdsApiv1DeleteReport"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "ReportIds",
+            "to": "reportIds"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "ListLocationIndex"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      }
+    },
+    {
+      "match": {
+        "operationId": "QueryAccountCombinationInvitation"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "QueryAdvertiserAccount"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AdvertiserAccountIdFilter",
+            "to": "advertiserAccountIdFilter"
+          },
+          {
+            "from": "IsGlobalAccountFilter",
+            "to": "isGlobalAccountFilter"
+          },
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "QueryAdvertiserProductGroupEligibility"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "StatusFilter",
+            "to": "statusFilter"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPQueryDealAvails"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AdvertisingDealIdFilter",
+            "to": "advertisingDealIdFilter"
+          },
+          {
+            "from": "EligibleAvailsTargetingFilter",
+            "to": "eligibleAvailsTargetingFilter"
+          },
+          {
+            "from": "GroupByAttributesFilter",
+            "to": "groupByAttributesFilter"
+          },
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "Sort",
+            "to": "sort"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPAdsApiv1QueryInventoryGroup"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "CurationSourceTypeFilter",
+            "to": "curationSourceTypeFilter"
+          },
+          {
+            "from": "InventoryGroupIdFilter",
+            "to": "inventoryGroupIdFilter"
+          },
+          {
+            "from": "InventoryTypeFilter",
+            "to": "inventoryTypeFilter"
+          },
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          },
+          {
+            "from": "NameFilter",
+            "to": "nameFilter"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "QueryLinearTvDaypart"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "MarketplaceFilter",
+            "to": "marketplaceFilter"
+          },
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          },
+          {
+            "from": "NameFilter",
+            "to": "nameFilter"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "QueryManagerAccount"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "ManagerAccountIdFilter",
+            "to": "managerAccountIdFilter"
+          },
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "AdsApiv1QueryPublisher"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "QuerySellingAccount"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "SellingAccountLinkTokenFilter",
+            "to": "sellingAccountLinkTokenFilter"
+          },
+          {
+            "from": "SellingProgramFilter",
+            "to": "sellingProgramFilter"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPAdsApiv1QuerySupplierAdProduct"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "CountryFilter",
+            "to": "countryFilter"
+          },
+          {
+            "from": "DealTypeFilter",
+            "to": "dealTypeFilter"
+          },
+          {
+            "from": "InventoryTypeFilter",
+            "to": "inventoryTypeFilter"
+          },
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          },
+          {
+            "from": "NameFilter",
+            "to": "nameFilter"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "Sort",
+            "to": "sort"
+          },
+          {
+            "from": "SupplierAdProductIdFilter",
+            "to": "supplierAdProductIdFilter"
+          },
+          {
+            "from": "SupplierIdFilter",
+            "to": "supplierIdFilter"
+          },
+          {
+            "from": "SupplierPublisherIdFilter",
+            "to": "supplierPublisherIdFilter"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPAdsApiv1QuerySupplierProposal"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPAdsApiv1QuerySupplierProposedDeal"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AdvertiserAccountIdFilter",
+            "to": "advertiserAccountIdFilter"
+          },
+          {
+            "from": "AdvertisingDealIdFilter",
+            "to": "advertisingDealIdFilter"
+          },
+          {
+            "from": "DealNameFilter",
+            "to": "dealNameFilter"
+          },
+          {
+            "from": "DealStatusFilter",
+            "to": "dealStatusFilter"
+          },
+          {
+            "from": "DealTypeFilter",
+            "to": "dealTypeFilter"
+          },
+          {
+            "from": "EndDateTimeFilter",
+            "to": "endDateTimeFilter"
+          },
+          {
+            "from": "ExternalDealIdFilter",
+            "to": "externalDealIdFilter"
+          },
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "StartDateTimeFilter",
+            "to": "startDateTimeFilter"
+          },
+          {
+            "from": "SupplierIdFilter",
+            "to": "supplierIdFilter"
+          },
+          {
+            "from": "SupplierProposalIdFilter",
+            "to": "supplierProposalIdFilter"
+          },
+          {
+            "from": "ValueFilter",
+            "to": "valueFilter"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPAdsApiv1QuerySupplierPublisher"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          },
+          {
+            "from": "NameFilter",
+            "to": "nameFilter"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "SupplierPublisherTypeFilter",
+            "to": "supplierPublisherTypeFilter"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPAdsApiv1QuerySupplierTargetItem"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "CategoryFilter",
+            "to": "categoryFilter"
+          },
+          {
+            "from": "CountriesFilter",
+            "to": "countriesFilter"
+          },
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          },
+          {
+            "from": "NameFilter",
+            "to": "nameFilter"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "SupplierAdProductIdFilter",
+            "to": "supplierAdProductIdFilter"
+          },
+          {
+            "from": "SupplierIdFilter",
+            "to": "supplierIdFilter"
+          },
+          {
+            "from": "SupplierTargetTypeFilter",
+            "to": "supplierTargetTypeFilter"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPAdsApiv1QuerySupplier"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "Sort",
+            "to": "sort"
+          },
+          {
+            "from": "SupplierIdFilter",
+            "to": "supplierIdFilter"
+          },
+          {
+            "from": "SupplierNameFilter",
+            "to": "supplierNameFilter"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPAdsApiv1RetrieveInventoryGroup"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InventoryGroupIds",
+            "to": "inventoryGroupIds"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "RetrieveLocationIndex"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "IndexIds",
+            "to": "indexIds"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "AdsApiv1RetrieveReport"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "ReportIds",
+            "to": "reportIds"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "UpdateAccountCombinationInvitation"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AccountCombinationInvitations",
+            "to": "accountCombinationInvitations"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "UpdateAdvertiserAccount"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "AdvertiserAccounts",
+            "to": "advertiserAccounts"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "UpdateBrandStorePage"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "BrandStorePages",
+            "to": "brandStorePages"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "DSPAdsApiv1UpdateInventoryGroup"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "InventoryGroups",
+            "to": "inventoryGroups"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "UpdateLocationIndex"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "LocationIndexes",
+            "to": "locationIndexes"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "UpdateManagerAccount"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "ManagerAccounts",
+            "to": "managerAccounts"
+          }
+        ]
+      }
+    }
+  ]
+}

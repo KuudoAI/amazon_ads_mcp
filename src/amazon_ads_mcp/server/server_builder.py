@@ -58,6 +58,9 @@ class ServerBuilder:
         self.header_resolver = HeaderNameResolver()
         self.mounted_servers: Dict[str, List[FastMCP]] = {}
         self.group_tool_counts: Dict[str, int] = {}
+        # Set by _mount_resource_servers; the sidecar middleware reuses it
+        # so specs and transforms always come from the same tree.
+        self.resources_dir: Optional[Path] = None
 
     async def build(self) -> FastMCP:
         """Build and configure the MCP server.
@@ -65,7 +68,7 @@ class ServerBuilder:
         :return: Configured FastMCP server instance
         :rtype: FastMCP
         """
-        code_mode = settings.code_mode_enabled
+        code_mode = self._resolve_code_mode()
 
         # Warn if both code mode and progressive disclosure are set
         if code_mode and self._progressive_disclosure_enabled():
@@ -140,6 +143,32 @@ class ServerBuilder:
         await self._setup_health_check()
 
         return self.server
+
+    def _resolve_code_mode(self) -> bool:
+        """Resolve whether code mode is BOTH requested and runnable.
+
+        Probes the code-mode extra BEFORE any code-mode-conditional decision
+        in ``build()`` (progressive disclosure, tool-group builtins).
+        ``CODE_MODE`` defaults to on but the base install does not pull the
+        extra; downgrading here yields genuine ``CODE_MODE=false`` behavior
+        instead of a full always-enabled catalog with the tool-group
+        builtins missing (issue #91's silent-disconnect follow-up).
+        """
+        if not settings.code_mode_enabled:
+            return False
+
+        from .code_mode import code_mode_runtime_available
+
+        if not code_mode_runtime_available():
+            logger.warning(
+                "CODE_MODE is enabled but the 'code-mode' extra is not "
+                "installed. Falling back to CODE_MODE=false behavior "
+                "(full tool catalog, tool-group builtins registered). "
+                "Install with: pip install 'amazon-ads-mcp[code-mode]' "
+                "(or set CODE_MODE=false to silence this warning)."
+            )
+            return False
+        return True
 
     async def _setup_default_identity(self):
         """Setup default identity if configured."""
@@ -418,21 +447,19 @@ class ServerBuilder:
         common path in production (base transforms are auto-generated
         output_transform stubs; aliases live exclusively in overlays).
         """
-        from pathlib import Path as _Path
-
+        from ..utils.resource_paths import (
+            resolve_overlays_dir,
+            resolve_resources_dir,
+        )
         from .sidecar_middleware import (
             SidecarTransformMiddleware,
             set_active_middleware,
         )
 
-        source_resources = _Path("openapi/resources")
-        dist_resources = _Path("dist/openapi/resources")
-        packaged_resources = _Path(__file__).resolve().parent.parent / "resources"
-
-        resources_dir = next(
-            (c for c in (source_resources, dist_resources, packaged_resources)
-             if c.exists()),
-            None,
+        # Prefer the exact tree _mount_resource_servers mounted from so
+        # transforms are compiled against the specs the tools came from.
+        resources_dir = (
+            getattr(self, "resources_dir", None) or resolve_resources_dir()
         )
         if resources_dir is None:
             logger.info(
@@ -440,14 +467,7 @@ class ServerBuilder:
             )
             return
 
-        overlays_dir = _Path("dist/openapi/overlays")
-        if not overlays_dir.exists():
-            # Wheel installs have no dist/ tree; staging places overlays
-            # under the packaged resources dir (see stage_wheel_resources).
-            packaged_overlays = packaged_resources / "overlays"
-            overlays_dir = (  # type: ignore[assignment]
-                packaged_overlays if packaged_overlays.exists() else None
-            )
+        overlays_dir = resolve_overlays_dir()
 
         middleware = SidecarTransformMiddleware(
             resources_dir, overlays_dir=overlays_dir
@@ -477,24 +497,17 @@ class ServerBuilder:
 
     async def _mount_resource_servers(self):
         """Mount resource servers for API isolation."""
+        from ..utils.resource_paths import resolve_resources_dir
 
-        # Always prefer dist/ directory if it exists (minified specs)
-        dist_resources = Path("dist/openapi/resources")
-        source_resources = Path("openapi/resources")
-        packaged_resources = Path(__file__).resolve().parent.parent / "resources"
-
-        if dist_resources.exists():
-            resources_dir = dist_resources
-            logger.info(f"Using optimized resources from {resources_dir}")
-        elif source_resources.exists():
-            resources_dir = source_resources
-            logger.info(f"Using source resources from {resources_dir}")
-        elif packaged_resources.exists():
-            resources_dir = packaged_resources
-            logger.info(f"Using packaged resources from {resources_dir}")
-        else:
+        resources_dir = resolve_resources_dir()
+        if resources_dir is None:
             logger.warning("No resources directory found")
             return
+        logger.info(f"Using resources from {resources_dir}")
+        # Remember the tree we mounted from so the sidecar middleware
+        # compiles transforms against the SAME specs (a divergent pick
+        # pairs minified dist specs with source-tree rules, or vice versa).
+        self.resources_dir = resources_dir
 
         # Load namespace mapping and package allowlist (if any)
         namespace_mapping = await self._load_namespace_mapping(resources_dir)
@@ -537,13 +550,9 @@ class ServerBuilder:
         :return: Namespace to prefix mapping
         :rtype: Dict[str, str]
         """
-        # Try multiple locations for packages.json: alongside resources or project root
-        candidates = [
-            resources_dir.parent / "packages.json",
-            resources_dir / "packages.json",
-            Path("openapi/packages.json"),
-        ]
-        packages_path = next((p for p in candidates if p.exists()), None)
+        from ..utils.resource_paths import find_packages_json
+
+        packages_path = find_packages_json(resources_dir)
         if not packages_path:
             return {}
 
@@ -583,12 +592,9 @@ class ServerBuilder:
         no restriction.
         """
         # Load packages.json to resolve aliases -> namespaces and read defaults
-        candidates = [
-            resources_dir.parent / "packages.json",
-            resources_dir / "packages.json",
-            Path("openapi/packages.json"),
-        ]
-        packages_path = next((p for p in candidates if p.exists()), None)
+        from ..utils.resource_paths import find_packages_json
+
+        packages_path = find_packages_json(resources_dir)
 
         alias_map: Dict[str, str] = {}
         default_tokens: list[str] = []
@@ -844,13 +850,13 @@ class ServerBuilder:
 
         Token reduction: 98.4% for 55+ tools (34,971 -> 547 tokens).
 
-        Fails soft: when the ``code-mode`` extra (``pydantic_monty``) is not
-        installed, log a clear warning and leave the full tool catalog
-        exposed instead of crashing startup. ``CODE_MODE`` defaults to on,
-        but the base install does not pull the extra — a hard failure here
-        left stdio clients with a silent disconnect and no tools at all
-        (issue #91). Exposing the full catalog is the correct, usable
-        fallback (it is exactly what ``CODE_MODE=false`` does).
+        The primary missing-extra guard is ``_resolve_code_mode()`` in
+        ``build()``, which downgrades to genuine ``CODE_MODE=false`` behavior
+        before any code-mode-conditional setup runs. The fail-soft here is a
+        second belt for the rare partial-install case where the availability
+        probe passed but transform creation still raises: the server stays
+        up with the full catalog exposed, though without the tool-group
+        builtins the false path would have registered.
         """
         from .code_mode import create_code_mode_transform
 
@@ -858,24 +864,29 @@ class ServerBuilder:
             transform = create_code_mode_transform()
         except ImportError as exc:
             logger.warning(
-                "CODE_MODE is enabled but the 'code-mode' extra is not "
-                "installed (%s). Falling back to the full tool catalog. "
-                "Install with: pip install 'amazon-ads-mcp[code-mode]' "
-                "(or set CODE_MODE=false to silence this warning).",
+                "CODE_MODE runtime probe passed but transform creation "
+                "failed (%s). Falling back to the full tool catalog. "
+                "Reinstall with: pip install 'amazon-ads-mcp[code-mode]' "
+                "(or set CODE_MODE=false).",
                 exc,
             )
             return
 
         self.server.add_transform(transform)
 
-        tools = await self.server.list_tools()
-        tool_names = [t.name for t in tools]
+        # Enumerating tools here would materialize the entire mounted
+        # catalog just to print the handful of static meta-tool names, so
+        # the full listing is DEBUG-only.
         logger.info(
-            "Code mode active: %d meta-tools exposed (%s). "
-            "Original tools accessible via execute.",
-            len(tools),
-            ", ".join(tool_names),
+            "Code mode active: meta-tools replace the tool catalog; "
+            "original tools accessible via execute."
         )
+        if logger.isEnabledFor(logging.DEBUG):
+            tools = await self.server.list_tools()
+            logger.debug(
+                "Code mode meta-tools: %s",
+                ", ".join(t.name for t in tools),
+            )
 
     async def _strip_output_schemas(self):
         """Strip outputSchema from all registered tools.

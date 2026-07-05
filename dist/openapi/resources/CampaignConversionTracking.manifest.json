@@ -1,0 +1,40 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "CampaignConversionTracking",
+  "tools": [
+    {
+      "operationId": "DspGetCampaignConversionTrackingProductsV1",
+      "method": "GET",
+      "path": "/dsp/v1/campaigns/{campaignId}/conversionTracking/products",
+      "preferred_name": "CampaignConversionTracking_DspGetCampaignConversionTrackingProductsV1",
+      "complexity": {
+        "parameters": 6,
+        "has_body": false,
+        "responses": 9
+      }
+    },
+    {
+      "operationId": "DspPostProductConversionTrackingV1",
+      "method": "POST",
+      "path": "/dsp/v1/campaigns/{campaignId}/conversionTracking/products",
+      "preferred_name": "CampaignConversionTracking_DspPostProductConversionTrackingV1",
+      "complexity": {
+        "parameters": 4,
+        "has_body": true,
+        "responses": 9
+      }
+    },
+    {
+      "operationId": "DspDeleteProductConversionTrackingV1",
+      "method": "POST",
+      "path": "/dsp/v1/campaigns/{campaignId}/conversionTracking/products/delete",
+      "preferred_name": "CampaignConversionTracking_DspDeleteProductConversionTrackingV1",
+      "complexity": {
+        "parameters": 4,
+        "has_body": true,
+        "responses": 9
+      }
+    }
+  ]
+}

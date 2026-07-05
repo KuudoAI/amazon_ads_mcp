@@ -45,18 +45,27 @@ import shutil
 import sys
 from pathlib import Path
 
-# repo_root/src/amazon_ads_mcp/build/stage_wheel_resources.py
-#   parents[0]=build  [1]=amazon_ads_mcp  [2]=src  [3]=repo root
-_REPO_ROOT = Path(__file__).resolve().parents[3]
+def _find_repo_root(start: Path) -> Path:
+    """Walk up from *start* to the directory containing ``pyproject.toml``.
+
+    A fixed ``parents[N]`` depth would silently mis-resolve if this file
+    moved, turning stage() into a no-op that ships a spec-less wheel.
+    Inlined (rather than shared with ``validators._repo_root``) because the
+    release workflow runs this file standalone with no package installed.
+    """
+    for candidate in (start, *start.parents):
+        if (candidate / "pyproject.toml").is_file():
+            return candidate
+    raise RuntimeError(
+        f"pyproject.toml not found above {start}; cannot locate repo root"
+    )
+
+
+_REPO_ROOT = _find_repo_root(Path(__file__).resolve().parent)
 
 DEFAULT_RESOURCES_SRC = _REPO_ROOT / "dist" / "openapi" / "resources"
 DEFAULT_OVERLAYS_SRC = _REPO_ROOT / "dist" / "openapi" / "overlays"
 DEFAULT_DEST = _REPO_ROOT / "src" / "amazon_ads_mcp" / "resources"
-
-# Subdirectories under the package resources dir that are committed and must
-# never be touched by staging/cleaning.
-_PROTECTED_SUBDIRS = ("adsv1", "contract")
-
 
 def _copy_flat_json(src_dir: Path, dest_dir: Path) -> int:
     """Copy every top-level ``*.json`` from *src_dir* into *dest_dir*.
@@ -128,7 +137,7 @@ def clean(dest: Path = DEFAULT_DEST) -> int:
                 path.unlink()
                 removed += 1
         overlays = dest / "overlays"
-        if overlays.is_dir() and overlays.name not in _PROTECTED_SUBDIRS:
+        if overlays.is_dir():
             shutil.rmtree(overlays)
     print(f"[stage_wheel_resources] removed {removed} staged resource file(s)")
     return removed
@@ -168,8 +177,8 @@ def main(argv: list[str] | None = None) -> int:
         "--check",
         action="store_true",
         help=(
-            "Exit non-zero if the dist resources source is missing or empty. "
-            "Use as a release pre-flight."
+            "Exit non-zero if the dist resources or overlays source is "
+            "missing or empty. Use as a release pre-flight."
         ),
     )
     args = parser.parse_args(argv)
@@ -179,22 +188,26 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.check:
-        specs = (
-            sorted(args.resources_src.glob("*.json"))
-            if args.resources_src.exists()
-            else []
-        )
-        if not specs:
-            print(
-                f"[stage_wheel_resources] CHECK FAILED: no specs under "
-                f"{args.resources_src}",
-                file=sys.stderr,
-            )
+        failures = []
+        for label, src in (
+            ("specs", args.resources_src),
+            ("overlays", args.overlays_src),
+        ):
+            count = len(list(src.glob("*.json"))) if src.exists() else 0
+            if count == 0:
+                failures.append(f"no {label} under {src}")
+            else:
+                print(
+                    f"[stage_wheel_resources] CHECK OK: {count} {label} "
+                    f"file(s) available under {src}"
+                )
+        if failures:
+            for failure in failures:
+                print(
+                    f"[stage_wheel_resources] CHECK FAILED: {failure}",
+                    file=sys.stderr,
+                )
             return 1
-        print(
-            f"[stage_wheel_resources] CHECK OK: {len(specs)} resource file(s) "
-            f"available under {args.resources_src}"
-        )
         return 0
 
     stage(args.resources_src, args.overlays_src, args.dest)

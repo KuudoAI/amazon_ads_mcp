@@ -1,0 +1,964 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "AdsAPIv1All",
+  "tools": [
+    {
+      "operationId": "ListBrandStoreEdition",
+      "method": "GET",
+      "path": "/adsApi/v1/brandStoreEditions",
+      "preferred_name": "AdsAPIv1All_ListBrandStoreEdition",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPListCommitment",
+      "method": "GET",
+      "path": "/adsApi/v1/commitments/dsp",
+      "preferred_name": "AdsAPIv1All_DSPListCommitment",
+      "complexity": {
+        "parameters": 3,
+        "has_body": false,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "CreateAccountCombinationInvitation",
+      "method": "POST",
+      "path": "/adsApi/v1/create/accountCombinationInvitations",
+      "preferred_name": "AdsAPIv1All_CreateAccountCombinationInvitation",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "CreateAdAssociation",
+      "method": "POST",
+      "path": "/adsApi/v1/create/adAssociations",
+      "preferred_name": "AdsAPIv1All_CreateAdAssociation",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "CreateAdExtension",
+      "method": "POST",
+      "path": "/adsApi/v1/create/adExtensions",
+      "preferred_name": "AdsAPIv1All_CreateAdExtension",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "CreateAdGroup",
+      "method": "POST",
+      "path": "/adsApi/v1/create/adGroups",
+      "preferred_name": "AdsAPIv1All_CreateAdGroup",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "CreateAd",
+      "method": "POST",
+      "path": "/adsApi/v1/create/ads",
+      "preferred_name": "AdsAPIv1All_CreateAd",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "CreateAdvertiserAccount",
+      "method": "POST",
+      "path": "/adsApi/v1/create/advertiserAccounts",
+      "preferred_name": "AdsAPIv1All_CreateAdvertiserAccount",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "CreateAdvertiserProductGroupEligibility",
+      "method": "POST",
+      "path": "/adsApi/v1/create/advertiserProductGroupEligibilities",
+      "preferred_name": "AdsAPIv1All_CreateAdvertiserProductGroupEligibility",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SBCreateAdvertisingDealTarget",
+      "method": "POST",
+      "path": "/adsApi/v1/create/advertisingDealTargets/sb",
+      "preferred_name": "AdsAPIv1All_SBCreateAdvertisingDealTarget",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SBCreateAdvertisingDeal",
+      "method": "POST",
+      "path": "/adsApi/v1/create/advertisingDeals/sb",
+      "preferred_name": "AdsAPIv1All_SBCreateAdvertisingDeal",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SBCreateBrandedKeywordsPricing",
+      "method": "POST",
+      "path": "/adsApi/v1/create/brandedKeywordsPricings/sb",
+      "preferred_name": "AdsAPIv1All_SBCreateBrandedKeywordsPricing",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "CreateCampaign",
+      "method": "POST",
+      "path": "/adsApi/v1/create/campaigns",
+      "preferred_name": "AdsAPIv1All_CreateCampaign",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPCreateCommitment",
+      "method": "POST",
+      "path": "/adsApi/v1/create/commitments/dsp",
+      "preferred_name": "AdsAPIv1All_DSPCreateCommitment",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "CreateEvent",
+      "method": "POST",
+      "path": "/adsApi/v1/create/events",
+      "preferred_name": "AdsAPIv1All_CreateEvent",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "CreateGeoLocation",
+      "method": "POST",
+      "path": "/adsApi/v1/create/geoLocations",
+      "preferred_name": "AdsAPIv1All_CreateGeoLocation",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPAdsApiv1CreateInventoryGroup",
+      "method": "POST",
+      "path": "/adsApi/v1/create/inventoryGroups/dsp",
+      "preferred_name": "AdsAPIv1All_DSPAdsApiv1CreateInventoryGroup",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SBCreateKeywordReservationValidation",
+      "method": "POST",
+      "path": "/adsApi/v1/create/keywordReservationValidations/sb",
+      "preferred_name": "AdsAPIv1All_SBCreateKeywordReservationValidation",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "CreateLinearTvIncrementalReachForecast",
+      "method": "POST",
+      "path": "/adsApi/v1/create/linearTvIncrementalReachForecasts",
+      "preferred_name": "AdsAPIv1All_CreateLinearTvIncrementalReachForecast",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "CreateLinearTvReachForecast",
+      "method": "POST",
+      "path": "/adsApi/v1/create/linearTvReachForecasts",
+      "preferred_name": "AdsAPIv1All_CreateLinearTvReachForecast",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "CreateLocationIndex",
+      "method": "POST",
+      "path": "/adsApi/v1/create/locationIndexes",
+      "preferred_name": "AdsAPIv1All_CreateLocationIndex",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "CreateManagerAccount",
+      "method": "POST",
+      "path": "/adsApi/v1/create/managerAccounts",
+      "preferred_name": "AdsAPIv1All_CreateManagerAccount",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SBCreateRecommendation",
+      "method": "POST",
+      "path": "/adsApi/v1/create/recommendations/sb",
+      "preferred_name": "AdsAPIv1All_SBCreateRecommendation",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "AdsApiv1CreateReport",
+      "method": "POST",
+      "path": "/adsApi/v1/create/reports",
+      "preferred_name": "AdsAPIv1All_AdsApiv1CreateReport",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPAdsApiv1CreateSupplierAdProductPrice",
+      "method": "POST",
+      "path": "/adsApi/v1/create/supplierAdProductPrices/dsp",
+      "preferred_name": "AdsAPIv1All_DSPAdsApiv1CreateSupplierAdProductPrice",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPAdsApiv1CreateSupplierProposal",
+      "method": "POST",
+      "path": "/adsApi/v1/create/supplierProposals/dsp",
+      "preferred_name": "AdsAPIv1All_DSPAdsApiv1CreateSupplierProposal",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPAdsApiv1CreateSupplierProposedDealForecast",
+      "method": "POST",
+      "path": "/adsApi/v1/create/supplierProposedDealForecasts/dsp",
+      "preferred_name": "AdsAPIv1All_DSPAdsApiv1CreateSupplierProposedDealForecast",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPAdsApiv1CreateSupplierProposedDeal",
+      "method": "POST",
+      "path": "/adsApi/v1/create/supplierProposedDeals/dsp",
+      "preferred_name": "AdsAPIv1All_DSPAdsApiv1CreateSupplierProposedDeal",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "CreateTarget",
+      "method": "POST",
+      "path": "/adsApi/v1/create/targets",
+      "preferred_name": "AdsAPIv1All_CreateTarget",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPListDealPlanningMetrics",
+      "method": "GET",
+      "path": "/adsApi/v1/dealPlanningMetricses/dsp",
+      "preferred_name": "AdsAPIv1All_DSPListDealPlanningMetrics",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DeleteAdAssociation",
+      "method": "POST",
+      "path": "/adsApi/v1/delete/adAssociations",
+      "preferred_name": "AdsAPIv1All_DeleteAdAssociation",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DeleteAdGroup",
+      "method": "POST",
+      "path": "/adsApi/v1/delete/adGroups",
+      "preferred_name": "AdsAPIv1All_DeleteAdGroup",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DeleteAd",
+      "method": "POST",
+      "path": "/adsApi/v1/delete/ads",
+      "preferred_name": "AdsAPIv1All_DeleteAd",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SBDeleteAdvertisingDealTarget",
+      "method": "POST",
+      "path": "/adsApi/v1/delete/advertisingDealTargets/sb",
+      "preferred_name": "AdsAPIv1All_SBDeleteAdvertisingDealTarget",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SBDeleteAdvertisingDeal",
+      "method": "POST",
+      "path": "/adsApi/v1/delete/advertisingDeals/sb",
+      "preferred_name": "AdsAPIv1All_SBDeleteAdvertisingDeal",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DeleteCampaign",
+      "method": "POST",
+      "path": "/adsApi/v1/delete/campaigns",
+      "preferred_name": "AdsAPIv1All_DeleteCampaign",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "AdsApiv1DeleteReport",
+      "method": "POST",
+      "path": "/adsApi/v1/delete/reports",
+      "preferred_name": "AdsAPIv1All_AdsApiv1DeleteReport",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DeleteTarget",
+      "method": "POST",
+      "path": "/adsApi/v1/delete/targets",
+      "preferred_name": "AdsAPIv1All_DeleteTarget",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "ListLocationIndex",
+      "method": "GET",
+      "path": "/adsApi/v1/locationIndexes",
+      "preferred_name": "AdsAPIv1All_ListLocationIndex",
+      "complexity": {
+        "parameters": 5,
+        "has_body": false,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "QueryAccountCombinationInvitation",
+      "method": "POST",
+      "path": "/adsApi/v1/query/accountCombinationInvitations",
+      "preferred_name": "AdsAPIv1All_QueryAccountCombinationInvitation",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "QueryAdAssociation",
+      "method": "POST",
+      "path": "/adsApi/v1/query/adAssociations",
+      "preferred_name": "AdsAPIv1All_QueryAdAssociation",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "QueryAdExtension",
+      "method": "POST",
+      "path": "/adsApi/v1/query/adExtensions",
+      "preferred_name": "AdsAPIv1All_QueryAdExtension",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "QueryAdGroup",
+      "method": "POST",
+      "path": "/adsApi/v1/query/adGroups",
+      "preferred_name": "AdsAPIv1All_QueryAdGroup",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "QueryAd",
+      "method": "POST",
+      "path": "/adsApi/v1/query/ads",
+      "preferred_name": "AdsAPIv1All_QueryAd",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "QueryAdvertiserAccount",
+      "method": "POST",
+      "path": "/adsApi/v1/query/advertiserAccounts",
+      "preferred_name": "AdsAPIv1All_QueryAdvertiserAccount",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "QueryAdvertiserProductGroupEligibility",
+      "method": "POST",
+      "path": "/adsApi/v1/query/advertiserProductGroupEligibilities",
+      "preferred_name": "AdsAPIv1All_QueryAdvertiserProductGroupEligibility",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SBQueryAdvertisingDealTarget",
+      "method": "POST",
+      "path": "/adsApi/v1/query/advertisingDealTargets/sb",
+      "preferred_name": "AdsAPIv1All_SBQueryAdvertisingDealTarget",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SBQueryAdvertisingDeal",
+      "method": "POST",
+      "path": "/adsApi/v1/query/advertisingDeals/sb",
+      "preferred_name": "AdsAPIv1All_SBQueryAdvertisingDeal",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "QueryBrandStoreEditionPublishVersion",
+      "method": "POST",
+      "path": "/adsApi/v1/query/brandStoreEditionPublishVersions",
+      "preferred_name": "AdsAPIv1All_QueryBrandStoreEditionPublishVersion",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "QueryBrandStorePage",
+      "method": "POST",
+      "path": "/adsApi/v1/query/brandStorePages",
+      "preferred_name": "AdsAPIv1All_QueryBrandStorePage",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "QueryBrandStore",
+      "method": "POST",
+      "path": "/adsApi/v1/query/brandStores",
+      "preferred_name": "AdsAPIv1All_QueryBrandStore",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "QueryCampaign",
+      "method": "POST",
+      "path": "/adsApi/v1/query/campaigns",
+      "preferred_name": "AdsAPIv1All_QueryCampaign",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPQueryDealAvails",
+      "method": "POST",
+      "path": "/adsApi/v1/query/dealAvailses/dsp",
+      "preferred_name": "AdsAPIv1All_DSPQueryDealAvails",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPAdsApiv1QueryInventoryGroup",
+      "method": "POST",
+      "path": "/adsApi/v1/query/inventoryGroups/dsp",
+      "preferred_name": "AdsAPIv1All_DSPAdsApiv1QueryInventoryGroup",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "QueryLinearTvDaypart",
+      "method": "POST",
+      "path": "/adsApi/v1/query/linearTvDayparts",
+      "preferred_name": "AdsAPIv1All_QueryLinearTvDaypart",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "QueryManagerAccount",
+      "method": "POST",
+      "path": "/adsApi/v1/query/managerAccounts",
+      "preferred_name": "AdsAPIv1All_QueryManagerAccount",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "AdsApiv1QueryPublisher",
+      "method": "POST",
+      "path": "/adsApi/v1/query/publishers",
+      "preferred_name": "AdsAPIv1All_AdsApiv1QueryPublisher",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SBQueryRecommendationType",
+      "method": "POST",
+      "path": "/adsApi/v1/query/recommendationTypes/sb",
+      "preferred_name": "AdsAPIv1All_SBQueryRecommendationType",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "QuerySellingAccount",
+      "method": "POST",
+      "path": "/adsApi/v1/query/sellingAccounts",
+      "preferred_name": "AdsAPIv1All_QuerySellingAccount",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPAdsApiv1QuerySupplierAdProduct",
+      "method": "POST",
+      "path": "/adsApi/v1/query/supplierAdProducts/dsp",
+      "preferred_name": "AdsAPIv1All_DSPAdsApiv1QuerySupplierAdProduct",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPAdsApiv1QuerySupplierProposal",
+      "method": "POST",
+      "path": "/adsApi/v1/query/supplierProposals/dsp",
+      "preferred_name": "AdsAPIv1All_DSPAdsApiv1QuerySupplierProposal",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPAdsApiv1QuerySupplierProposedDeal",
+      "method": "POST",
+      "path": "/adsApi/v1/query/supplierProposedDeals/dsp",
+      "preferred_name": "AdsAPIv1All_DSPAdsApiv1QuerySupplierProposedDeal",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPAdsApiv1QuerySupplierPublisher",
+      "method": "POST",
+      "path": "/adsApi/v1/query/supplierPublishers/dsp",
+      "preferred_name": "AdsAPIv1All_DSPAdsApiv1QuerySupplierPublisher",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPAdsApiv1QuerySupplierTargetItem",
+      "method": "POST",
+      "path": "/adsApi/v1/query/supplierTargetItems/dsp",
+      "preferred_name": "AdsAPIv1All_DSPAdsApiv1QuerySupplierTargetItem",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPAdsApiv1QuerySupplier",
+      "method": "POST",
+      "path": "/adsApi/v1/query/suppliers/dsp",
+      "preferred_name": "AdsAPIv1All_DSPAdsApiv1QuerySupplier",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "QueryTarget",
+      "method": "POST",
+      "path": "/adsApi/v1/query/targets",
+      "preferred_name": "AdsAPIv1All_QueryTarget",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPRetrieveCampaignForecast",
+      "method": "POST",
+      "path": "/adsApi/v1/retrieve/campaignForecasts/dsp",
+      "preferred_name": "AdsAPIv1All_DSPRetrieveCampaignForecast",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPRetrieveCommitmentSpend",
+      "method": "POST",
+      "path": "/adsApi/v1/retrieve/commitmentSpends/dsp",
+      "preferred_name": "AdsAPIv1All_DSPRetrieveCommitmentSpend",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPRetrieveCommitment",
+      "method": "POST",
+      "path": "/adsApi/v1/retrieve/commitments/dsp",
+      "preferred_name": "AdsAPIv1All_DSPRetrieveCommitment",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPAdsApiv1RetrieveInventoryGroup",
+      "method": "POST",
+      "path": "/adsApi/v1/retrieve/inventoryGroups/dsp",
+      "preferred_name": "AdsAPIv1All_DSPAdsApiv1RetrieveInventoryGroup",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "RetrieveLocationIndex",
+      "method": "POST",
+      "path": "/adsApi/v1/retrieve/locationIndexes",
+      "preferred_name": "AdsAPIv1All_RetrieveLocationIndex",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "AdsApiv1RetrieveReport",
+      "method": "POST",
+      "path": "/adsApi/v1/retrieve/reports",
+      "preferred_name": "AdsAPIv1All_AdsApiv1RetrieveReport",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "UpdateAccountCombinationInvitation",
+      "method": "POST",
+      "path": "/adsApi/v1/update/accountCombinationInvitations",
+      "preferred_name": "AdsAPIv1All_UpdateAccountCombinationInvitation",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "UpdateAdAssociation",
+      "method": "POST",
+      "path": "/adsApi/v1/update/adAssociations",
+      "preferred_name": "AdsAPIv1All_UpdateAdAssociation",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "UpdateAdExtension",
+      "method": "POST",
+      "path": "/adsApi/v1/update/adExtensions",
+      "preferred_name": "AdsAPIv1All_UpdateAdExtension",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "UpdateAdGroup",
+      "method": "POST",
+      "path": "/adsApi/v1/update/adGroups",
+      "preferred_name": "AdsAPIv1All_UpdateAdGroup",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "UpdateAd",
+      "method": "POST",
+      "path": "/adsApi/v1/update/ads",
+      "preferred_name": "AdsAPIv1All_UpdateAd",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "UpdateAdvertiserAccount",
+      "method": "POST",
+      "path": "/adsApi/v1/update/advertiserAccounts",
+      "preferred_name": "AdsAPIv1All_UpdateAdvertiserAccount",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "SBUpdateAdvertisingDeal",
+      "method": "POST",
+      "path": "/adsApi/v1/update/advertisingDeals/sb",
+      "preferred_name": "AdsAPIv1All_SBUpdateAdvertisingDeal",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "UpdateBrandStoreEditionPublishVersion",
+      "method": "POST",
+      "path": "/adsApi/v1/update/brandStoreEditionPublishVersions",
+      "preferred_name": "AdsAPIv1All_UpdateBrandStoreEditionPublishVersion",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "UpdateBrandStorePage",
+      "method": "POST",
+      "path": "/adsApi/v1/update/brandStorePages",
+      "preferred_name": "AdsAPIv1All_UpdateBrandStorePage",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "UpdateCampaign",
+      "method": "POST",
+      "path": "/adsApi/v1/update/campaigns",
+      "preferred_name": "AdsAPIv1All_UpdateCampaign",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPUpdateCommitment",
+      "method": "POST",
+      "path": "/adsApi/v1/update/commitments/dsp",
+      "preferred_name": "AdsAPIv1All_DSPUpdateCommitment",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "DSPAdsApiv1UpdateInventoryGroup",
+      "method": "POST",
+      "path": "/adsApi/v1/update/inventoryGroups/dsp",
+      "preferred_name": "AdsAPIv1All_DSPAdsApiv1UpdateInventoryGroup",
+      "complexity": {
+        "parameters": 2,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "UpdateLocationIndex",
+      "method": "POST",
+      "path": "/adsApi/v1/update/locationIndexes",
+      "preferred_name": "AdsAPIv1All_UpdateLocationIndex",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "UpdateManagerAccount",
+      "method": "POST",
+      "path": "/adsApi/v1/update/managerAccounts",
+      "preferred_name": "AdsAPIv1All_UpdateManagerAccount",
+      "complexity": {
+        "parameters": 1,
+        "has_body": true,
+        "responses": 11
+      }
+    },
+    {
+      "operationId": "UpdateTarget",
+      "method": "POST",
+      "path": "/adsApi/v1/update/targets",
+      "preferred_name": "AdsAPIv1All_UpdateTarget",
+      "complexity": {
+        "parameters": 3,
+        "has_body": true,
+        "responses": 11
+      }
+    }
+  ]
+}

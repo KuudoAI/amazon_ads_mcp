@@ -22,10 +22,11 @@ services:
       - HOST=0.0.0.0
       - PORT=${PORT:-8000}
       - LOG_LEVEL=INFO
-      # Mount every packaged Amazon Ads OpenAPI resource. Explicit Compose
-      # values override .env, so this enables the full tool catalog in Docker.
+      # Full tool catalog by default; a curated AMAZON_AD_API_PACKAGES in
+      # .env (or the shell) takes precedence via ${VAR:-default}
+      # interpolation, so slim setups keep their package selection.
       - >-
-        AMAZON_AD_API_PACKAGES=profiles,test-account,forecasts,brand-stores-management,campaign-manage,accounts-manager-accounts,accounts-ads-accounts,accounts-portfolios,accounts-billing,accounts-account-budgets,audiences-discovery,reporting-version-3,brand-benchmarks,brand-metrics,stores-analytics,sponsored-products,sp-suggested-keywords,sponsored-brands-v4,sponsored-brands-v3,sponsored-display,dsp-measurement,dsp-advertisers,dsp-audiences,dsp-conversions,dsp-target-kpi-recommendations,amazon-attribution,audience-insights,partner-opportunities,tactical-recommendations,persona-builder,creative-assets,change-history,data-provider-data,products-metadata,products-eligibility,unified-pre-moderation-results,moderation-results,amazon-marketing-stream,locations,exports-snapshots,marketing-mix-modeling,reach-forecasting,amc-administration,amc-workflow,amc-rule-audience,amc-ad-audience,ads-api-v1-sp,ads-api-v1-sb,ads-api-v1-dsp,ads-api-v1-sd,ads-api-v1-st,ads-api-v1-all,ads-api-v1-beta
+        AMAZON_AD_API_PACKAGES=${AMAZON_AD_API_PACKAGES:-profiles,test-account,forecasts,conversions,campaign-conversion-tracking,brand-stores-management,campaign-manage,accounts-manager-accounts,accounts-ads-accounts,accounts-portfolios,accounts-billing,accounts-account-budgets,audiences-discovery,reporting-version-3,brand-benchmarks,brand-metrics,stores-analytics,sponsored-products,sp-suggested-keywords,sponsored-brands-v4,sponsored-brands-v3,sponsored-display,dsp-measurement,dsp-advertisers,dsp-audiences,dsp-conversions,dsp-target-kpi-recommendations,amazon-attribution,audience-insights,partner-opportunities,tactical-recommendations,persona-builder,creative-assets,change-history,data-provider-data,products-metadata,products-eligibility,unified-pre-moderation-results,moderation-results,amazon-marketing-stream,locations,exports-snapshots,marketing-mix-modeling,reach-forecasting,amc-administration,amc-workflow,amc-rule-audience,amc-ad-audience,ads-api-v1-sp,ads-api-v1-sb,ads-api-v1-dsp,ads-api-v1-sd,ads-api-v1-st,ads-api-v1-all,ads-api-v1-beta}
       # Token persistence (disabled by default for security)
       # Set to 'true' to cache refresh tokens across restarts (see docs for security implications)
       - AMAZON_ADS_TOKEN_PERSIST=false
@@ -62,6 +63,10 @@ services:
     ]
  
 volumes:
+  # `name:` pins the unprefixed global volume name so Agent Factory, Code
+  # Factory, and Amazon SP MCP stacks share it, while Compose still creates
+  # it on first `docker compose up` (external: true broke fresh-machine
+  # quick starts with "external volume ... not found").
   shared-execution-data:
-    external: true
+    name: shared-execution-data
   cache: {}
