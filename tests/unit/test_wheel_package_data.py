@@ -53,6 +53,10 @@ REQUIRED_SPECS_IN_WHEEL = [
     "amazon_ads_mcp/resources/ReportingVersion3.json",
     "amazon_ads_mcp/resources/AdsAPIv1SponsoredProducts.json",
     "amazon_ads_mcp/resources/AdsAPIv1SponsoredBrands.json",
+    # The merged v1 catalog behind the allv1_* tools INSTALL.md recommends;
+    # its spec sat uncommitted (dist/.gitignore ignores dist/*) so released
+    # wheels shipped the AdsAPIv1All overlay with no spec to apply it to.
+    "amazon_ads_mcp/resources/AdsAPIv1All.json",
 ]
 
 # Arg-alias overlays the SidecarTransformMiddleware consumes at runtime.

@@ -35,3 +35,27 @@ def test_source_and_dist_packages_json_match():
         "the runtime reads the dist copy — regenerate it (or cp the source "
         "over it) so edits actually ship."
     )
+
+
+@pytest.mark.skipif(not DIST.exists(), reason="repo checkout required")
+def test_every_alias_namespace_has_a_committed_spec():
+    """Each packages.json alias must resolve to a spec file that ships.
+
+    dist/.gitignore ignores everything under dist/ (committed files were
+    force-added), so a regenerated spec can exist locally while fresh
+    clones — including the release workflow — silently lack it. That is
+    how AdsAPIv1All/AdsAPIv1Beta/Conversions/CampaignConversionTracking
+    shipped as aliases without spec files. On a clean checkout this test
+    fails for any alias whose spec was never `git add -f`-ed.
+    """
+    pkgs = json.loads(DIST.read_text())
+    resources_dir = DIST.parent
+    missing = sorted(
+        ns
+        for ns in set((pkgs.get("aliases") or {}).values())
+        if not (resources_dir / f"{ns}.json").exists()
+    )
+    assert not missing, (
+        f"aliases point at spec files absent from this checkout: {missing} "
+        "— regenerate and force-add them (dist/.gitignore ignores dist/*)."
+    )

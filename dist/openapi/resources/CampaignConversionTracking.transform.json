@@ -1,0 +1,81 @@
+{
+  "version": "1.0",
+  "generated": "auto",
+  "namespace": "CampaignConversionTracking",
+  "tools": [
+    {
+      "match": {
+        "operationId": "DspGetCampaignConversionTrackingProductsV1"
+      },
+      "pagination": {
+        "param_name": "nextToken",
+        "response_key": "nextToken",
+        "all_pages": false,
+        "limit_param": "maxResults",
+        "default_limit": 100
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "CampaignId",
+            "to": "campaignId"
+          },
+          {
+            "from": "NextToken",
+            "to": "nextToken"
+          },
+          {
+            "from": "MaxResults",
+            "to": "maxResults"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "DspPostProductConversionTrackingV1"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "CampaignId",
+            "to": "campaignId"
+          },
+          {
+            "from": "ProductTrackingList",
+            "to": "productTrackingList"
+          }
+        ]
+      }
+    },
+    {
+      "match": {
+        "operationId": "DspDeleteProductConversionTrackingV1"
+      },
+      "output_transform": {
+        "sample_n": 10,
+        "artifact_threshold_bytes": 10240
+      },
+      "input_transform": {
+        "arg_aliases": [
+          {
+            "from": "CampaignId",
+            "to": "campaignId"
+          },
+          {
+            "from": "ProductTrackingList",
+            "to": "productTrackingList"
+          }
+        ]
+      }
+    }
+  ]
+}
