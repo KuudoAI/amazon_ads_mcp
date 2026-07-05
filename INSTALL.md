@@ -133,6 +133,11 @@ Set the following environment variables:
 export AUTH_METHOD=direct
 export AMAZON_AD_API_CLIENT_ID="your-client-id"
 export AMAZON_AD_API_CLIENT_SECRET="your-client-secret"
+
+# Optional: a pre-authorized server-owner refresh token. Without it the
+# server still starts — authenticate at runtime with the built-in OAuth
+# tools (start_oauth_flow / check_oauth_status), which persist the token
+# they obtain.
 export AMAZON_AD_API_REFRESH_TOKEN="your-refresh-token"
 
 # Region Configuration (optional, defaults to "na")
