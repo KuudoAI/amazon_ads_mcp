@@ -1,6 +1,6 @@
 [project]
 name = "amazon-ads-mcp"
-version = "0.3.23"
+version = "0.3.24"
 description = "Amazon Ads API MCP Server - Implementation for Amazon Advertising API"
 readme = "README.md"
 requires-python = ">=3.10,<4.0"
@@ -10,10 +10,6 @@ name = "Amazon Ads API MCP SDK"
 
 [build-system]
 requires = [ "poetry-core",]
-# In-tree shim (build_package.py) that stages dist/openapi resources into the
-# package tree on every wheel/editable build, then delegates to poetry-core.
-# Keeps pip/uv/sdist/git build paths self-contained without the non-pure
-# wheel tag a [tool.poetry.build] script would force.
 build-backend = "build_package"
 backend-path = [ ".",]
 
@@ -41,10 +37,6 @@ exclude = [ "src/amazon_ads_mcp/build/**/*", "src/amazon_ads_mcp/tool_audit/**/*
 include = "amazon_ads_mcp"
 from = "src"
 
-# Top-level OpenAPI specs + sidecars + packages.json and the arg-alias
-# overlays, staged from dist/openapi/ into the package tree at wheel build
-# time by build_package.py ([tool.poetry.build] below) — every build path
-# (pip install ., git URL, sdist rebuild, CI) stages the same way.
 [[tool.poetry.include]]
 path = "src/amazon_ads_mcp/resources/*.json"
 format = "wheel"
@@ -53,9 +45,6 @@ format = "wheel"
 path = "src/amazon_ads_mcp/resources/overlays/*.json"
 format = "wheel"
 
-# The canonical staging sources and the stager itself ship in the sdist so a
-# wheel built FROM the sdist can stage (dist/openapi is committed; the wheel
-# stays lean and carries only the staged package-tree copies).
 [[tool.poetry.include]]
 path = "dist/openapi/resources/*.json"
 format = "sdist"
