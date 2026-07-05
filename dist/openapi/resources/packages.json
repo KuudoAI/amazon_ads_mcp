@@ -204,5 +204,9 @@
       "marketing-mix-modeling"
     ]
   },
-  "defaults": []
+  "defaults": [
+    "profiles",
+    "accounts-ads-accounts",
+    "reporting-version-3"
+  ]
 }
