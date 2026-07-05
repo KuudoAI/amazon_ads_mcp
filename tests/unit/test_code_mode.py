@@ -204,6 +204,52 @@ class TestApplyCodeModeFailSoft:
         fake_server.add_transform.assert_called_once_with(sentinel)
 
 
+class TestResolveCodeMode:
+    """build() must downgrade to CODE_MODE=false BEFORE conditional setup.
+
+    A late ImportError fallback leaves a hybrid state: progressive
+    disclosure skipped and tool-group builtins missing while the full
+    catalog is exposed. _resolve_code_mode probes the extra up front so
+    the false path (disclosure + tool-group builtins) runs for real.
+    """
+
+    def test_downgrades_when_extra_missing(self):
+        from amazon_ads_mcp.server.server_builder import ServerBuilder
+
+        with patch(
+            "amazon_ads_mcp.server.server_builder.settings"
+        ) as mock_settings, patch(
+            "amazon_ads_mcp.server.code_mode.code_mode_runtime_available",
+            return_value=False,
+        ):
+            mock_settings.code_mode_enabled = True
+            assert ServerBuilder._resolve_code_mode(SimpleNamespace()) is False
+
+    def test_enabled_when_extra_present(self):
+        from amazon_ads_mcp.server.server_builder import ServerBuilder
+
+        with patch(
+            "amazon_ads_mcp.server.server_builder.settings"
+        ) as mock_settings, patch(
+            "amazon_ads_mcp.server.code_mode.code_mode_runtime_available",
+            return_value=True,
+        ):
+            mock_settings.code_mode_enabled = True
+            assert ServerBuilder._resolve_code_mode(SimpleNamespace()) is True
+
+    def test_disabled_by_setting_without_probing(self):
+        from amazon_ads_mcp.server.server_builder import ServerBuilder
+
+        with patch(
+            "amazon_ads_mcp.server.server_builder.settings"
+        ) as mock_settings, patch(
+            "amazon_ads_mcp.server.code_mode.code_mode_runtime_available"
+        ) as probe:
+            mock_settings.code_mode_enabled = False
+            assert ServerBuilder._resolve_code_mode(SimpleNamespace()) is False
+            probe.assert_not_called()
+
+
 # ---------------------------------------------------------------------------
 # Discovery tool composition tests
 # ---------------------------------------------------------------------------
