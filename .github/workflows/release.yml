@@ -148,6 +148,7 @@ jobs:
               with open(init_file, 'w') as f:
                   f.write(content)
           EOF
+          python scripts/sync_server_json.py
         env:
           NEW_VERSION: ${{ steps.new_version.outputs.version }}
 
@@ -229,7 +230,7 @@ jobs:
 
       - name: Commit version bump
         run: |
-          git add pyproject.toml src/amazon_ads_mcp/__init__.py 2>/dev/null || true
+          git add pyproject.toml src/amazon_ads_mcp/__init__.py server.json 2>/dev/null || true
           git commit -m "chore: bump version to ${{ steps.new_version.outputs.version }} [skip ci]" || echo "No changes to commit"
 
       - name: Push changes

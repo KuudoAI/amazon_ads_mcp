@@ -50,6 +50,19 @@ def _release_build_step_script() -> str:
     pytest.fail("release.yml has no step running `python -m build`")
 
 
+def _workflow_run_scripts(path: Path) -> list[str]:
+    """Return every non-empty run script from a workflow."""
+    assert path.exists(), f"expected workflow at {path}"
+    data = yaml.safe_load(path.read_text())
+    scripts: list[str] = []
+    for job in (data.get("jobs") or {}).values():
+        for step in job.get("steps") or []:
+            run = step.get("run")
+            if run:
+                scripts.append(run)
+    return scripts
+
+
 def test_release_preflights_resources_before_building():
     """Release must pre-flight dist resources before building both artifacts.
 
@@ -117,3 +130,25 @@ def test_dockerignore_keeps_in_tree_build_backend():
         ".dockerignore denies everything by default, so it must explicitly "
         "keep build_package.py for Docker's `COPY build_package.py ./` step."
     )
+
+
+def test_ci_checks_server_json_sync():
+    """CI must fail when server.json drifts from package metadata."""
+    scripts = _workflow_run_scripts(CI_PATH)
+
+    assert any("scripts/sync_server_json.py --check" in script for script in scripts)
+
+
+def test_release_updates_and_commits_server_json():
+    """Release version bump must update server.json before committing."""
+    scripts = _workflow_run_scripts(RELEASE_PATH)
+    update_script = next(
+        script for script in scripts if "NEW_VERSION" in script and "pyproject.toml" in script
+    )
+    commit_script = next(script for script in scripts if "git commit -m" in script)
+
+    assert "scripts/sync_server_json.py" in update_script
+    assert update_script.index("scripts/sync_server_json.py") > update_script.index(
+        "pyproject.toml"
+    )
+    assert "server.json" in commit_script

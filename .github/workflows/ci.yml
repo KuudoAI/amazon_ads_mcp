@@ -63,6 +63,10 @@ jobs:
         run: |
           uv sync --frozen
 
+      - name: Check server.json registry metadata
+        run: |
+          python scripts/sync_server_json.py --check
+
       - name: Syntax compile check
         run: |
           python -W error::SyntaxWarning -m compileall -q src tests
