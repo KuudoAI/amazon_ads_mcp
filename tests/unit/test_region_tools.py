@@ -163,3 +163,15 @@ async def test_list_available_regions_sandbox(monkeypatch):
 
     assert result["sandbox_mode"] is True
     assert "advertising-api-test" in result["regions"]["na"]["api_endpoint"]
+
+
+@pytest.mark.asyncio
+async def test_list_available_regions_uses_identity_controlled_region(monkeypatch):
+    provider = KuudoLikeProvider(region="na")
+    identity = Identity(id="id-1", type="remote", attributes={"region": "eu"})
+    manager = DummyAuthManager(provider, identity=identity, identity_region="eu")
+    monkeypatch.setattr(region_tools, "get_auth_manager", lambda: manager)
+
+    result = await region_tools.list_available_regions()
+
+    assert result["current_region"] == "eu"

@@ -244,10 +244,9 @@ async def list_available_regions() -> dict:
         # Get auth manager to access current region
         auth_manager = get_auth_manager()
 
-        # Get current region from provider or settings
-        if hasattr(auth_manager.provider, "region"):
-            current_region = auth_manager.provider.region
-        else:
+        # Identity-controlled providers resolve region through AuthManager.
+        current_region = auth_manager.get_active_region()
+        if not current_region:
             settings = Settings()
             current_region = settings.amazon_ads_region
 
