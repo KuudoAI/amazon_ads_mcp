@@ -6,7 +6,7 @@ Each provider is automatically registered when imported.
 
 # Import providers to trigger auto-registration
 from .direct import DirectAmazonAdsProvider
-from .kuudo_ads import KuudoAmazonAdsProvider
+from .kuudo import KuudoAmazonAdsProvider
 from .openbridge import OpenBridgeProvider
 
 __all__ = [

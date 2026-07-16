@@ -9,7 +9,7 @@ import pytest
 
 from amazon_ads_mcp.auth.base import BaseAmazonAdsProvider, ProviderConfig
 from amazon_ads_mcp.auth.providers.direct import DirectAmazonAdsProvider
-from amazon_ads_mcp.auth.providers.kuudo_ads import KuudoAmazonAdsProvider
+from amazon_ads_mcp.auth.providers.kuudo import KuudoAmazonAdsProvider
 from amazon_ads_mcp.auth.providers.openbridge import OpenBridgeProvider
 from amazon_ads_mcp.auth.registry import ProviderRegistry, register_provider
 from amazon_ads_mcp.models import Identity, Token
@@ -36,6 +36,7 @@ class TestProviderRegistry:
         provider = ProviderRegistry.create_provider("kuudo", config)
 
         assert isinstance(provider, KuudoAmazonAdsProvider)
+        assert KuudoAmazonAdsProvider.__module__ == "amazon_ads_mcp.auth.providers.kuudo"
         assert provider.config.base_url == "https://app.kuudo.test"
         assert provider.config.api_key == "sk_test"
     

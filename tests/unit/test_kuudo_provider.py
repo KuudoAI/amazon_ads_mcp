@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -14,8 +15,10 @@ from amazon_ads_mcp.auth.base import (
     BaseIdentityProvider,
     ProviderConfig,
 )
-from amazon_ads_mcp.auth.providers.kuudo import KuudoAuthError
-from amazon_ads_mcp.auth.providers.kuudo_ads import KuudoAmazonAdsProvider
+from amazon_ads_mcp.auth.providers.kuudo import (
+    KuudoAmazonAdsProvider,
+    KuudoAuthError,
+)
 from amazon_ads_mcp.auth.registry import ProviderRegistry
 from amazon_ads_mcp.config.settings import Settings
 from amazon_ads_mcp.models import AuthCredentials, Identity, Token
@@ -222,6 +225,43 @@ async def test_kuudo_registers_remote_identity_tools(monkeypatch):
     oauth_registrar.assert_not_awaited()
 
 
+def test_kuudo_fingerprint_uses_provider_local_salted_pbkdf2_sha256(monkeypatch):
+    calls: list[tuple[str, bytes, bytes, int, int | None]] = []
+    derived_key = b"\xab" * 32
+
+    def fake_pbkdf2_hmac(
+        hash_name: str,
+        password: bytes,
+        salt: bytes,
+        iterations: int,
+        dklen: int | None = None,
+    ) -> bytes:
+        calls.append((hash_name, password, salt, iterations, dklen))
+        return derived_key
+
+    monkeypatch.setattr(hashlib, "pbkdf2_hmac", fake_pbkdf2_hmac)
+    config = ProviderConfig(
+        base_url="https://app.kuudo.test",
+        api_key="client-supplied-token",
+        provider="amazon_ads",
+    )
+    provider = KuudoAmazonAdsProvider(config)
+    second_provider = KuudoAmazonAdsProvider(config)
+
+    fingerprint = provider._fingerprint("clïent-supplied-token")
+
+    assert len(calls) == 1
+    hash_name, password, salt, iterations, dklen = calls[0]
+    assert hash_name == "sha256"
+    assert password == "clïent-supplied-token".encode("utf-8")
+    assert salt == provider._fingerprint_salt
+    assert len(salt) == 32
+    assert provider._fingerprint_salt != second_provider._fingerprint_salt
+    assert iterations == 600_000
+    assert dklen == 32
+    assert fingerprint == derived_key.hex()
+
+
 def test_kuudo_fingerprint_is_stable_within_instance_and_scoped_between_instances():
     config = ProviderConfig(
         base_url="https://app.kuudo.test",
@@ -235,6 +275,113 @@ def test_kuudo_fingerprint_is_stable_within_instance_and_scoped_between_instance
 
     assert first_fingerprint == first_provider._fingerprint("client-supplied-token")
     assert first_fingerprint != second_provider._fingerprint("client-supplied-token")
+
+
+def _kuudo_cache_miss_handler(request: httpx.Request) -> httpx.Response:
+    if request.url.path == "/api/auth/token-exchange":
+        return httpx.Response(
+            200,
+            json={"access_token": "platform-jwt", "expires_in": 3600},
+        )
+    if request.url.path == "/api/mcp/amazon/identities":
+        return httpx.Response(200, json={"identities": []})
+    if request.url.path == "/api/mcp/amazon/identities/connection-1/token":
+        return httpx.Response(
+            200,
+            json={
+                "access_token": "amazon-access-token",
+                "expires_in": 3600,
+                "client_id": "amazon-client-id",
+                "provider": "amazon_ads",
+                "region": "na",
+            },
+        )
+    raise AssertionError(f"Unexpected request: {request.method} {request.url}")
+
+
+@pytest.mark.asyncio
+async def test_list_identities_derives_api_key_fingerprint_once_on_cache_miss(
+    monkeypatch,
+):
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(_kuudo_cache_miss_handler)
+    ) as client:
+        provider = KuudoAmazonAdsProvider(
+            ProviderConfig(
+                base_url="https://app.kuudo.test",
+                api_key="sk_test",
+                provider="amazon_ads",
+                http_client=client,
+            )
+        )
+        original_fingerprint = provider._fingerprint
+        fingerprint_calls: list[str] = []
+
+        def count_fingerprint(value: str) -> str:
+            fingerprint_calls.append(value)
+            return original_fingerprint(value)
+
+        monkeypatch.setattr(provider, "_fingerprint", count_fingerprint)
+
+        await provider.list_identities()
+
+    assert fingerprint_calls == ["sk_test"]
+
+
+@pytest.mark.asyncio
+async def test_get_identity_credentials_derives_api_key_fingerprint_once_on_cache_miss(
+    monkeypatch,
+):
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(_kuudo_cache_miss_handler)
+    ) as client:
+        provider = KuudoAmazonAdsProvider(
+            ProviderConfig(
+                base_url="https://app.kuudo.test",
+                api_key="sk_test",
+                provider="amazon_ads",
+                http_client=client,
+            )
+        )
+        original_fingerprint = provider._fingerprint
+        fingerprint_calls: list[str] = []
+
+        def count_fingerprint(value: str) -> str:
+            fingerprint_calls.append(value)
+            return original_fingerprint(value)
+
+        monkeypatch.setattr(provider, "_fingerprint", count_fingerprint)
+
+        await provider.get_identity_credentials("connection-1")
+
+    assert fingerprint_calls == ["sk_test"]
+
+
+@pytest.mark.asyncio
+async def test_kuudo_cache_keys_do_not_retain_raw_api_key():
+    raw_api_key = "raw-secret-api-key"
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(_kuudo_cache_miss_handler)
+    ) as client:
+        provider = KuudoAmazonAdsProvider(
+            ProviderConfig(
+                base_url="https://app.kuudo.test",
+                api_key=raw_api_key,
+                provider="amazon_ads",
+                http_client=client,
+            )
+        )
+
+        await provider.list_identities()
+        await provider.get_identity_credentials("connection-1")
+
+    caches = (provider._tokens, provider._identities, provider._credentials)
+    assert all(caches)
+    assert all(
+        raw_api_key not in repr(cache_key)
+        for cache in caches
+        for cache_key in cache
+    )
 
 
 def test_kuudo_api_key_context_override_is_scoped_to_provider_instance():

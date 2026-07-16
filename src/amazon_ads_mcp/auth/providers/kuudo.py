@@ -1,7 +1,4 @@
-"""Drop-in Kuudo auth provider for FastMCP-style Amazon MCP servers.
-
-Copy this single file into an MCP project when that project needs to call
-Kuudo-managed Amazon authorizations.
+"""Kuudo auth provider for the Amazon Ads MCP server.
 
 Runtime configuration:
 - KUUDO_API_BASE_URL: Kuudo Next app origin. The development environment is
@@ -22,19 +19,6 @@ Request flow:
    Optional body: {"provider": "amazon_ads", "profile_id": "123456789"}.
    Returns a short-lived Amazon access token plus product metadata.
 
-For MCP projects that enforce local provider base classes, subclass this
-provider together with those local bases:
-
-    class KuudoAdsProvider(
-        KuudoAuthProvider,
-        BaseAmazonAdsProvider,
-        BaseIdentityProvider,
-    ):
-        pass
-
-This file intentionally has no local package imports. Its only external
-dependency is httpx.
-
 This is not a FastMCP server `RemoteAuthProvider` like ScalekitProvider.
 It is an Openbridge-style downstream credential provider for MCP tools that
 need Kuudo-managed Amazon credentials.
@@ -43,24 +27,28 @@ need Kuudo-managed Amazon credentials.
 from __future__ import annotations
 
 import base64
-import hmac
+import hashlib
 import json
 import os
 import secrets
 from collections import OrderedDict
 from contextvars import ContextVar, Token as ContextToken
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from urllib.parse import quote
 
 import httpx
 
+from ...models import AuthCredentials, Identity, Token
+from ..base import BaseAmazonAdsProvider, BaseIdentityProvider, ProviderConfig
+from ..registry import register_provider
+
 __all__ = [
     "AuthCredentials",
     "Identity",
     "KuudoAuthError",
-    "KuudoAuthProvider",
+    "KuudoAmazonAdsProvider",
     "KuudoConfigError",
     "KuudoHTTPError",
     "KuudoProviderConfig",
@@ -92,53 +80,9 @@ class KuudoHTTPError(KuudoAuthError):
     """Raised when Kuudo returns an unsuccessful response."""
 
 
-@dataclass(frozen=True)
-class Token:
-    """Short-lived Kuudo platform token."""
-
-    value: str
-    expires_at: datetime
-    token_type: str = "Bearer"
-    scope: str | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass(frozen=True)
-class Identity:
-    """Metadata-only Kuudo authorization identity."""
-
-    id: str
-    provider: str | None = None
-    type: str = "AmazonConnection"
-    status: str | None = None
-    region: str | None = None
-    display_name: str | None = None
-    attributes: dict[str, Any] = field(default_factory=dict)
-    relationships: dict[str, Any] = field(default_factory=dict)
-    raw: dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass(frozen=True)
-class AuthCredentials:
-    """Identity-scoped downstream API credentials."""
-
-    identity_id: str
-    access_token: str
-    expires_at: datetime
-    token_type: str = "Bearer"
-    base_url: str = ""
-    headers: dict[str, str] = field(default_factory=dict)
-    client_id: str | None = None
-    region: str | None = None
-    provider: str | None = None
-    profiles: tuple[dict[str, Any], ...] = field(default_factory=tuple)
-    selling_partner_id: str | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
-
-
 @dataclass
 class KuudoProviderConfig:
-    """Configuration for :class:`KuudoAuthProvider`."""
+    """Normalized configuration for the Kuudo provider."""
 
     base_url: str | None = None
     api_key: str | None = None
@@ -154,8 +98,9 @@ class KuudoProviderConfig:
     http_client: httpx.AsyncClient | None = None
 
 
-class KuudoAuthProvider:
-    """Reusable Kuudo auth provider for Amazon Ads and SP-API MCP servers.
+@register_provider("kuudo")
+class KuudoAmazonAdsProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
+    """Provide Kuudo-managed Amazon Ads identities and credentials.
 
     The provider mirrors the Openbridge-style three-stage flow:
 
@@ -166,7 +111,7 @@ class KuudoAuthProvider:
 
     def __init__(
         self,
-        config: KuudoProviderConfig | Any | None = None,
+        config: KuudoProviderConfig | ProviderConfig | Any | None = None,
         *,
         base_url: str | None = None,
         api_key: str | None = None,
@@ -207,7 +152,7 @@ class KuudoAuthProvider:
         )
         self._client: httpx.AsyncClient | None = self.config.http_client
         self._owns_client = self.config.http_client is None
-        self._fingerprint_key = secrets.token_bytes(32)
+        self._fingerprint_salt = secrets.token_bytes(32)
         self._tokens: OrderedDict[str, Token] = OrderedDict()
         self._identities: OrderedDict[
             tuple[str, str | None, tuple[tuple[str, str], ...]],
@@ -234,6 +179,9 @@ class KuudoAuthProvider:
     async def get_token(self, api_key: str | None = None) -> Token:
         effective_api_key = self._get_effective_api_key(api_key)
         fingerprint = self._fingerprint(effective_api_key)
+        return await self._get_token(effective_api_key, fingerprint)
+
+    async def _get_token(self, effective_api_key: str, fingerprint: str) -> Token:
         cached = self._tokens.get(fingerprint)
         if cached and await self.validate_token(cached):
             return cached
@@ -282,10 +230,11 @@ class KuudoAuthProvider:
         force_refresh: bool = False,
         **params: Any,
     ) -> list[Identity]:
+        params.pop("identity_type", None)
         effective_api_key = self._get_effective_api_key(api_key)
         fingerprint = self._fingerprint(effective_api_key)
         provider_filter = provider or self.config.provider
-        query_params = {k: v for k, v in params.items() if v is not None}
+        query_params = {key: value for key, value in params.items() if value is not None}
         cache_key = (fingerprint, provider_filter, self._cacheable_params(query_params))
         cached = self._identities.get(cache_key)
         if cached and not force_refresh:
@@ -295,7 +244,7 @@ class KuudoAuthProvider:
             ):
                 return identities
 
-        token = await self.get_token(api_key=effective_api_key)
+        token = await self._get_token(effective_api_key, fingerprint)
         if provider_filter:
             query_params["provider"] = provider_filter
 
@@ -347,7 +296,7 @@ class KuudoAuthProvider:
         if cached and not force_refresh and await self._validate_credentials(cached):
             return cached
 
-        token = await self.get_token(api_key=effective_api_key)
+        token = await self._get_token(effective_api_key, fingerprint)
         encoded_identity_id = quote(identity_id, safe="").replace(".", "%2E")
         path = self.config.identity_token_path.format(identity_id=encoded_identity_id)
         body = {"provider": effective_provider}
@@ -410,7 +359,7 @@ class KuudoAuthProvider:
 
     def _coerce_config(
         self,
-        config: KuudoProviderConfig | Any | None,
+        config: KuudoProviderConfig | ProviderConfig | Any | None,
         kwargs: dict[str, Any],
     ) -> KuudoProviderConfig:
         values: dict[str, Any] = {}
@@ -486,11 +435,13 @@ class KuudoAuthProvider:
         return None
 
     def _fingerprint(self, value: str) -> str:
-        return hmac.new(
-            self._fingerprint_key,
+        return hashlib.pbkdf2_hmac(
+            "sha256",
             value.encode("utf-8"),
-            digestmod="sha256",
-        ).hexdigest()
+            self._fingerprint_salt,
+            600_000,
+            dklen=32,
+        ).hex()
 
     @staticmethod
     def _cacheable_params(params: dict[str, Any]) -> tuple[tuple[str, str], ...]:
@@ -525,7 +476,6 @@ class KuudoAuthProvider:
             region,
         )
         expires_at = self._extract_expiration(data, access_token)
-        profiles = tuple(item for item in data.get("profiles", []) if isinstance(item, dict))
         selling_partner_id = self._first_string(data, "selling_partner_id")
         headers = self._build_identity_headers(
             provider=provider,
@@ -542,15 +492,6 @@ class KuudoAuthProvider:
             expires_at=expires_at,
             base_url=base_url,
             headers=headers,
-            client_id=client_id,
-            region=region,
-            provider=provider,
-            profiles=profiles,
-            selling_partner_id=selling_partner_id,
-            metadata={
-                "scope": self._first_string(data, "scope"),
-                "raw_keys": sorted(data.keys()),
-            },
         )
 
     def _build_identity_headers(
@@ -612,19 +553,26 @@ class KuudoAuthProvider:
             or attributes.get("display_name")
             or attributes.get("name")
         )
-        return Identity(
-            id=str(identity_id),
-            provider=item.get("provider") or attributes.get("provider"),
-            type=item.get("type") or "AmazonConnection",
-            status=item.get("status") or attributes.get("status"),
-            region=item.get("region")
+        resolved_region = (
+            item.get("region")
             or item.get("marketplace_region")
             or attributes.get("region")
-            or attributes.get("marketplace_region"),
-            display_name=str(display_name) if display_name else None,
+            or attributes.get("marketplace_region")
+        )
+        for key, value in (
+            ("provider", item.get("provider") or attributes.get("provider")),
+            ("status", item.get("status") or attributes.get("status")),
+            ("region", resolved_region),
+            ("display_name", str(display_name) if display_name else None),
+        ):
+            if value is not None:
+                merged.setdefault(key, value)
+        merged.setdefault("raw", item)
+        return Identity(
+            id=str(identity_id),
+            type=item.get("type") or "AmazonConnection",
             attributes=merged,
-            relationships=relationships,
-            raw=item,
+            relationships=relationships or None,
         )
 
     @staticmethod
