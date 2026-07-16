@@ -39,6 +39,7 @@ class KuudoAmazonAdsProvider(
         force_refresh: bool = False,
         **params: Any,
     ) -> list[Identity]:
+        params.pop("identity_type", None)
         identities = await super().list_identities(
             provider=provider,
             api_key=api_key,

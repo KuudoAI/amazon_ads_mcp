@@ -200,8 +200,14 @@ async def get_active_region() -> dict:
         }
 
         # Add OAuth endpoint if available
-        if hasattr(auth_manager.provider, "get_oauth_endpoint"):
+        has_oauth_endpoint = hasattr(auth_manager.provider, "get_oauth_endpoint")
+        if has_oauth_endpoint:
             response["oauth_endpoint"] = auth_manager.provider.get_oauth_endpoint()
+
+        provider_type = getattr(auth_manager.provider, "provider_type", None)
+        if provider_type:
+            response["auth_method"] = provider_type
+        elif has_oauth_endpoint:
             response["auth_method"] = "direct"
         else:
             response["auth_method"] = "openbridge"

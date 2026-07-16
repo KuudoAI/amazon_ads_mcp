@@ -140,6 +140,36 @@ async def test_kuudo_provider_adapts_identity_and_credentials_to_project_models(
     await client.aclose()
 
 
+@pytest.mark.asyncio
+async def test_kuudo_adapter_omits_openbridge_identity_type_query_parameter():
+    identity_requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/auth/token-exchange":
+            return httpx.Response(
+                200,
+                json={"access_token": "platform-jwt", "expires_in": 3600},
+            )
+        identity_requests.append(request)
+        return httpx.Response(200, json={"identities": []})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        provider = KuudoAmazonAdsProvider(
+            ProviderConfig(
+                base_url="https://app.kuudo.test",
+                api_key="sk_test",
+                provider="amazon_ads",
+                http_client=client,
+            )
+        )
+
+        await provider.list_identities(identity_type="14", force_refresh=True)
+
+    assert len(identity_requests) == 1
+    assert identity_requests[0].url.params["provider"] == "amazon_ads"
+    assert "identity_type" not in identity_requests[0].url.params
+
+
 def test_auth_manager_builds_kuudo_provider(monkeypatch):
     monkeypatch.setenv("AUTH_METHOD", "kuudo")
     monkeypatch.setenv("KUUDO_API_BASE_URL", "https://app.kuudo.test")

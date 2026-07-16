@@ -35,6 +35,10 @@ class OpenBridgeProvider:
         return f"https://api.{region or self._region}.example.com"
 
 
+class KuudoLikeProvider(DirectProvider):
+    provider_type = "kuudo"
+
+
 class IdentityControlledProvider:
     def __init__(self, provider_type="openbridge"):
         self.provider_type = provider_type
@@ -118,6 +122,16 @@ async def test_get_active_region_openbridge(monkeypatch):
     assert result["region"] == "na"
     assert result["auth_method"] == "openbridge"
     assert result["source"] == "identity"
+
+
+@pytest.mark.asyncio
+async def test_get_active_region_reports_kuudo_provider_type(monkeypatch):
+    manager = DummyAuthManager(KuudoLikeProvider(region="na"))
+    monkeypatch.setattr(region_tools, "get_auth_manager", lambda: manager)
+
+    result = await region_tools.get_active_region()
+
+    assert result["auth_method"] == "kuudo"
 
 
 @pytest.mark.asyncio
