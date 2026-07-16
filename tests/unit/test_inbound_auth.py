@@ -8,6 +8,7 @@ from starlette.requests import Request
 from amazon_ads_mcp.server.inbound_auth import (
     authorize_inbound_http,
     create_inbound_http_auth_middleware,
+    is_loopback_host,
     verify_trusted_proxy_hmac,
 )
 
@@ -62,6 +63,21 @@ def test_direct_loopback_http_is_allowed(monkeypatch):
 
     assert result.allowed is True
     assert result.reason == "direct_loopback"
+
+
+@pytest.mark.parametrize(
+    "host",
+    ["::1", "[::1]", "[::1]:9080", "127.0.0.1:9080", "localhost:9080"],
+)
+def test_loopback_host_accepts_ipv6_and_host_port_forms(host):
+    assert is_loopback_host(host) is True
+
+
+@pytest.mark.parametrize(
+    "host", ["[::1", "[::1]invalid", "::2", "example.com:9080", "localhost:http"]
+)
+def test_loopback_host_rejects_non_loopback_and_malformed_forms(host):
+    assert is_loopback_host(host) is False
 
 
 def test_openbridge_refresh_token_bearer_is_allowed(monkeypatch):

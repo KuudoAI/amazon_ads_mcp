@@ -66,8 +66,25 @@ def is_allow_unauth_http_enabled() -> bool:
 def is_loopback_host(host: str | None) -> bool:
     if not host or not isinstance(host, str):
         return False
-    normalized = host.strip().lower().split(":", 1)[0]
-    if normalized in {"localhost", "127.0.0.1", "::1"}:
+    normalized = host.strip().lower()
+    if normalized.startswith("["):
+        closing_bracket = normalized.find("]")
+        if closing_bracket == -1:
+            return False
+        suffix = normalized[closing_bracket + 1 :]
+        if suffix and not (suffix.startswith(":") and suffix[1:].isdigit()):
+            return False
+        normalized = normalized[1:closing_bracket]
+    else:
+        try:
+            return ip_address(normalized).is_loopback
+        except ValueError:
+            if normalized.count(":") == 1:
+                normalized, port = normalized.split(":", 1)
+                if not port.isdigit():
+                    return False
+
+    if normalized == "localhost":
         return True
     try:
         return ip_address(normalized).is_loopback

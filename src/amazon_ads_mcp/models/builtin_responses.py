@@ -78,7 +78,7 @@ class GetRegionResponse(BaseModel):
     :param api_endpoint: API endpoint URL
     :param oauth_endpoint: OAuth endpoint URL (if using direct auth)
     :param sandbox_mode: Whether sandbox mode is enabled
-    :param auth_method: Authentication method (direct/openbridge)
+    :param auth_method: Authentication method (direct/openbridge/kuudo)
     :param source: Where region setting comes from (identity/config)
     :param identity_region: Region from active identity (if applicable)
     """
@@ -89,7 +89,7 @@ class GetRegionResponse(BaseModel):
     api_endpoint: str
     oauth_endpoint: Optional[str] = None
     sandbox_mode: bool = False
-    auth_method: Literal["direct", "openbridge"] = "openbridge"
+    auth_method: Literal["direct", "openbridge", "kuudo"] = "openbridge"
     source: Literal["identity", "config"] = "config"
     identity_region: Optional[str] = None
 

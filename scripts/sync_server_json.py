@@ -16,6 +16,28 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SERVER_JSON = REPO_ROOT / "server.json"
 PYPROJECT = REPO_ROOT / "pyproject.toml"
 PACKAGES_JSON = REPO_ROOT / "openapi" / "resources" / "packages.json"
+STREAMABLE_HTTP_REMOTE: dict[str, Any] = {
+    "type": "streamable-http",
+    "url": "https://{HOSTNAME}/mcp",
+    "variables": {
+        "HOSTNAME": {
+            "description": "Hostname of a running Amazon Ads MCP HTTP deployment.",
+            "isRequired": True,
+            "placeholder": "ads.example.com",
+        }
+    },
+}
+
+
+def _is_streamable_http_remote(remote: Any) -> bool:
+    if not isinstance(remote, dict):
+        return False
+    if remote.get("type") != STREAMABLE_HTTP_REMOTE["type"]:
+        return False
+    url = remote.get("url")
+    return isinstance(url, str) and url.rstrip("/") == STREAMABLE_HTTP_REMOTE[
+        "url"
+    ].rstrip("/")
 
 
 def _project_version(path: Path = PYPROJECT) -> str:
@@ -65,6 +87,22 @@ def _sync_data(data: dict[str, Any], version: str, packages: list[str]) -> dict[
             break
     else:
         raise ValueError("server.json must declare AMAZON_AD_API_PACKAGES")
+
+    remotes = updated.get("remotes", [])
+    if not isinstance(remotes, list):
+        raise ValueError("server.json remotes must be a list when present")
+    synced_remotes: list[Any] = []
+    remote_added = False
+    for remote in remotes:
+        if _is_streamable_http_remote(remote):
+            if not remote_added:
+                synced_remotes.append(copy.deepcopy(STREAMABLE_HTTP_REMOTE))
+                remote_added = True
+            continue
+        synced_remotes.append(remote)
+    if not remote_added:
+        synced_remotes.append(copy.deepcopy(STREAMABLE_HTTP_REMOTE))
+    updated["remotes"] = synced_remotes
 
     return updated
 

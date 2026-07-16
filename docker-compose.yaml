@@ -32,8 +32,8 @@ services:
       - AMAZON_ADS_TOKEN_PERSIST=false
       - AMAZON_ADS_CACHE_DIR=/app/.cache/amazon-ads-mcp
       - AMAZON_ADS_DOWNLOAD_DIR=/app/data/uploads/amazon-ads-mcp
-      # Authentication method - set to 'openbridge' for header-based auth
-      - AMAZON_ADS_AUTH_METHOD=openbridge
+      # Authentication method - configure AUTH_METHOD in .env
+      - AMAZON_ADS_AUTH_METHOD=${AUTH_METHOD:-openbridge}
       # OpenBridge auth defaults are now built-in:
       # REFRESH_TOKEN_ENABLED=true, AUTH_ENABLED=true, JWT_VALIDATION_ENABLED=false
       # Override only if you need non-default behavior

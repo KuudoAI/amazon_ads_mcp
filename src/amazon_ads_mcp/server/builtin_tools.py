@@ -1646,10 +1646,12 @@ async def register_all_builtin_tools(
                 # Direct OAuth authentication tools
                 await register_oauth_tools_builtin(server)
                 logger.info("Registered OAuth authentication tools")
-            elif auth_mgr.provider.provider_type == "openbridge":
-                # OpenBridge identity management tools
+            elif auth_mgr.provider.provider_type in {"openbridge", "kuudo"}:
+                # Remote identity management tools
                 await register_identity_tools(server)
-                logger.info("Registered OpenBridge identity tools")
+                logger.info(
+                    "Registered %s identity tools", auth_mgr.provider.provider_type
+                )
 
     # Register tool group tools for progressive disclosure
     # Skipped when code mode is active (GetTags serves the same browsing purpose)
