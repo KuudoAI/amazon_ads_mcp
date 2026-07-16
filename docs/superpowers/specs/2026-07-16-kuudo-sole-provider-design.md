@@ -41,7 +41,8 @@ Ads headers before constructing that model.
 The consolidated provider will replace HMAC-SHA-256 with a provider-local,
 salted PBKDF2-HMAC-SHA-256 derivation so CodeQL recognizes the credential input
 as passing through a password-oriented KDF. The derivation will use a random
-32-byte salt, 100,000 iterations, and a 32-byte result.
+32-byte salt, 600,000 iterations, and a 32-byte result. The work factor matches
+OWASP's current recommendation for PBKDF2-HMAC-SHA256.
 
 Identity and credential cache misses currently derive the fingerprint twice
 because they call the public token method after calculating their own cache
