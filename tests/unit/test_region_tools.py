@@ -38,6 +38,9 @@ class OpenBridgeProvider:
 class KuudoLikeProvider(DirectProvider):
     provider_type = "kuudo"
 
+    def region_controlled_by_identity(self):
+        return True
+
 
 class IdentityControlledProvider:
     def __init__(self, provider_type="openbridge"):
@@ -132,6 +135,21 @@ async def test_get_active_region_reports_kuudo_provider_type(monkeypatch):
     result = await region_tools.get_active_region()
 
     assert result["auth_method"] == "kuudo"
+
+
+@pytest.mark.asyncio
+async def test_get_active_region_uses_kuudo_identity_region_over_config(monkeypatch):
+    provider = KuudoLikeProvider(region="na")
+    identity = Identity(id="id-1", type="remote", attributes={"region": "eu"})
+    manager = DummyAuthManager(provider, identity=identity, identity_region="eu")
+    monkeypatch.setattr(region_tools, "get_auth_manager", lambda: manager)
+
+    result = await region_tools.get_active_region()
+
+    assert result["region"] == "eu"
+    assert result["identity_region"] == "eu"
+    assert result["source"] == "identity"
+    assert result["api_endpoint"] == "https://api.eu.example.com"
 
 
 @pytest.mark.asyncio

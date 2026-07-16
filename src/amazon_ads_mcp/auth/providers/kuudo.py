@@ -26,6 +26,7 @@ need Kuudo-managed Amazon credentials.
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import hashlib
 import json
@@ -153,6 +154,8 @@ class KuudoAmazonAdsProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
         self._client: httpx.AsyncClient | None = self.config.http_client
         self._owns_client = self.config.http_client is None
         self._fingerprint_salt = secrets.token_bytes(32)
+        self._configured_api_key_fingerprint: str | None = None
+        self._configured_api_key_fingerprint_lock = asyncio.Lock()
         self._tokens: OrderedDict[str, Token] = OrderedDict()
         self._identities: OrderedDict[
             tuple[str, str | None, tuple[tuple[str, str], ...]],
@@ -173,12 +176,13 @@ class KuudoAmazonAdsProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
 
     async def initialize(self) -> None:
         self._require_base_url()
-        self._get_effective_api_key()
+        effective_api_key = self._get_effective_api_key()
+        await self._fingerprint_for(effective_api_key)
         await self._get_client()
 
     async def get_token(self, api_key: str | None = None) -> Token:
         effective_api_key = self._get_effective_api_key(api_key)
-        fingerprint = self._fingerprint(effective_api_key)
+        fingerprint = await self._fingerprint_for(effective_api_key)
         return await self._get_token(effective_api_key, fingerprint)
 
     async def _get_token(self, effective_api_key: str, fingerprint: str) -> Token:
@@ -232,7 +236,7 @@ class KuudoAmazonAdsProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
     ) -> list[Identity]:
         params.pop("identity_type", None)
         effective_api_key = self._get_effective_api_key(api_key)
-        fingerprint = self._fingerprint(effective_api_key)
+        fingerprint = await self._fingerprint_for(effective_api_key)
         provider_filter = provider or self.config.provider
         query_params = {key: value for key, value in params.items() if value is not None}
         cache_key = (fingerprint, provider_filter, self._cacheable_params(query_params))
@@ -288,7 +292,7 @@ class KuudoAmazonAdsProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
             raise KuudoAuthError("Kuudo identity_id must be nonempty")
 
         effective_api_key = self._get_effective_api_key(api_key)
-        fingerprint = self._fingerprint(effective_api_key)
+        fingerprint = await self._fingerprint_for(effective_api_key)
         effective_provider = provider or self.config.provider
         profile_key = str(profile_id) if profile_id is not None else None
         cache_key = (fingerprint, identity_id, effective_provider, profile_key)
@@ -442,6 +446,20 @@ class KuudoAmazonAdsProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
             600_000,
             dklen=32,
         ).hex()
+
+    async def _fingerprint_for(self, value: str) -> str:
+        if value != self.config.api_key:
+            return await asyncio.to_thread(self._fingerprint, value)
+
+        if self._configured_api_key_fingerprint is None:
+            async with self._configured_api_key_fingerprint_lock:
+                if self._configured_api_key_fingerprint is None:
+                    self._configured_api_key_fingerprint = await asyncio.to_thread(
+                        self._fingerprint,
+                        value,
+                    )
+
+        return self._configured_api_key_fingerprint
 
     @staticmethod
     def _cacheable_params(params: dict[str, Any]) -> tuple[tuple[str, str], ...]:

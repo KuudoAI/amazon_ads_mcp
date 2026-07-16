@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
+import threading
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -324,8 +326,68 @@ async def test_list_identities_derives_api_key_fingerprint_once_on_cache_miss(
         monkeypatch.setattr(provider, "_fingerprint", count_fingerprint)
 
         await provider.list_identities()
+        await provider.list_identities()
 
     assert fingerprint_calls == ["sk_test"]
+
+
+@pytest.mark.asyncio
+async def test_request_api_key_fingerprints_run_concurrently_off_event_loop(
+    monkeypatch,
+):
+    started_count = 0
+    started_lock = threading.Lock()
+    all_started = threading.Event()
+    release = threading.Event()
+
+    def blocking_pbkdf2_hmac(
+        hash_name: str,
+        password: bytes,
+        salt: bytes,
+        iterations: int,
+        dklen: int | None = None,
+    ) -> bytes:
+        nonlocal started_count
+        with started_lock:
+            started_count += 1
+            if started_count == 2:
+                all_started.set()
+        release.wait(timeout=1)
+        return password.ljust(32, b"\0")[:32]
+
+    monkeypatch.setattr(hashlib, "pbkdf2_hmac", blocking_pbkdf2_hmac)
+    timer = threading.Timer(0.5, release.set)
+    timer.start()
+    try:
+        async with httpx.AsyncClient(
+            transport=httpx.MockTransport(_kuudo_cache_miss_handler)
+        ) as client:
+            provider = KuudoAmazonAdsProvider(
+                ProviderConfig(
+                    base_url="https://app.kuudo.test",
+                    api_key="configured-key",
+                    provider="amazon_ads",
+                    http_client=client,
+                )
+            )
+            tasks = [
+                asyncio.create_task(provider.get_token(api_key="request-key-one")),
+                asyncio.create_task(provider.get_token(api_key="request-key-two")),
+            ]
+
+            for _ in range(100):
+                if all_started.is_set():
+                    break
+                await asyncio.sleep(0.001)
+
+            assert all_started.is_set()
+            assert all(not task.done() for task in tasks)
+
+            release.set()
+            await asyncio.gather(*tasks)
+    finally:
+        release.set()
+        timer.cancel()
 
 
 @pytest.mark.asyncio

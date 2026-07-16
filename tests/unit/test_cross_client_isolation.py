@@ -316,6 +316,9 @@ class TestAuthManagerEndToEndIsolation:
                     headers={},
                 )
 
+            def region_controlled_by_identity(self):
+                return True
+
         AuthManager.reset()
         monkeypatch.setattr(AuthManager, "_setup_provider", lambda self: None)
         self.manager = AuthManager()
@@ -411,12 +414,9 @@ class TestAuthManagerEndToEndIsolation:
 
         await asyncio.gather(client_a(), client_b())
 
-        # get_active_region falls back to provider.region ("na") because
-        # the provider is shared. But the identity-based region is still
-        # stored on the per-task identity — verify via get_active_identity().
         assert mgr.provider.region == "na"  # Shared provider region
-        # The key test: each task's identity is correct
-        # (get_active_region reads provider.region first, then identity attrs)
+        assert results["a_region"] == "eu"
+        assert results["b_region"] == "fe"
 
     @pytest.mark.asyncio
     async def test_no_fallback_to_stale_singleton_token(self):

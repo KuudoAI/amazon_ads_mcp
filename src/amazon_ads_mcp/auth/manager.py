@@ -834,19 +834,34 @@ class AuthManager:
         :return: Normalized region code (na, eu, fe) or None
         :rtype: Optional[str]
         """
-        if self.provider and hasattr(self.provider, "region"):
-            return self.provider.region
-
-        # Try to get from identity attributes
         active_identity = _ctx_get_identity()
+        identity_region = None
         if active_identity:
             try:
                 attrs = getattr(active_identity, "attributes", {})
                 region = attrs.get("region")
-                if region and region in {"na", "eu", "fe"}:
-                    return region
+                if isinstance(region, str) and region.lower() in {"na", "eu", "fe"}:
+                    identity_region = region.lower()
             except (AttributeError, TypeError, KeyError):
                 pass
+
+        region_controlled_by_identity = getattr(
+            self.provider,
+            "region_controlled_by_identity",
+            None,
+        )
+        if (
+            callable(region_controlled_by_identity)
+            and region_controlled_by_identity()
+            and identity_region
+        ):
+            return identity_region
+
+        if self.provider and hasattr(self.provider, "region"):
+            return self.provider.region
+
+        if identity_region:
+            return identity_region
 
         return None
 
