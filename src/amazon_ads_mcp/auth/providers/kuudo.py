@@ -43,9 +43,10 @@ need Kuudo-managed Amazon credentials.
 from __future__ import annotations
 
 import base64
-import hashlib
+import hmac
 import json
 import os
+import secrets
 from collections import OrderedDict
 from contextvars import ContextVar, Token as ContextToken
 from dataclasses import dataclass, field
@@ -206,6 +207,7 @@ class KuudoAuthProvider:
         )
         self._client: httpx.AsyncClient | None = self.config.http_client
         self._owns_client = self.config.http_client is None
+        self._fingerprint_key = secrets.token_bytes(32)
         self._tokens: OrderedDict[str, Token] = OrderedDict()
         self._identities: OrderedDict[
             tuple[str, str | None, tuple[tuple[str, str], ...]],
@@ -478,9 +480,12 @@ class KuudoAuthProvider:
                 return value
         return None
 
-    @staticmethod
-    def _fingerprint(value: str) -> str:
-        return hashlib.sha256(value.encode("utf-8")).hexdigest()
+    def _fingerprint(self, value: str) -> str:
+        return hmac.new(
+            self._fingerprint_key,
+            value.encode("utf-8"),
+            digestmod="sha256",
+        ).hexdigest()
 
     @staticmethod
     def _cacheable_params(params: dict[str, Any]) -> tuple[tuple[str, str], ...]:

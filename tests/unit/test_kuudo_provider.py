@@ -189,3 +189,18 @@ async def test_kuudo_registers_remote_identity_tools(monkeypatch):
 
     identity_registrar.assert_awaited_once_with(server)
     oauth_registrar.assert_not_awaited()
+
+
+def test_kuudo_fingerprint_is_stable_within_instance_and_scoped_between_instances():
+    config = ProviderConfig(
+        base_url="https://app.kuudo.test",
+        api_key="client-supplied-token",
+        provider="amazon_ads",
+    )
+    first_provider = KuudoAmazonAdsProvider(config)
+    second_provider = KuudoAmazonAdsProvider(config)
+
+    first_fingerprint = first_provider._fingerprint("client-supplied-token")
+
+    assert first_fingerprint == first_provider._fingerprint("client-supplied-token")
+    assert first_fingerprint != second_provider._fingerprint("client-supplied-token")
