@@ -306,12 +306,15 @@ Expected: the full suite passes; existing warnings may remain unchanged.
 Run:
 
 ```bash
-rg -n "kuudo_ads|KuudoAuthProvider|hmac\.new|hashlib\.sha256" src/amazon_ads_mcp/auth/providers tests
+rg -n "kuudo_ads|KuudoAuthProvider" src tests
+rg -n "hmac\.new|hashlib\.sha256" src/amazon_ads_mcp/auth/providers/kuudo.py
 git diff --check
 git status --short
 ```
 
-Expected: no forbidden provider/hash references, no whitespace errors, and only intentional artifacts remain untracked.
+Expected: no removed-provider references, no weak fingerprint references in
+`kuudo.py`, no whitespace errors, and only intentional artifacts remain
+untracked.
 
 - [ ] **Step 6: Push and verify CodeQL**
 
