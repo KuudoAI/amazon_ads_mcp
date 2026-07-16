@@ -21,7 +21,7 @@
 
 ---
 
-### Task 1: Consolidate the Registered Provider into `kuudo.py`
+### Task 1: Consolidate and Secure the Registered Provider in `kuudo.py`
 
 **Files:**
 - Modify: `src/amazon_ads_mcp/auth/providers/kuudo.py`
@@ -32,9 +32,9 @@
 
 **Interfaces:**
 - Consumes: `BaseAmazonAdsProvider`, `BaseIdentityProvider`, `ProviderConfig`, `register_provider`, and shared `Token`, `Identity`, `AuthCredentials`.
-- Produces: `@register_provider("kuudo") class KuudoAmazonAdsProvider(BaseAmazonAdsProvider, BaseIdentityProvider)` from `amazon_ads_mcp.auth.providers.kuudo`.
+- Produces: `@register_provider("kuudo") class KuudoAmazonAdsProvider(BaseAmazonAdsProvider, BaseIdentityProvider)` from `amazon_ads_mcp.auth.providers.kuudo`, deterministic provider-local PBKDF2 fingerprints, and `_get_token(effective_api_key: str, fingerprint: str) -> Token` for nested cache reuse.
 
-- [ ] **Step 1: Point tests at the sole provider module and add ownership assertions**
+- [ ] **Step 1: Point tests at the sole provider module and finalize security assertions**
 
 Update both test imports to:
 
@@ -51,15 +51,34 @@ In `tests/test_auth_providers.py`, import only `KuudoAmazonAdsProvider` from tha
 assert KuudoAmazonAdsProvider.__module__ == "amazon_ads_mcp.auth.providers.kuudo"
 ```
 
-- [ ] **Step 2: Run the ownership tests and verify RED**
+In `test_kuudo_fingerprint_uses_provider_local_salted_pbkdf2_sha256`, require:
+
+```python
+assert hash_name == "sha256"
+assert password == "clïent-supplied-token".encode("utf-8")
+assert salt == provider._fingerprint_salt
+assert len(salt) == 32
+assert provider._fingerprint_salt != second_provider._fingerprint_salt
+assert iterations == 600_000
+assert dklen == 32
+assert fingerprint == derived_key.hex()
+```
+
+Retain the one-derivation tests for `list_identities` and
+`get_identity_credentials`, the same-instance/cross-instance test, and the
+cache-key raw-secret test.
+
+- [ ] **Step 2: Run ownership and fingerprint tests and verify RED**
 
 Run:
 
 ```bash
-uv run pytest tests/unit/test_kuudo_provider.py::test_kuudo_provider_is_registered tests/test_auth_providers.py::TestProviderRegistry::test_registry_creates_kuudo_provider -v
+uv run pytest tests/unit/test_kuudo_provider.py::test_kuudo_provider_is_registered tests/unit/test_kuudo_provider.py::test_kuudo_fingerprint_uses_provider_local_salted_pbkdf2_sha256 tests/test_auth_providers.py::TestProviderRegistry::test_registry_creates_kuudo_provider -v
 ```
 
-Expected: collection fails because `kuudo.py` does not yet export `KuudoAmazonAdsProvider`.
+Expected: collection fails because `kuudo.py` does not yet export
+`KuudoAmazonAdsProvider`; against the interrupted implementation alone, the
+fingerprint assertion also fails because it still uses 100,000 iterations.
 
 - [ ] **Step 3: Make `kuudo.py` project-native**
 
@@ -81,6 +100,30 @@ its constructor and provider methods become the body of the registered class. Re
 the local `Token`, `Identity`, and `AuthCredentials` dataclass definitions. Keep
 `KuudoProviderConfig` for internal normalized configuration. Update `__all__` to
 export `KuudoAmazonAdsProvider` and remove `KuudoAuthProvider`.
+
+Finalize the provider-local KDF and single-derivation token path:
+
+```python
+self._fingerprint_salt = secrets.token_bytes(32)
+
+def _fingerprint(self, value: str) -> str:
+    return hashlib.pbkdf2_hmac(
+        "sha256",
+        value.encode("utf-8"),
+        self._fingerprint_salt,
+        600_000,
+        dklen=32,
+    ).hex()
+
+async def get_token(self, api_key: str | None = None) -> Token:
+    effective_api_key = self._get_effective_api_key(api_key)
+    fingerprint = self._fingerprint(effective_api_key)
+    return await self._get_token(effective_api_key, fingerprint)
+```
+
+Both `list_identities` and `get_identity_credentials` must call
+`_get_token(effective_api_key, fingerprint)` after deriving their cache key.
+Remove `hmac` imports and every `hmac.new` call.
 
 Keep the Kuudo-only identity filter inside the provider:
 
@@ -186,112 +229,30 @@ Run:
 uv run pytest tests/unit/test_kuudo_provider.py tests/test_auth_providers.py -v
 ```
 
-Expected: all tests pass, public methods return the shared Pydantic models, identity metadata remains under `attributes`, and Kuudo omits `identity_type`.
+Expected: all tests pass, public methods return the shared Pydantic models,
+identity metadata remains under `attributes`, Kuudo omits `identity_type`, each
+top-level miss derives once, and no cache key contains the raw API key.
 
 - [ ] **Step 6: Verify no adapter references remain**
 
 Run:
 
 ```bash
-rg -n "kuudo_ads|KuudoAuthProvider" src tests
+rg -n "kuudo_ads|KuudoAuthProvider|hmac\.new|hashlib\.sha256" src/amazon_ads_mcp/auth/providers tests
 ```
 
-Expected: no matches.
+Expected: no matches for adapter, generic-provider, or weak fingerprint code.
 
 - [ ] **Step 7: Commit the consolidation**
 
 ```bash
 git add src/amazon_ads_mcp/auth/providers/kuudo.py src/amazon_ads_mcp/auth/providers/__init__.py src/amazon_ads_mcp/auth/providers/kuudo_ads.py tests/unit/test_kuudo_provider.py tests/test_auth_providers.py
-git commit -m "refactor: consolidate Kuudo auth provider"
+git commit -m "refactor: consolidate and secure Kuudo provider"
 ```
 
 ---
 
-### Task 2: Finalize the CodeQL-Safe Cache Fingerprint
-
-**Files:**
-- Modify: `src/amazon_ads_mcp/auth/providers/kuudo.py`
-- Modify: `tests/unit/test_kuudo_provider.py`
-
-**Interfaces:**
-- Consumes: `KuudoAmazonAdsProvider._fingerprint(value: str) -> str` and the provider token/identity/credential caches.
-- Produces: deterministic provider-local PBKDF2 fingerprints and `_get_token(effective_api_key: str, fingerprint: str) -> Token` for nested cache reuse.
-
-- [ ] **Step 1: Correct the interrupted PBKDF2 regression to the approved work factor**
-
-In `test_kuudo_fingerprint_uses_provider_local_salted_pbkdf2_sha256`, require:
-
-```python
-assert hash_name == "sha256"
-assert password == "clïent-supplied-token".encode("utf-8")
-assert salt == provider._fingerprint_salt
-assert len(salt) == 32
-assert provider._fingerprint_salt != second_provider._fingerprint_salt
-assert iterations == 600_000
-assert dklen == 32
-assert fingerprint == derived_key.hex()
-```
-
-Retain the one-derivation tests for `list_identities` and `get_identity_credentials`, the same-instance/cross-instance test, and the cache-key raw-secret test.
-
-- [ ] **Step 2: Run the fingerprint regression and verify RED**
-
-Run:
-
-```bash
-uv run pytest tests/unit/test_kuudo_provider.py::test_kuudo_fingerprint_uses_provider_local_salted_pbkdf2_sha256 -v
-```
-
-Expected: FAIL because the interrupted implementation still uses 100,000 iterations.
-
-- [ ] **Step 3: Implement the approved PBKDF2 parameters and single derivation path**
-
-Use:
-
-```python
-self._fingerprint_salt = secrets.token_bytes(32)
-
-def _fingerprint(self, value: str) -> str:
-    return hashlib.pbkdf2_hmac(
-        "sha256",
-        value.encode("utf-8"),
-        self._fingerprint_salt,
-        600_000,
-        dklen=32,
-    ).hex()
-```
-
-The public token method derives once and delegates:
-
-```python
-async def get_token(self, api_key: str | None = None) -> Token:
-    effective_api_key = self._get_effective_api_key(api_key)
-    fingerprint = self._fingerprint(effective_api_key)
-    return await self._get_token(effective_api_key, fingerprint)
-```
-
-Both `list_identities` and `get_identity_credentials` must call `_get_token(effective_api_key, fingerprint)` after deriving their cache key. Remove `hmac` imports and every `hmac.new` call.
-
-- [ ] **Step 4: Run fingerprint and Kuudo tests and verify GREEN**
-
-Run:
-
-```bash
-uv run pytest tests/unit/test_kuudo_provider.py -v
-```
-
-Expected: all Kuudo tests pass; each top-level miss derives once and no cache key contains the raw API key.
-
-- [ ] **Step 5: Commit the security change**
-
-```bash
-git add src/amazon_ads_mcp/auth/providers/kuudo.py tests/unit/test_kuudo_provider.py
-git commit -m "fix: strengthen Kuudo cache fingerprints"
-```
-
----
-
-### Task 3: Validate the Consolidated Provider
+### Task 2: Validate the Consolidated Provider
 
 **Files:**
 - Verify only; edit production code only for failures caused by Tasks 1-2.
