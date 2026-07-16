@@ -52,6 +52,7 @@ from contextvars import ContextVar, Token as ContextToken
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -65,11 +66,6 @@ __all__ = [
     "KuudoProviderConfig",
     "Token",
 ]
-
-_current_api_key: ContextVar[str | None] = ContextVar(
-    "kuudo_current_api_key",
-    default=None,
-)
 
 AMAZON_ADS_ENDPOINTS = {
     "na": "https://advertising-api.amazon.com",
@@ -205,6 +201,10 @@ class KuudoAuthProvider:
             config,
             {key: value for key, value in explicit_config.items() if value is not None},
         )
+        self._current_api_key: ContextVar[str | None] = ContextVar(
+            "kuudo_current_api_key",
+            default=None,
+        )
         self._client: httpx.AsyncClient | None = self.config.http_client
         self._owns_client = self.config.http_client is None
         self._fingerprint_key = secrets.token_bytes(32)
@@ -214,7 +214,7 @@ class KuudoAuthProvider:
             tuple[datetime, list[Identity]],
         ] = OrderedDict()
         self._credentials: OrderedDict[
-            tuple[str, str, str | None],
+            tuple[str, str, str | None, str | None],
             AuthCredentials,
         ] = OrderedDict()
 
@@ -335,17 +335,22 @@ class KuudoAuthProvider:
         profile_id: str | int | None = None,
         force_refresh: bool = False,
     ) -> AuthCredentials:
+        if not identity_id or not identity_id.strip():
+            raise KuudoAuthError("Kuudo identity_id must be nonempty")
+
         effective_api_key = self._get_effective_api_key(api_key)
         fingerprint = self._fingerprint(effective_api_key)
+        effective_provider = provider or self.config.provider
         profile_key = str(profile_id) if profile_id is not None else None
-        cache_key = (fingerprint, identity_id, profile_key)
+        cache_key = (fingerprint, identity_id, effective_provider, profile_key)
         cached = self._credentials.get(cache_key)
         if cached and not force_refresh and await self._validate_credentials(cached):
             return cached
 
         token = await self.get_token(api_key=effective_api_key)
-        path = self.config.identity_token_path.format(identity_id=identity_id)
-        body = {"provider": provider or self.config.provider}
+        encoded_identity_id = quote(identity_id, safe="").replace(".", "%2E")
+        path = self.config.identity_token_path.format(identity_id=encoded_identity_id)
+        body = {"provider": effective_provider}
         if profile_key:
             body["profile_id"] = profile_key
 
@@ -390,10 +395,10 @@ class KuudoAuthProvider:
     def set_current_api_key(self, api_key: str) -> ContextToken[str | None]:
         """Set an API-key override for the current async context."""
 
-        return _current_api_key.set(api_key)
+        return self._current_api_key.set(api_key)
 
     def reset_current_api_key(self, token: ContextToken[str | None]) -> None:
-        _current_api_key.reset(token)
+        self._current_api_key.reset(token)
 
     async def close(self) -> None:
         self._tokens.clear()
@@ -454,7 +459,7 @@ class KuudoAuthProvider:
         return self._client
 
     def _get_effective_api_key(self, api_key: str | None = None) -> str:
-        effective = api_key or _current_api_key.get() or self.config.api_key
+        effective = api_key or self._current_api_key.get() or self.config.api_key
         if not effective:
             raise KuudoConfigError("KUUDO_API_KEY or config.api_key must be configured")
         return effective
@@ -573,6 +578,12 @@ class KuudoAuthProvider:
 
     @staticmethod
     def _parse_identity(item: dict[str, Any]) -> Identity:
+        identity_id = item.get("id") or item.get("connection_id")
+        if not identity_id:
+            raise KuudoAuthError(
+                "Kuudo identity payload did not include an id or connection_id"
+            )
+
         attributes = item.get("attributes") if isinstance(item.get("attributes"), dict) else {}
         relationships = (
             item.get("relationships") if isinstance(item.get("relationships"), dict) else {}
@@ -602,7 +613,7 @@ class KuudoAuthProvider:
             or attributes.get("name")
         )
         return Identity(
-            id=str(item.get("id") or item.get("connection_id")),
+            id=str(identity_id),
             provider=item.get("provider") or attributes.get("provider"),
             type=item.get("type") or "AmazonConnection",
             status=item.get("status") or attributes.get("status"),

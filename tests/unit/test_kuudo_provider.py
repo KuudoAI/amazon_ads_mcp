@@ -14,6 +14,7 @@ from amazon_ads_mcp.auth.base import (
     BaseIdentityProvider,
     ProviderConfig,
 )
+from amazon_ads_mcp.auth.providers.kuudo import KuudoAuthError
 from amazon_ads_mcp.auth.providers.kuudo_ads import KuudoAmazonAdsProvider
 from amazon_ads_mcp.auth.registry import ProviderRegistry
 from amazon_ads_mcp.config.settings import Settings
@@ -204,3 +205,193 @@ def test_kuudo_fingerprint_is_stable_within_instance_and_scoped_between_instance
 
     assert first_fingerprint == first_provider._fingerprint("client-supplied-token")
     assert first_fingerprint != second_provider._fingerprint("client-supplied-token")
+
+
+def test_kuudo_api_key_context_override_is_scoped_to_provider_instance():
+    config = ProviderConfig(
+        base_url="https://app.kuudo.test",
+        api_key="configured-token",
+        provider="amazon_ads",
+    )
+    first_provider = KuudoAmazonAdsProvider(config)
+    second_provider = KuudoAmazonAdsProvider(config)
+
+    context_token = first_provider.set_current_api_key("request-token")
+    try:
+        assert first_provider._get_effective_api_key() == "request-token"
+        assert second_provider._get_effective_api_key() == "configured-token"
+    finally:
+        first_provider.reset_current_api_key(context_token)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("identity_id", "encoded_segment"),
+    [
+        ("connection/child", "connection%2Fchild"),
+        ("connection?admin=true", "connection%3Fadmin%3Dtrue"),
+        ("connection#fragment", "connection%23fragment"),
+        (".", "%2E"),
+        ("..", "%2E%2E"),
+    ],
+)
+async def test_kuudo_identity_token_url_encodes_identity_id_as_one_path_segment(
+    identity_id,
+    encoded_segment,
+):
+    vend_paths: list[bytes] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/auth/token-exchange":
+            return httpx.Response(
+                200,
+                json={"access_token": "platform-jwt", "expires_in": 3600},
+            )
+        vend_paths.append(request.url.raw_path)
+        return httpx.Response(
+            200,
+            json={
+                "access_token": "amazon-access-token",
+                "expires_in": 3600,
+                "client_id": "amazon-client-id",
+                "provider": "amazon_ads",
+                "region": "na",
+            },
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        provider = KuudoAmazonAdsProvider(
+            ProviderConfig(
+                base_url="https://app.kuudo.test",
+                api_key="sk_test",
+                provider="amazon_ads",
+                http_client=client,
+            )
+        )
+
+        await provider.get_identity_credentials(identity_id)
+
+    assert vend_paths == [
+        f"/api/mcp/amazon/identities/{encoded_segment}/token".encode()
+    ]
+
+
+@pytest.mark.asyncio
+async def test_kuudo_rejects_empty_identity_id_before_sending_a_request():
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.url.path == "/api/auth/token-exchange":
+            return httpx.Response(
+                200,
+                json={"access_token": "platform-jwt", "expires_in": 3600},
+            )
+        return httpx.Response(
+            200,
+            json={
+                "access_token": "amazon-access-token",
+                "expires_in": 3600,
+                "client_id": "amazon-client-id",
+                "provider": "amazon_ads",
+                "region": "na",
+            },
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        provider = KuudoAmazonAdsProvider(
+            ProviderConfig(
+                base_url="https://app.kuudo.test",
+                api_key="sk_test",
+                provider="amazon_ads",
+                http_client=client,
+            )
+        )
+
+        with pytest.raises(KuudoAuthError, match="identity_id must be nonempty"):
+            await provider.get_identity_credentials("")
+
+    assert requests == []
+
+
+@pytest.mark.asyncio
+async def test_kuudo_credential_cache_is_scoped_by_effective_provider():
+    vend_providers: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/auth/token-exchange":
+            return httpx.Response(
+                200,
+                json={"access_token": "platform-jwt", "expires_in": 3600},
+            )
+
+        requested_provider = json.loads(request.content)["provider"]
+        vend_providers.append(requested_provider)
+        if requested_provider == "amazon_sp_api":
+            return httpx.Response(
+                200,
+                json={
+                    "access_token": "sp-api-access-token",
+                    "expires_in": 3600,
+                    "provider": "amazon_sp_api",
+                    "region": "na",
+                    "selling_partner_id": "seller-1",
+                },
+            )
+        return httpx.Response(
+            200,
+            json={
+                "access_token": "ads-access-token",
+                "expires_in": 3600,
+                "client_id": "amazon-client-id",
+                "provider": "amazon_ads",
+                "region": "na",
+            },
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        provider = KuudoAmazonAdsProvider(
+            ProviderConfig(
+                base_url="https://app.kuudo.test",
+                api_key="sk_test",
+                provider="amazon_ads",
+                http_client=client,
+            )
+        )
+
+        ads_credentials = await provider.get_identity_credentials(
+            "connection-1",
+            provider="amazon_ads",
+            profile_id="profile-1",
+        )
+        sp_api_credentials = await provider.get_identity_credentials(
+            "connection-1",
+            provider="amazon_sp_api",
+            profile_id="profile-1",
+        )
+        cached_ads_credentials = await provider.get_identity_credentials(
+            "connection-1",
+            provider="amazon_ads",
+            profile_id="profile-1",
+        )
+        cached_sp_api_credentials = await provider.get_identity_credentials(
+            "connection-1",
+            provider="amazon_sp_api",
+            profile_id="profile-1",
+        )
+
+    assert ads_credentials.access_token == "ads-access-token"
+    assert sp_api_credentials.access_token == "sp-api-access-token"
+    assert cached_ads_credentials.access_token == "ads-access-token"
+    assert cached_sp_api_credentials.access_token == "sp-api-access-token"
+    assert vend_providers == ["amazon_ads", "amazon_sp_api"]
+
+
+def test_kuudo_rejects_identity_payload_without_identifier():
+    with pytest.raises(
+        KuudoAuthError,
+        match="identity payload did not include an id or connection_id",
+    ):
+        KuudoAmazonAdsProvider._parse_identity(
+            {"display_name": "Malformed connection"}
+        )
