@@ -165,10 +165,9 @@ async def get_active_region() -> dict:
         # Get auth manager to access current region
         auth_manager = get_auth_manager()
 
-        # Get region from provider if available, otherwise use default
-        if hasattr(auth_manager.provider, "region"):
-            region = auth_manager.provider.region
-        else:
+        # Identity-controlled providers resolve region through AuthManager.
+        region = auth_manager.get_active_region()
+        if not region:
             # Fallback to environment/default if provider doesn't have region
             settings = Settings()
             region = settings.amazon_ads_region
@@ -182,7 +181,7 @@ async def get_active_region() -> dict:
 
         # Get endpoint URLs from provider if available, otherwise from settings
         if hasattr(auth_manager.provider, "get_region_endpoint"):
-            region_endpoint = auth_manager.provider.get_region_endpoint()
+            region_endpoint = auth_manager.provider.get_region_endpoint(region)
         else:
             settings = Settings()
             region_endpoint = settings.region_endpoint
@@ -200,8 +199,14 @@ async def get_active_region() -> dict:
         }
 
         # Add OAuth endpoint if available
-        if hasattr(auth_manager.provider, "get_oauth_endpoint"):
+        has_oauth_endpoint = hasattr(auth_manager.provider, "get_oauth_endpoint")
+        if has_oauth_endpoint:
             response["oauth_endpoint"] = auth_manager.provider.get_oauth_endpoint()
+
+        provider_type = getattr(auth_manager.provider, "provider_type", None)
+        if provider_type:
+            response["auth_method"] = provider_type
+        elif has_oauth_endpoint:
             response["auth_method"] = "direct"
         else:
             response["auth_method"] = "openbridge"
@@ -239,10 +244,9 @@ async def list_available_regions() -> dict:
         # Get auth manager to access current region
         auth_manager = get_auth_manager()
 
-        # Get current region from provider or settings
-        if hasattr(auth_manager.provider, "region"):
-            current_region = auth_manager.provider.region
-        else:
+        # Identity-controlled providers resolve region through AuthManager.
+        current_region = auth_manager.get_active_region()
+        if not current_region:
             settings = Settings()
             current_region = settings.amazon_ads_region
 

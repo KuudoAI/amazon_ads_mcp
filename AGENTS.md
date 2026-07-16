@@ -408,7 +408,7 @@ docker compose up -d
 
 ```bash
 # Authentication
-export AMAZON_ADS_AUTH_METHOD="direct"  # or "openbridge"
+export AMAZON_ADS_AUTH_METHOD="direct"  # or "openbridge" / "kuudo"
 export AMAZON_ADS_CLIENT_ID="your-client-id"
 export AMAZON_ADS_CLIENT_SECRET="your-client-secret"
 export AMAZON_ADS_REFRESH_TOKEN="your-refresh-token"

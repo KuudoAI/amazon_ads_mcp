@@ -21,8 +21,8 @@ class Settings(BaseSettings):
     integration. Settings can be configured via environment variables
     or .env files.
 
-    :param auth_method: Authentication method to use (direct/openbridge)
-    :type auth_method: Literal["direct", "openbridge"]
+    :param auth_method: Authentication method to use (direct/openbridge/kuudo)
+    :type auth_method: Literal["direct", "openbridge", "kuudo"]
     :param amazon_ads_client_id: Amazon Ads API Client ID for direct auth
     :type amazon_ads_client_id: Optional[str]
     :param amazon_ads_client_secret: Amazon Ads API Client Secret for direct auth
@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     )
 
     # Authentication method
-    auth_method: Literal["direct", "openbridge"] = Field(
+    auth_method: Literal["direct", "openbridge", "kuudo"] = Field(
         "openbridge", description="Authentication method to use"
     )
 
@@ -129,6 +129,28 @@ class Settings(BaseSettings):
     )
     openbridge_service_base_url: Optional[str] = Field(
         None, description="Openbridge service base URL override"
+    )
+
+    # Kuudo Configuration
+    kuudo_api_base_url: Optional[str] = Field(
+        None,
+        validation_alias=AliasChoices("KUUDO_API_BASE_URL", "KUUDO_BASE_URL"),
+        description="Kuudo application origin",
+    )
+    kuudo_api_key: Optional[str] = Field(
+        None,
+        alias="KUUDO_API_KEY",
+        description="Kuudo M2M API key",
+    )
+    kuudo_provider: str = Field(
+        "amazon_ads",
+        alias="KUUDO_PROVIDER",
+        description="Kuudo Amazon connection provider",
+    )
+    kuudo_remote_identity_id: Optional[str] = Field(
+        None,
+        alias="KUUDO_REMOTE_IDENTITY_ID",
+        description="Default Kuudo Amazon connection identity",
     )
     amazon_ads_region: Literal["na", "eu", "fe"] = Field(
         "na", description="Amazon Ads API Region"

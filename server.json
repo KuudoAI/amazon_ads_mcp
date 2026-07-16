@@ -22,7 +22,7 @@
       "environmentVariables": [
         {
           "name": "AMAZON_ADS_AUTH_METHOD",
-          "description": "Authentication method: direct or openbridge.",
+          "description": "Authentication method: direct, openbridge, or kuudo.",
           "isRequired": true,
           "isSecret": false
         },
@@ -65,6 +65,31 @@
         {
           "name": "OPENBRIDGE_REMOTE_IDENTITY_ID",
           "description": "Openbridge remote identity ID.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "KUUDO_API_BASE_URL",
+          "description": "Kuudo application origin.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "KUUDO_API_KEY",
+          "description": "Kuudo M2M API key with Amazon connection and token scopes.",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "KUUDO_PROVIDER",
+          "description": "Kuudo Amazon connection provider; use amazon_ads.",
+          "isRequired": false,
+          "isSecret": false,
+          "default": "amazon_ads"
+        },
+        {
+          "name": "KUUDO_REMOTE_IDENTITY_ID",
+          "description": "Optional default Kuudo Amazon connection identity.",
           "isRequired": false,
           "isSecret": false
         },
@@ -144,6 +169,19 @@
           "isSecret": true
         }
       ]
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://{HOSTNAME}/mcp",
+      "variables": {
+        "HOSTNAME": {
+          "description": "Hostname of a running Amazon Ads MCP HTTP deployment.",
+          "isRequired": true,
+          "placeholder": "ads.example.com"
+        }
+      }
     }
   ]
 }

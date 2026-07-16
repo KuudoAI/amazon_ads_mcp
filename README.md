@@ -233,9 +233,10 @@ Amazon Ads requires that all calls to the API are authorized. If you are not sur
 * Amazon Ads API onboarding overview: https://advertising.amazon.com/API/docs/en-us/guides/onboarding/overview
 * Getting started with the Amazon Ads API: https://advertising.amazon.com/API/docs/en-us/guides/get-started/overview
 
-There are two paths for connecting to the API;
+There are three paths for connecting to the API;
 1. Bring Your Own App (BYOA)
-2. Leverage Partner Apps
+2. Use OpenBridge-managed authorizations
+3. Use Kuudo-managed authorizations
 
 ## Bring Your Own Amazon Ads API App
 If you have your own Amazon Ads API app, or want to create one, the process is detailed below.
@@ -324,6 +325,26 @@ That is it for the server config. To access the server, you need configure the c
 #### Authorized Amazon Accounts
 
 Your Amazon authorizations reside in Openbridge. Your first step in your client is to request your current identities: `"List my remote identities"`. Next, you would tell the MCP server to use one of these identities: `"Set my remote identity to <>"`. You can then ask the MCP to `List all of my Amazon Ad profiles` linked to that account. If you do not see an advertiser listed, set a different identity.
+
+#### Kuudo Partner App
+
+Kuudo can vend short-lived Amazon Ads credentials from organization-managed
+Amazon connections. Configure the server with a Kuudo M2M API key:
+
+```bash
+AUTH_METHOD=kuudo
+KUUDO_API_BASE_URL=https://amazon-spapi-dev.kuudo.ai/
+KUUDO_API_KEY=sk_xxxxxx
+KUUDO_PROVIDER=amazon_ads
+```
+
+The API key requires the `amazon-connections:read` and `amazon-tokens:vend`
+scopes. Set `KUUDO_REMOTE_IDENTITY_ID` to select a default connection at
+startup, or use the identity tools to list and select a connection before
+calling Amazon Ads operations.
+
+Public HTTP deployments must also configure `MCP_INBOUND_TOKEN` or trusted
+proxy HMAC authorization for MCP callers.
 
 
 ### Set Your Amazon Ads MCP Packages 

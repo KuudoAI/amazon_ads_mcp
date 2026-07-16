@@ -165,10 +165,18 @@ class AuthManager:
 
             # Set explicit defaults only when configuration names one.
             if (
-                auth_method == "openbridge"
-                and self.settings.openbridge_remote_identity_id
+                auth_method in {"openbridge", "kuudo"}
+                and (
+                    self.settings.openbridge_remote_identity_id
+                    if auth_method == "openbridge"
+                    else self.settings.kuudo_remote_identity_id
+                )
             ):
-                self._default_identity_id = self.settings.openbridge_remote_identity_id
+                self._default_identity_id = (
+                    self.settings.openbridge_remote_identity_id
+                    if auth_method == "openbridge"
+                    else self.settings.kuudo_remote_identity_id
+                )
 
         except ValueError as e:
             # Provide helpful error message
@@ -226,6 +234,10 @@ class AuthManager:
             logger.info("Auto-detected OpenBridge authentication from environment")
             return "openbridge"
 
+        if self.settings.kuudo_api_base_url and self.settings.kuudo_api_key:
+            logger.info("Auto-detected Kuudo authentication from environment")
+            return "kuudo"
+
         # Check for other provider configs here as needed
         # For example, check for AUTH0_DOMAIN, OKTA_DOMAIN, etc.
 
@@ -233,6 +245,7 @@ class AuthManager:
             "No authentication method configured. Please set one of:\n"
             "- For direct auth: AD_API_CLIENT_ID, AD_API_CLIENT_SECRET, AD_API_REFRESH_TOKEN\n"
             "- For OpenBridge: OPENBRIDGE_REFRESH_TOKEN (or OPENBRIDGE_API_KEY)\n"
+            "- For Kuudo: KUUDO_API_BASE_URL and KUUDO_API_KEY\n"
             "- Or explicitly set AUTH_METHOD environment variable"
         )
 
@@ -265,6 +278,14 @@ class AuthManager:
                 "auth_base_url": self.settings.openbridge_auth_base_url,
                 "identity_base_url": self.settings.openbridge_identity_base_url,
                 "service_base_url": self.settings.openbridge_service_base_url,
+            }
+
+        elif auth_method == "kuudo":
+            config_data = {
+                "base_url": self.settings.kuudo_api_base_url,
+                "api_key": self.settings.kuudo_api_key,
+                "provider": self.settings.kuudo_provider,
+                "region": self.settings.amazon_ads_region,
             }
 
         # Add more provider configs here as needed
@@ -813,19 +834,34 @@ class AuthManager:
         :return: Normalized region code (na, eu, fe) or None
         :rtype: Optional[str]
         """
-        if self.provider and hasattr(self.provider, "region"):
-            return self.provider.region
-
-        # Try to get from identity attributes
         active_identity = _ctx_get_identity()
+        identity_region = None
         if active_identity:
             try:
                 attrs = getattr(active_identity, "attributes", {})
                 region = attrs.get("region")
-                if region and region in {"na", "eu", "fe"}:
-                    return region
+                if isinstance(region, str) and region.lower() in {"na", "eu", "fe"}:
+                    identity_region = region.lower()
             except (AttributeError, TypeError, KeyError):
                 pass
+
+        region_controlled_by_identity = getattr(
+            self.provider,
+            "region_controlled_by_identity",
+            None,
+        )
+        if (
+            callable(region_controlled_by_identity)
+            and region_controlled_by_identity()
+            and identity_region
+        ):
+            return identity_region
+
+        if self.provider and hasattr(self.provider, "region"):
+            return self.provider.region
+
+        if identity_region:
+            return identity_region
 
         return None
 

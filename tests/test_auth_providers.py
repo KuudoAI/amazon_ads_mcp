@@ -9,6 +9,7 @@ import pytest
 
 from amazon_ads_mcp.auth.base import BaseAmazonAdsProvider, ProviderConfig
 from amazon_ads_mcp.auth.providers.direct import DirectAmazonAdsProvider
+from amazon_ads_mcp.auth.providers.kuudo import KuudoAmazonAdsProvider
 from amazon_ads_mcp.auth.providers.openbridge import OpenBridgeProvider
 from amazon_ads_mcp.auth.registry import ProviderRegistry, register_provider
 from amazon_ads_mcp.models import Identity, Token
@@ -21,7 +22,23 @@ class TestProviderRegistry:
         """Test that built-in providers are registered."""
         providers = ProviderRegistry.list_providers()
         assert "direct" in providers
+        assert "kuudo" in providers
         assert "openbridge" in providers
+
+    def test_registry_creates_kuudo_provider(self):
+        """Test creating a Kuudo provider through registry."""
+        config = ProviderConfig(
+            base_url="https://app.kuudo.test",
+            api_key="sk_test",
+            provider="amazon_ads",
+        )
+
+        provider = ProviderRegistry.create_provider("kuudo", config)
+
+        assert isinstance(provider, KuudoAmazonAdsProvider)
+        assert KuudoAmazonAdsProvider.__module__ == "amazon_ads_mcp.auth.providers.kuudo"
+        assert provider.config.base_url == "https://app.kuudo.test"
+        assert provider.config.api_key == "sk_test"
     
     def test_registry_creates_direct_provider(self):
         """Test creating a direct provider through registry."""
