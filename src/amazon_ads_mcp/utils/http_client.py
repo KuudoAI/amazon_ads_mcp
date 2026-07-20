@@ -132,14 +132,26 @@ class AuthenticatedClient(httpx.AsyncClient):
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
-        # Task 22 (metering): wrap the transport httpx just constructed for
-        # us, IFF a metering runtime is active -- returns it unchanged
-        # otherwise. This is the ONE seam covering every construction path
-        # for this class and every subclass (e.g. ResilientAuthenticatedClient,
-        # whose __init__ calls super().__init__(*args, **kwargs)): every
-        # request sent through this client dispatches via self._transport
-        # (httpx 0.28.1; self._mounts is unused everywhere in this repo).
+        # Task 22 (metering; fix round 1, CRITICAL + IMPORTANT): install a
+        # LazyMeteredTransport unconditionally on self._transport AND on
+        # every populated self._mounts value. This is the ONE seam
+        # covering every construction path for this class and every
+        # subclass (e.g. ResilientAuthenticatedClient, whose __init__
+        # calls super().__init__(*args, **kwargs)): httpx 0.28.1 checks
+        # self._mounts for a matching pattern before falling back to
+        # self._transport, and self._mounts is auto-populated from
+        # HTTP_PROXY/HTTPS_PROXY/ALL_PROXY when trust_env=True (httpx's
+        # default here, left unchanged -- product behavior). The wrap
+        # decision itself is deferred to REQUEST time
+        # (LazyMeteredTransport consults get_metering_runtime() on every
+        # call), so it no longer matters whether a metering runtime is
+        # active yet at __init__ time -- only whether one is active when
+        # a request is actually sent.
         self._transport = install_metered_transport(self._transport)
+        self._mounts = {
+            pattern: (install_metered_transport(mount) if mount is not None else None)
+            for pattern, mount in self._mounts.items()
+        }
         self.auth_manager = auth_manager
         self.media_registry: Optional[MediaTypeRegistry] = media_registry
         self.header_resolver: HeaderNameResolver = (
