@@ -1,6 +1,10 @@
 version = 1
 revision = 3
 requires-python = ">=3.10, <4.0"
+resolution-markers = [
+    "python_full_version >= '3.12'",
+    "python_full_version < '3.12'",
+]
 
 [[package]]
 name = "aiofile"
@@ -16,13 +20,14 @@ wheels = [
 
 [[package]]
 name = "amazon-ads-mcp"
-version = "0.3.25"
+version = "0.3.27"
 source = { editable = "." }
 dependencies = [
     { name = "cryptography" },
     { name = "fastmcp", extra = ["tasks"] },
     { name = "httpx", extra = ["http2"] },
     { name = "jsonschema" },
+    { name = "mcp-outbound-metering", extra = ["verify"], marker = "python_full_version >= '3.12'" },
     { name = "openai" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
@@ -62,6 +67,7 @@ requires-dist = [
     { name = "fastmcp", extras = ["tasks"], specifier = ">=3.4.2,<4" },
     { name = "httpx", extras = ["http2"], specifier = ">=0.28.1" },
     { name = "jsonschema", specifier = ">=4.25.1" },
+    { name = "mcp-outbound-metering", extras = ["verify"], marker = "python_full_version >= '3.12'", git = "https://github.com/KuudoAI/billing?subdirectory=packages%2Fpython%2Fmcp_outbound_metering&rev=ef8f71ee722c35265050c38fb34f9a9ea36122da" },
     { name = "openai", specifier = ">=1.109.1" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pydantic-settings", specifier = ">=2.12.0" },
@@ -1287,6 +1293,21 @@ wheels = [
 ]
 
 [[package]]
+name = "mcp-outbound-metering"
+version = "0.1.0.dev0"
+source = { git = "https://github.com/KuudoAI/billing?subdirectory=packages%2Fpython%2Fmcp_outbound_metering&rev=ef8f71ee722c35265050c38fb34f9a9ea36122da#ef8f71ee722c35265050c38fb34f9a9ea36122da" }
+dependencies = [
+    { name = "httpx", marker = "python_full_version >= '3.12'" },
+    { name = "jsonschema", marker = "python_full_version >= '3.12'" },
+    { name = "pyyaml", marker = "python_full_version >= '3.12'" },
+]
+
+[package.optional-dependencies]
+verify = [
+    { name = "pytest", marker = "python_full_version >= '3.12'" },
+]
+
+[[package]]
 name = "mdurl"
 version = "0.1.2"
 source = { registry = "https://pypi.org/simple" }
@@ -2404,8 +2425,8 @@ name = "taskgroup"
 version = "0.2.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "exceptiongroup" },
-    { name = "typing-extensions" },
+    { name = "exceptiongroup", marker = "python_full_version < '3.12'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.12'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/f0/8d/e218e0160cc1b692e6e0e5ba34e8865dbb171efeb5fc9a704544b3020605/taskgroup-0.2.2.tar.gz", hash = "sha256:078483ac3e78f2e3f973e2edbf6941374fbea81b9c5d0a96f51d297717f4752d", size = 11504, upload-time = "2025-01-03T09:24:13.761Z" }
 wheels = [
