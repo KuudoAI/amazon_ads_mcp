@@ -37,11 +37,9 @@ import httpx
 
 from . import compat
 from .adapter import set_metering_runtime
+from .config import resolve_config_path
 
 __all__ = ["create_conformance_harness"]
-
-_REPO_ROOT = Path(__file__).resolve().parents[3]
-_CONFIG_PATH = _REPO_ROOT / "metering.yaml"
 
 _EXPECTED_DIMENSIONS = frozenset({"identity_id", "profile_id", "region", "auth_method", "tool_name"})
 
@@ -159,7 +157,7 @@ async def create_conformance_harness(path: Path, options: Any) -> Any:
     mirror: Optional[Any] = _RaisingTelemetryMirror() if options.break_mirror else None
 
     runtime = compat.MeteringRuntime.from_config(
-        _CONFIG_PATH,
+        resolve_config_path(env),
         env,
         exporter_transport=exporter_transport,
         mirror=mirror,

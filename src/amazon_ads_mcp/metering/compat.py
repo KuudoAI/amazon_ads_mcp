@@ -2,9 +2,14 @@
 
 ``mcp-outbound-metering`` requires Python>=3.12 (see its own
 ``pyproject.toml``), while this repository's floor is 3.10 (CI matrix
-3.10-3.12). The dependency itself is therefore declared conditionally
-(``pyproject.toml``: ``mcp-outbound-metering[verify] ; python_version >=
-'3.12'``) -- on 3.10/3.11 it is simply never installed.
+3.10-3.12). It is ALSO a private git dependency (fix round 2, deployment
+gap #2), so it lives behind the optional ``metering`` extra
+(``pyproject.toml``: ``[project.optional-dependencies] metering =
+["mcp-outbound-metering ; python_version >= '3.12'"]``) rather than
+``[project.dependencies]`` -- a plain install/sync never touches it, on
+any Python version. Installing with ``pip install
+'amazon-ads-mcp[metering]'`` (or ``uv sync --extra metering``) on 3.12+
+is required for :data:`METERING_AVAILABLE` to be ``True``.
 
 Every other module under ``amazon_ads_mcp.metering`` that needs a real
 ``mcp_outbound_metering`` symbol imports it from HERE, never directly --
@@ -67,13 +72,17 @@ def warn_unsupported() -> None:
     ``METERING_ENABLED`` is truthy but :data:`METERING_AVAILABLE` is
     ``False`` -- an unset/false ``METERING_ENABLED`` never logs anything,
     since that is ordinary, expected "metering not configured" behavior on
-    any Python version.
+    any Python version. Names the exact install command (fix round 2,
+    deployment gap #2: the package lives behind the optional "metering"
+    extra, not a base dependency) so an operator debugging a failed/
+    disabled startup knows precisely what to run.
     """
     running = ".".join(str(part) for part in sys.version_info[:3])
     logger.warning(
         "metering disabled: requires Python>=%s (running %s) or "
-        "mcp-outbound-metering is not installed -- METERING_ENABLED is set "
-        "but no usage events will be recorded",
+        "mcp-outbound-metering is not installed -- install with "
+        "pip/uv install 'amazon-ads-mcp[metering]' (Python>=3.12 required). "
+        "METERING_ENABLED is set but no usage events will be recorded",
         ".".join(str(p) for p in METERING_MIN_PYTHON),
         running,
     )

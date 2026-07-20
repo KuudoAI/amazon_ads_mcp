@@ -27,7 +27,6 @@ dependencies = [
     { name = "fastmcp", extra = ["tasks"] },
     { name = "httpx", extra = ["http2"] },
     { name = "jsonschema" },
-    { name = "mcp-outbound-metering", extra = ["verify"], marker = "python_full_version >= '3.12'" },
     { name = "openai" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
@@ -44,6 +43,9 @@ audit = [
 ]
 code-mode = [
     { name = "fastmcp", extra = ["code-mode"] },
+]
+metering = [
+    { name = "mcp-outbound-metering", marker = "python_full_version >= '3.12'" },
 ]
 
 [package.dev-dependencies]
@@ -67,7 +69,7 @@ requires-dist = [
     { name = "fastmcp", extras = ["tasks"], specifier = ">=3.4.2,<4" },
     { name = "httpx", extras = ["http2"], specifier = ">=0.28.1" },
     { name = "jsonschema", specifier = ">=4.25.1" },
-    { name = "mcp-outbound-metering", extras = ["verify"], marker = "python_full_version >= '3.12'", git = "https://github.com/KuudoAI/billing?subdirectory=packages%2Fpython%2Fmcp_outbound_metering&rev=ef8f71ee722c35265050c38fb34f9a9ea36122da" },
+    { name = "mcp-outbound-metering", marker = "python_full_version >= '3.12' and extra == 'metering'", git = "https://github.com/KuudoAI/billing?subdirectory=packages%2Fpython%2Fmcp_outbound_metering&rev=ef8f71ee722c35265050c38fb34f9a9ea36122da" },
     { name = "openai", specifier = ">=1.109.1" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pydantic-settings", specifier = ">=2.12.0" },
@@ -78,7 +80,7 @@ requires-dist = [
     { name = "tiktoken", specifier = ">=0.12.0" },
     { name = "tiktoken", marker = "extra == 'audit'", specifier = ">=0.7.0" },
 ]
-provides-extras = ["audit", "code-mode"]
+provides-extras = ["audit", "code-mode", "metering"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1300,11 +1302,6 @@ dependencies = [
     { name = "httpx", marker = "python_full_version >= '3.12'" },
     { name = "jsonschema", marker = "python_full_version >= '3.12'" },
     { name = "pyyaml", marker = "python_full_version >= '3.12'" },
-]
-
-[package.optional-dependencies]
-verify = [
-    { name = "pytest", marker = "python_full_version >= '3.12'" },
 ]
 
 [[package]]

@@ -35,12 +35,11 @@ from typing import Any, Mapping, Optional
 
 from . import compat
 from .adapter import get_metering_runtime, set_metering_runtime
+from .config import resolve_config_path
 
 logger = logging.getLogger(__name__)
 
 __all__ = ["metering_health_payload", "start_metering", "stop_metering"]
-
-_DEFAULT_CONFIG_PATH = "metering.yaml"
 
 
 def _is_truthy(raw: Optional[str]) -> bool:
@@ -75,12 +74,13 @@ async def start_metering(env: Optional[Mapping[str, str]] = None) -> Optional[An
         if strict:
             raise RuntimeError(
                 "METERING_ENABLED=true but metering is unavailable (requires "
-                "Python>=3.12 and mcp-outbound-metering installed); refusing "
-                "to start without metering (design §7.3)"
+                "Python>=3.12 and the optional 'metering' extra installed -- "
+                "run pip/uv install 'amazon-ads-mcp[metering]'); refusing to "
+                "start without metering (design §7.3)"
             )
         return None
 
-    config_path = source.get("METERING_CONFIG", _DEFAULT_CONFIG_PATH)
+    config_path = resolve_config_path(source)
     try:
         runtime = compat.MeteringRuntime.from_config(config_path, source)
         await runtime.start()
