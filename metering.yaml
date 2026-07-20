@@ -1,0 +1,35 @@
+# Adapter config for amazon_ads_mcp (Task 22), generated per the
+# `mcp-metering install` scaffold and hand-adapted into
+# src/amazon_ads_mcp/metering/ (design §3.5.2). Non-secret: every *_env
+# key below names an environment variable this file never reads a value
+# for. Credentials, account mappings, sink routes, and pricing never
+# belong here (design §3.5.3).
+schema_version: 1
+source_id: amazon_ads_mcp
+provider:
+  service: amazon_ads
+  exact_hosts_env: METERING_UPSTREAM_HOSTS
+  disallowed_host_action: reject
+# Declarative only -- nothing in mcp-outbound-metering reads
+# context_provider/path_normalizer off this file at runtime; they are
+# wired by hand in src/amazon_ads_mcp/metering/adapter.py via
+# MeteringRuntime.wrap_transport() (design §3.5.4). If either of these
+# modules is ever relocated, update these strings too -- they are plain
+# strings naming an importable module path, not a live Python reference.
+transport:
+  adapter: httpx
+  context_provider: amazon_ads_mcp.metering.context:usage_context
+  path_normalizer: amazon_ads_mcp.metering.normalizer:normalize_path
+# Allowlist (Task 22 ruling #4). operation_id/api_group are intentionally
+# omitted in v1 -- no HTTP-layer source exists for either without a
+# template_resolver (post-v1, design §3.2).
+dimensions:
+  - identity_id
+  - profile_id
+  - region
+  - auth_method
+  - tool_name
+outbox:
+  mode: sqlite
+  path_env: METERING_OUTBOX_PATH
+  max_bytes_env: METERING_OUTBOX_MAX_BYTES
