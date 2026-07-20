@@ -225,6 +225,16 @@ jobs:
       # credential or endpoint. --skip-ingest: no real edge/ingest
       # endpoint exists yet for this integration (registration/activation
       # is a separate, later, edge-side step per design §3.5.6).
+      #
+      # DEPLOYMENT NOTE (fix round 1, MINOR): a single NA host is
+      # sufficient here -- this step only exercises the conformance
+      # suite's mock upstream, never real regional traffic. A REAL
+      # production METERING_UPSTREAM_HOSTS value must list all three
+      # Amazon Ads regional hosts (advertising-api.amazon.com, -eu, -fe;
+      # plus the "-test" sandbox variants if AMAZON_ADS_SANDBOX_MODE is
+      # used) -- see metering.yaml's own comment. With
+      # disallowed_host_action: reject, a production value listing only
+      # the NA host would reject every EU/FE request outright.
       - name: mcp-metering verify
         env:
           METERING_ENABLED: "true"

@@ -8,6 +8,21 @@ schema_version: 1
 source_id: amazon_ads_mcp
 provider:
   service: amazon_ads
+  # DEPLOYMENT NOTE (fix round 1, MINOR): the host match is EXACT, never
+  # a suffix/wildcard, and Amazon Ads is a 3-region API
+  # (RegionConfig.API_HOSTS: na/eu/fe, utils/region_config.py).
+  # METERING_UPSTREAM_HOSTS must list ALL THREE regional hosts before
+  # enabling in production --
+  #   advertising-api.amazon.com, advertising-api-eu.amazon.com,
+  #   advertising-api-fe.amazon.com
+  # -- plus the sandbox "-test" variants
+  # (advertising-api-test.amazon.com, advertising-api-eu-test.amazon.com,
+  # advertising-api-fe-test.amazon.com) if AMAZON_ADS_SANDBOX_MODE is
+  # ever used. With disallowed_host_action: reject (below), listing only
+  # the NA host breaks EU/FE traffic outright the moment an
+  # identity/marketplace routes a request to a regional endpoint that
+  # isn't allowlisted -- every such call raises DisallowedHostError
+  # instead of reaching Amazon.
   exact_hosts_env: METERING_UPSTREAM_HOSTS
   disallowed_host_action: reject
 # Declarative only -- nothing in mcp-outbound-metering reads
