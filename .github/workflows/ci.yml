@@ -170,12 +170,17 @@ jobs:
   # ----- Metering conformance (Task 22) ----------------------------------
   #
   # mcp-outbound-metering is a git dependency on the PRIVATE KuudoAI/billing
-  # repo (pyproject.toml [tool.uv.sources], python_version >= '3.12' only)
-  # -- `uv sync` needs authenticated git access to fetch it, hence the
-  # BILLING_REPO_TOKEN secret + git insteadOf step below. Python 3.12 only:
-  # every tests/metering/ test is skipif-guarded to <3.12, and
-  # mcp-outbound-metering itself is never installed below 3.12 (the repo's
-  # own floor stays 3.10 -- see the `tests` job's matrix above, untouched).
+  # repo (pyproject.toml [tool.uv.sources]), gated behind the OPTIONAL
+  # "metering" extra (fix round 2, deployment gap #2) -- it is NOT in
+  # [project.dependencies], so it is only ever fetched when a sync
+  # explicitly requests `--extra metering`, as this job does below. Every
+  # OTHER job in this file (smoke/tests/catalog-negative/wheel-smoke) runs
+  # a plain `uv sync --frozen` with no extra and therefore never touches
+  # the private repo or needs BILLING_REPO_TOKEN, even on their 3.12 legs.
+  # Python 3.12 only: every tests/metering/ test is skipif-guarded to
+  # <3.12, and mcp-outbound-metering itself is never installable below
+  # 3.12 (the repo's own floor stays 3.10 -- see the `tests` job's matrix
+  # above, untouched).
   metering:
     name: Metering conformance (Task 22)
     runs-on: ubuntu-latest
@@ -212,7 +217,7 @@ jobs:
 
       - name: Install dependencies (metering extra resolved on 3.12)
         run: |
-          uv sync --frozen --python 3.12
+          uv sync --frozen --python 3.12 --extra metering
 
       - name: Run metering test suite
         env:
