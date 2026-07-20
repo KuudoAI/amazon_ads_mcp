@@ -300,6 +300,19 @@ class ServerBuilder:
             "(per-identity QAA result cache)"
         )
 
+        # Task 22 (metering): attribute the tool_name dimension for the
+        # ordinary on_call_tool dispatch path. Position in the chain does
+        # not affect correctness (every middleware here wraps call_next,
+        # and the eventual metered HTTP call happens deep inside that same
+        # async context) -- see metering/attribution.py's module docstring.
+        # The Code Mode sandbox bridge (server/code_mode.py's
+        # bridged_call_tool) sets the SAME ContextVar directly, since that
+        # path bypasses this middleware chain entirely (design §7.1).
+        from ..metering.attribution import ToolAttributionMiddleware
+
+        middleware_list.append(ToolAttributionMiddleware())
+        logger.info("Added ToolAttributionMiddleware (metering tool_name dimension)")
+
         # Error callback for logging
         def error_callback(error: Exception, context=None) -> None:
             logger.error(f"Tool execution error: {type(error).__name__}: {error}")
@@ -1169,13 +1182,24 @@ class ServerBuilder:
         built_at = os.getenv("AMAZON_ADS_MCP_BUILD_TIME", "unknown")
 
         def _health_payload() -> dict:
-            return {
+            payload = {
                 "status": "healthy",
                 "service": "amazon-ads-mcp",
                 "version": package_version,
                 "git_sha": git_sha,
                 "built_at": built_at,
             }
+            # Task 22 (metering ruling #8): merge runtime.health() under
+            # "metering" when a runtime is active. metering_health_payload()
+            # returns None (key omitted entirely) when metering was never
+            # started -- e.g. every deployment that hasn't opted in, and
+            # every 3.10/3.11 process.
+            from ..metering.lifespan import metering_health_payload
+
+            metering = metering_health_payload()
+            if metering is not None:
+                payload["metering"] = metering
+            return payload
 
         @self.server.custom_route("/health", methods=["GET"])
         async def health_check(request: Request) -> JSONResponse:

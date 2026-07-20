@@ -484,31 +484,42 @@ class AuthBridgingSandboxProvider:
                 # fire regardless of which call surface the LLM picked.
                 from .sidecar_middleware import apply_sidecar_input_transforms
 
+                # Task 22 (metering, design §7.1): this bridge is the
+                # documented attribution gap -- it dispatches
+                # original_call_tool WITHOUT going through the server's
+                # middleware chain, so ToolAttributionMiddleware never
+                # runs for it. Set the SAME tool_name ContextVar directly
+                # around the nested dispatch so metering events for Code
+                # Mode tool calls carry the same tool_name dimension an
+                # ordinary call would.
+                from ..metering.attribution import tool_name_scope
+
                 async with call_lock:
                     await hydrate_auth_from_mcp_session(
                         parent_ctx, logger_instance=logger
                     )
-                    try:
-                        rewritten = await apply_sidecar_input_transforms(
-                            name, params or {}
-                        )
+                    with tool_name_scope(name):
                         try:
-                            return await original_call_tool(name, rewritten)
-                        except Exception as exc:
-                            # Translate via the v1 envelope-aware helper so
-                            # ToolErrors carrying envelope JSON surface in the
-                            # sandbox as ``RuntimeError("<error_kind>: <summary>")``
-                            # rather than nesting the full envelope JSON
-                            # inside a generic RuntimeError. Non-envelope
-                            # exceptions keep the legacy
-                            # ``RuntimeError("<OriginalType>: <message>")`` form.
-                            # See ``EXECUTE_DESCRIPTION`` and the contract at
-                            # openbridge-mcp/CONTRACT.md.
-                            raise translate_to_sandbox_runtime_error(exc) from None
-                    finally:
-                        await persist_auth_to_mcp_session(
-                            parent_ctx, logger_instance=logger
-                        )
+                            rewritten = await apply_sidecar_input_transforms(
+                                name, params or {}
+                            )
+                            try:
+                                return await original_call_tool(name, rewritten)
+                            except Exception as exc:
+                                # Translate via the v1 envelope-aware helper so
+                                # ToolErrors carrying envelope JSON surface in the
+                                # sandbox as ``RuntimeError("<error_kind>: <summary>")``
+                                # rather than nesting the full envelope JSON
+                                # inside a generic RuntimeError. Non-envelope
+                                # exceptions keep the legacy
+                                # ``RuntimeError("<OriginalType>: <message>")`` form.
+                                # See ``EXECUTE_DESCRIPTION`` and the contract at
+                                # openbridge-mcp/CONTRACT.md.
+                                raise translate_to_sandbox_runtime_error(exc) from None
+                        finally:
+                            await persist_auth_to_mcp_session(
+                                parent_ctx, logger_instance=logger
+                            )
 
             wrapped_functions["call_tool"] = bridged_call_tool
 

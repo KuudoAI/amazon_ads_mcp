@@ -85,6 +85,18 @@ async def server_lifespan(server: Any) -> AsyncIterator[None]:
             logger.warning("No auth provider configured")
 
         logger.info("Server lifespan: Startup complete")
+
+        # Task 22 (metering): start before accepting traffic (design
+        # §3.5.4 step 4, §7.3). A startup failure here is caught by this
+        # same try/except -- when METERING_ENABLED is strictly "true",
+        # start_metering() re-raises and this block's own re-raise below
+        # fails server startup entirely (billing-critical: design §7.3
+        # "startup validates before accepting traffic"). Any looser
+        # truthy-but-not-strict value logs loudly and returns None
+        # instead of raising, so the server still starts.
+        from ..metering.lifespan import start_metering
+
+        await start_metering()
     except Exception as e:
         logger.error(f"Server lifespan: Startup error: {e}")
         raise
@@ -100,6 +112,19 @@ async def server_lifespan(server: Any) -> AsyncIterator[None]:
             logger.debug("Server lifespan: Cleanup already done by fallback handler")
         else:
             logger.info("Server lifespan: Shutting down...")
+
+            # Task 22 (metering): stop BEFORE closing HTTP clients (design
+            # ruling #8's ordering) -- stop_metering() itself never
+            # raises (internal aclose() failures are logged, not
+            # propagated), but this is wrapped the same defensive way as
+            # every other shutdown step here.
+            try:
+                from ..metering.lifespan import stop_metering
+
+                await stop_metering()
+                logger.info("Metering stopped")
+            except Exception as e:
+                logger.error(f"Error stopping metering: {e}")
 
             # Close HTTP clients
             try:
