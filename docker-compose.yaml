@@ -12,6 +12,12 @@ services:
         BUILD_TIME: ${BUILD_TIME:-unknown}
         APP_UID: "10001"
         APP_GID: "10001"
+        # Metering (Task 22), default OFF -- see docs/metering.md and the
+        # Dockerfile's own comments for both modes. Set INCLUDE_METERING=true
+        # in the shell (plus a `billing_repo_token` BuildKit secret) to build
+        # an image with metering support; the default build stays
+        # completely token-free.
+        INCLUDE_METERING: ${INCLUDE_METERING:-false}
     image: amazon-ads-mcp:latest
     container_name: amazon-ads-mcp
     env_file:

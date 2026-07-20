@@ -22,6 +22,35 @@ ARG PYTHON_VERSION=3.14
 ARG APP_UID=10001
 ARG APP_GID=10001
 
+# Metering (Task 22) is gated behind a build ARG, default OFF:
+#
+#   INCLUDE_METERING=false (default) -- `docker build .` with no
+#     --build-arg needed. mcp-outbound-metering (a PRIVATE git
+#     dependency, pyproject.toml [tool.uv.sources]) lives behind the
+#     optional "metering" extra (pyproject.toml
+#     [project.optional-dependencies]), never [project.dependencies], so
+#     a default build never touches the private repo and needs no
+#     credential at all.
+#   INCLUDE_METERING=true -- installs the "metering" extra. Requires a
+#     `billing_repo_token` BuildKit secret (a GitHub token with read
+#     access to KuudoAI/billing) for `uv sync` to fetch the private
+#     dependency, e.g.:
+#       docker build --build-arg INCLUDE_METERING=true \
+#         --secret id=billing_repo_token,env=BILLING_REPO_TOKEN .
+#     The token is consumed via ephemeral GIT_CONFIG_* env vars scoped to
+#     the single RUN step that needs it (see below) -- never written to
+#     ~/.gitconfig or any other file, so it can never leak into an image
+#     layer. At runtime, METERING_ENABLED=true resolves metering.yaml
+#     from the packaged copy (amazon_ads_mcp/metering/metering.yaml,
+#     fix round 2 deployment gap #1) with zero extra COPY needed here --
+#     it ships inside the wheel/venv installed below.
+#
+# See docs/metering.md for both modes end to end, including the runtime
+# env vars (METERING_ENABLED, METERING_UPSTREAM_HOSTS, etc.) neither mode
+# sets here -- those are always supplied at `docker run`/compose time via
+# a secrets manager, never baked into the image.
+ARG INCLUDE_METERING=false
+
 # Pull the uv standalone binary as a build-stage helper image. Pinning
 # the uv tag (not :latest) keeps `uv sync` reproducible across builds.
 FROM ghcr.io/astral-sh/uv:0.9.5 AS uv-bin
@@ -30,6 +59,9 @@ FROM ghcr.io/astral-sh/uv:0.9.5 AS uv-bin
 # Stage 1: builder
 # ---------------------------------------------------------------------------
 FROM python:${PYTHON_VERSION}-slim-bookworm AS builder
+
+# Re-declare to bring the global ARG into this stage's scope.
+ARG INCLUDE_METERING
 
 # UV_LINK_MODE=copy is required when using the cache mount below — uv's
 # default 'hardlink' mode breaks across the mount boundary.
@@ -47,20 +79,61 @@ WORKDIR /app
 
 COPY --from=uv-bin /uv /uvx /bin/
 
+# git is required to resolve mcp-outbound-metering (a git dependency,
+# pyproject.toml [tool.uv.sources]) whenever INCLUDE_METERING=true --
+# python:*-slim-bookworm does not ship it. Installed unconditionally
+# (cheap, cached, and this builder stage is discarded -- only /opt/venv
+# is copied into the runtime image below, so this never affects final
+# image size or the default INCLUDE_METERING=false build's footprint).
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends git
+
 # Layer-cache friendly: install the dep graph before copying source.
 # `--no-install-project --no-editable` resolves and installs only deps so
 # this layer survives source-only changes.
+#
+# The `billing_repo_token` secret is only ever READ inside this one RUN
+# step, and only when INCLUDE_METERING=true -- via GIT_CONFIG_COUNT/
+# GIT_CONFIG_KEY_0/GIT_CONFIG_VALUE_0 env vars scoped to this shell
+# process only. Nothing writes it to ~/.gitconfig or any other file, so
+# it never persists into this (or any) image layer. `required=false`
+# keeps the default INCLUDE_METERING=false build working with no secret
+# provided at all.
 COPY pyproject.toml uv.lock README.md ./
 RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=secret,id=billing_repo_token,required=false \
     uv venv /opt/venv && \
-    uv sync --no-dev --frozen --extra code-mode --no-install-project --no-editable
+    EXTRAS="--extra code-mode" && \
+    if [ "$INCLUDE_METERING" = "true" ]; then \
+        EXTRAS="$EXTRAS --extra metering"; \
+        if [ -s /run/secrets/billing_repo_token ]; then \
+            export GIT_CONFIG_COUNT=1; \
+            export GIT_CONFIG_KEY_0="url.https://x-access-token:$(cat /run/secrets/billing_repo_token)@github.com/KuudoAI/billing.insteadOf"; \
+            export GIT_CONFIG_VALUE_0="https://github.com/KuudoAI/billing"; \
+        fi; \
+    fi && \
+    uv sync --no-dev --frozen $EXTRAS --no-install-project --no-editable
 
 # Now bring in the project itself and install it on top of the cached deps.
 # pyproject.toml uses build_package.py as an in-tree PEP 517 backend.
+# Same EXTRAS/secret handling as above -- uv's extras set must stay
+# consistent across both syncs, or this second (no-extras) sync would
+# uninstall mcp-outbound-metering that the first sync just installed.
 COPY build_package.py ./
 COPY src/ src/
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-dev --frozen --extra code-mode --no-editable
+    --mount=type=secret,id=billing_repo_token,required=false \
+    EXTRAS="--extra code-mode" && \
+    if [ "$INCLUDE_METERING" = "true" ]; then \
+        EXTRAS="$EXTRAS --extra metering"; \
+        if [ -s /run/secrets/billing_repo_token ]; then \
+            export GIT_CONFIG_COUNT=1; \
+            export GIT_CONFIG_KEY_0="url.https://x-access-token:$(cat /run/secrets/billing_repo_token)@github.com/KuudoAI/billing.insteadOf"; \
+            export GIT_CONFIG_VALUE_0="https://github.com/KuudoAI/billing"; \
+        fi; \
+    fi && \
+    uv sync --no-dev --frozen $EXTRAS --no-editable
 
 # ---------------------------------------------------------------------------
 # Stage 2: runtime
