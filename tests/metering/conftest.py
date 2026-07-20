@@ -13,15 +13,58 @@ Deliberately excludes `METERING_OUTBOX_PATH` (the guide's own CI block
 doesn't set it either) -- `metering.conformance._env`'s `setdefault` then
 keeps each test's own `tmp_path`-scoped outbox path, preserving isolation
 between tests.
+
+Fix round 3, collection-safety gate
+------------------------------------
+`mcp-outbound-metering` now lives behind the optional `metering` extra
+(fix round 2) -- it is ALSO absent on a 3.12 interpreter that never ran
+`uv sync --extra metering`, exactly the `smoke` and `wheel-smoke` CI
+jobs, which sync on Python 3.12 but never request the extra. Before this
+gate, every `tests/metering/*.py` module's own `if sys.version_info >=
+(3, 12): import mcp_outbound_metering...` guard evaluated the version
+check as satisfied (3.12) and executed the import anyway, dying with a
+collection-time `ModuleNotFoundError` -- CI logs showed exactly this:
+"ImportError while importing test module .../test_attribution_event_flow.py
+... ModuleNotFoundError: No module named 'mcp_outbound_metering'".
+
+The fix below runs `pytest.importorskip("mcp_outbound_metering")` at
+MODULE level, gated to `sys.version_info >= (3, 12)` ONLY -- this is the
+critical detail. pytest always loads a directory's conftest.py before
+collecting (importing) any test module inside it, so a module-level skip
+here cleanly skips collection of the ENTIRE `tests/metering/` subtree as
+one unit, before any test module's own top-level import ever runs.
+
+The version guard on the `importorskip` itself matters because
+`mcp_outbound_metering` is ALSO never installed on <3.12 (by design --
+its own floor is 3.12) -- an unconditional `importorskip` here would
+blanket-skip the whole directory on 3.10 too, silently swallowing the
+~24 tests that are specifically written to run on EVERY Python version
+(test_compat_guard.py, test_normalizer.py, test_attribution.py,
+test_context.py, test_code_mode_attribution.py, test_lifespan_guard.py,
+and several in test_packaged_config.py -- each documents in its own
+module docstring why it deliberately isn't skipif-guarded). Gating this
+check to 3.12+ leaves <3.12 collection completely untouched: those
+version-independent tests keep running, and every version-gated test
+module's own `pytestmark = pytest.mark.skipif(sys.version_info < (3,
+12), ...)` keeps giving the clearer, more specific "why" for the 3.10
+floor -- this conftest gate exists ONLY to catch "3.12+, but the package
+genuinely isn't installed," the one case no existing guard covered.
 """
 
 from __future__ import annotations
 
 import asyncio
+import sys
 
 import pytest
 
-from amazon_ads_mcp.metering.adapter import get_metering_runtime, set_metering_runtime
+if sys.version_info >= (3, 12):
+    pytest.importorskip(
+        "mcp_outbound_metering",
+        reason="metering extra not installed (uv sync --extra metering)",
+    )
+
+from amazon_ads_mcp.metering.adapter import get_metering_runtime, set_metering_runtime  # noqa: E402
 
 _CI_ENV_BLOCK = {
     "METERING_ENABLED": "true",
