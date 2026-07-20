@@ -5,6 +5,7 @@ all resilience patterns recommended by Amazon for API interactions.
 """
 
 import logging
+import uuid
 from typing import Any, Dict
 
 import httpx
@@ -103,9 +104,27 @@ class ResilientAuthenticatedClient(AuthenticatedClient):
                 logger.error(f"Rate limit timeout for {endpoint}")
                 raise Exception(f"Rate limit acquisition timeout for {endpoint}")
 
+        # Metering retry attribution (Task 22 ruling #6): one
+        # logical_request_id per logical send(), reused across every
+        # retry attempt of this SAME request object; retry_attempt is
+        # zero-based (0 = first attempt). Set unconditionally -- this
+        # module has no dependency on metering being enabled/available,
+        # the metered transport (if any is wrapping self._transport)
+        # simply reads request.extensions["metering"] when present and
+        # ignores it otherwise. The plain (non-resilient)
+        # AuthenticatedClient.send() path sends no such extension, which
+        # is correct: it has no retry loop to attribute.
+        logical_request_id = str(uuid.uuid4())
+        attempt_counter = {"n": 0}
+
         # Create wrapped send function for retry decorator
         @self.retry_decorator
         async def send_with_retry():
+            request.extensions["metering"] = {
+                "logical_request_id": logical_request_id,
+                "retry_attempt": attempt_counter["n"],
+            }
+            attempt_counter["n"] += 1
             return await super(ResilientAuthenticatedClient, self).send(
                 request, **kwargs
             )

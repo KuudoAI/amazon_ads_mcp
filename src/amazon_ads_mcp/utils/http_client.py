@@ -29,6 +29,7 @@ from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 import httpx
 
 from ..config.settings import Settings
+from ..metering.adapter import install_metered_transport
 from ..utils.export_content_type_resolver import (
     resolve_download_accept_headers,
 )
@@ -131,6 +132,14 @@ class AuthenticatedClient(httpx.AsyncClient):
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
+        # Task 22 (metering): wrap the transport httpx just constructed for
+        # us, IFF a metering runtime is active -- returns it unchanged
+        # otherwise. This is the ONE seam covering every construction path
+        # for this class and every subclass (e.g. ResilientAuthenticatedClient,
+        # whose __init__ calls super().__init__(*args, **kwargs)): every
+        # request sent through this client dispatches via self._transport
+        # (httpx 0.28.1; self._mounts is unused everywhere in this repo).
+        self._transport = install_metered_transport(self._transport)
         self.auth_manager = auth_manager
         self.media_registry: Optional[MediaTypeRegistry] = media_registry
         self.header_resolver: HeaderNameResolver = (
