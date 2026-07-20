@@ -39,8 +39,12 @@ def test_strict_enabled_raises_when_metering_unavailable(monkeypatch) -> None:
     async def scenario():
         await lifespan.start_metering(env={"METERING_ENABLED": "true"})
 
-    with pytest.raises(RuntimeError, match="METERING_ENABLED=true"):
+    with pytest.raises(RuntimeError, match="METERING_ENABLED=true") as excinfo:
         asyncio.run(scenario())
+    # Fix round 2, deployment gap #2: mcp-outbound-metering moved behind
+    # the optional "metering" extra -- the exception operators actually
+    # see must name the exact install command, not just say it's missing.
+    assert "amazon-ads-mcp[metering]" in str(excinfo.value)
     assert get_metering_runtime() is None
 
 

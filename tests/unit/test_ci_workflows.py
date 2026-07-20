@@ -100,9 +100,12 @@ def test_dockerfile_copies_in_tree_build_backend_before_project_install():
     text = DOCKERFILE_PATH.read_text()
 
     backend_marker = "build_package.py"
-    project_install_marker = (
-        "uv sync --no-dev --frozen --extra code-mode --no-editable"
-    )
+    # Task 22 fix round 2: the project-install `uv sync` now builds its
+    # --extra set dynamically ($EXTRAS: always code-mode, plus metering
+    # when INCLUDE_METERING=true) rather than a fixed --extra code-mode
+    # literal, so the marker matches the current (parameterized) command
+    # rather than one specific extras combination.
+    project_install_marker = "uv sync --no-dev --frozen $EXTRAS --no-editable"
 
     assert backend_marker in text, (
         "Dockerfile must copy build_package.py before installing the project; "

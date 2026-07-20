@@ -42,3 +42,14 @@ def test_warn_unsupported_logs_a_loud_warning(caplog) -> None:
         "Python>=3.12" in record.message and record.levelno == logging.WARNING
         for record in caplog.records
     )
+
+
+def test_warn_unsupported_names_the_install_extra(caplog) -> None:
+    """Fix round 2, deployment gap #2: mcp-outbound-metering moved to the
+    optional "metering" extra -- the operator-facing message must name
+    the exact install command, not just say "not installed"."""
+    with caplog.at_level(logging.WARNING, logger="amazon_ads_mcp.metering.compat"):
+        compat.warn_unsupported()
+    assert any(
+        "amazon-ads-mcp[metering]" in record.message for record in caplog.records
+    )
