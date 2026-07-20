@@ -166,3 +166,77 @@ jobs:
       - name: Run slow-marker suite (wheel-content + smoke)
         run: |
           uv run pytest -q -m slow
+
+  # ----- Metering conformance (Task 22) ----------------------------------
+  #
+  # mcp-outbound-metering is a git dependency on the PRIVATE KuudoAI/billing
+  # repo (pyproject.toml [tool.uv.sources], python_version >= '3.12' only)
+  # -- `uv sync` needs authenticated git access to fetch it, hence the
+  # BILLING_REPO_TOKEN secret + git insteadOf step below. Python 3.12 only:
+  # every tests/metering/ test is skipif-guarded to <3.12, and
+  # mcp-outbound-metering itself is never installed below 3.12 (the repo's
+  # own floor stays 3.10 -- see the `tests` job's matrix above, untouched).
+  metering:
+    name: Metering conformance (Task 22)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # Fail loudly and early, before `uv sync` turns a missing secret
+      # into a confusing git-auth error. NOTE (operator action required):
+      # BILLING_REPO_TOKEN must be provisioned as a repo/org secret -- a
+      # GitHub PAT (classic or fine-grained) with at least read access to
+      # KuudoAI/billing. This job cannot run without it.
+      - name: Verify BILLING_REPO_TOKEN is provisioned
+        env:
+          BILLING_REPO_TOKEN: ${{ secrets.BILLING_REPO_TOKEN }}
+        run: |
+          if [ -z "$BILLING_REPO_TOKEN" ]; then
+            echo "::error::BILLING_REPO_TOKEN secret is not set. mcp-outbound-metering is pulled from the private KuudoAI/billing repo via a git dependency (pyproject.toml [tool.uv.sources]), and 'uv sync' needs authenticated git access to fetch it. Provision a GitHub token (read access to KuudoAI/billing) as the BILLING_REPO_TOKEN repository/organization secret."
+            exit 1
+          fi
+
+      - name: Configure git auth for the private billing repo
+        env:
+          BILLING_REPO_TOKEN: ${{ secrets.BILLING_REPO_TOKEN }}
+        run: |
+          git config --global url."https://x-access-token:${BILLING_REPO_TOKEN}@github.com/KuudoAI/billing".insteadOf "https://github.com/KuudoAI/billing"
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install dependencies (metering extra resolved on 3.12)
+        run: |
+          uv sync --frozen --python 3.12
+
+      - name: Run metering test suite
+        env:
+          MCP_TEST_COMPAT: "true"
+        run: |
+          uv run pytest tests/metering -q
+
+      # Conformance-only fakes (integration guide §4's CI environment
+      # block, adapted to this repo's provider/host) -- never a real
+      # credential or endpoint. --skip-ingest: no real edge/ingest
+      # endpoint exists yet for this integration (registration/activation
+      # is a separate, later, edge-side step per design §3.5.6).
+      - name: mcp-metering verify
+        env:
+          METERING_ENABLED: "true"
+          METERING_UPSTREAM_HOSTS: "advertising-api.amazon.com"
+          METERING_UPSTREAM_SERVICE: "amazon_ads"
+          METERING_ENDPOINT: "https://ingest.example-metering.test/v1/usage/batches"
+          METERING_DEPLOYMENT_ID: "ci"
+          METERING_INSTANCE_ID: "ci-1"
+          METERING_KEY_ID: "ci-key-placeholder"
+          METERING_HMAC_SECRET: "ci-secret-placeholder"
+          METERING_OUTBOX_MAX_BYTES: "10000000"
+        run: |
+          uv run mcp-metering verify --config metering.yaml \
+            --harness amazon_ads_mcp.metering.conformance:create_conformance_harness \
+            --skip-ingest
