@@ -291,3 +291,142 @@ async def test_inbound_middleware_scopes_kuudo_bearer_to_tool_call(monkeypatch):
     assert await middleware.on_call_tool(Context(), call_next) == "ok"
     with pytest.raises(KuudoConfigError):
         provider._get_effective_api_key()
+
+
+@pytest.mark.asyncio
+async def test_kuudo_bearer_swap_clears_persisted_tenant_state_before_tool_call(
+    monkeypatch,
+):
+    from datetime import datetime, timedelta, timezone
+
+    from amazon_ads_mcp.auth.session_state import (
+        get_active_credentials,
+        get_active_identity,
+        get_active_profiles,
+        get_last_seen_token_fingerprint,
+        get_state_reset_reason,
+        reset_all_session_state,
+        set_active_credentials,
+        set_active_identity,
+        set_active_profiles,
+    )
+    from amazon_ads_mcp.middleware.auth_session_bridge import AUTH_SESSION_STATE_KEY
+    from amazon_ads_mcp.middleware.authentication import AuthSessionStateMiddleware
+    from amazon_ads_mcp.models import AuthCredentials, Identity
+
+    monkeypatch.delenv("KUUDO_API_KEY", raising=False)
+    monkeypatch.delenv("MCP_INBOUND_TOKEN", raising=False)
+    reset_all_session_state()
+
+    provider = KuudoAmazonAdsProvider(
+        ProviderConfig(
+            base_url="https://app.kuudo.test",
+            provider="amazon_ads",
+        )
+    )
+    auth_manager = SimpleNamespace(
+        provider=provider,
+        get_active_region=lambda: "na",
+    )
+    inbound = create_inbound_http_auth_middleware(
+        auth_manager=auth_manager,
+        configured_host="0.0.0.0",
+    )
+    session_bridge = AuthSessionStateMiddleware()
+
+    class SessionContext:
+        def __init__(self):
+            self.request_context = SimpleNamespace(request=None)
+            self.state = {}
+
+        async def get_state(self, key):
+            return self.state.get(key)
+
+        async def set_state(self, key, value):
+            self.state[key] = value
+
+    session_context = SessionContext()
+
+    class Context:
+        method = "tools/call"
+        fastmcp_context = session_context
+
+    async def run_call(bearer, tool_call):
+        session_context.request_context.request = _request(
+            headers={"Authorization": f"Bearer {bearer}"}
+        )
+
+        async def call_session_bridge(context):
+            return await session_bridge.on_request(context, tool_call)
+
+        return await inbound.on_call_tool(Context(), call_session_bridge)
+
+    token_a = "sk_test_tenant_a"
+    token_b = "sk_test_tenant_b"
+
+    async def select_tenant_a(_context):
+        set_active_identity(
+            Identity(id="tenant-a-identity", type="kuudo", attributes={})
+        )
+        set_active_credentials(
+            AuthCredentials(
+                identity_id="tenant-a-identity",
+                access_token="tenant-a-access-token",
+                expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            )
+        )
+        set_active_profiles({"tenant-a-identity": "profile-a"})
+        return "selected"
+
+    try:
+        assert await run_call(token_a, select_tenant_a) == "selected"
+
+        persisted = session_context.state[AUTH_SESSION_STATE_KEY]
+        assert persisted["active_identity"]["id"] == "tenant-a-identity"
+        assert persisted[
+            "last_seen_token_fingerprint"
+        ] == await provider.session_api_key_fingerprint(token_a)
+
+        # FastMCP may dispatch the next request in a fresh async context.
+        reset_all_session_state()
+
+        async def execute_again_as_tenant_a(_context):
+            assert provider._get_effective_api_key() == token_a
+            assert get_active_identity().id == "tenant-a-identity"
+            assert get_active_credentials().access_token == "tenant-a-access-token"
+            assert get_active_profiles() == {"tenant-a-identity": "profile-a"}
+            assert (
+                get_last_seen_token_fingerprint()
+                == await provider.session_api_key_fingerprint(token_a)
+            )
+            assert get_state_reset_reason() is None
+            return "preserved"
+
+        assert await run_call(token_a, execute_again_as_tenant_a) == "preserved"
+
+        reset_all_session_state()
+
+        async def execute_as_tenant_b(_context):
+            assert provider._get_effective_api_key() == token_b
+            assert get_active_identity() is None
+            assert get_active_credentials() is None
+            assert get_active_profiles() == {}
+            assert (
+                get_last_seen_token_fingerprint()
+                == await provider.session_api_key_fingerprint(token_b)
+            )
+            assert get_state_reset_reason() == "token_swapped"
+            return "ok"
+
+        assert await run_call(token_b, execute_as_tenant_b) == "ok"
+        assert get_state_reset_reason() is None
+
+        persisted = session_context.state[AUTH_SESSION_STATE_KEY]
+        assert persisted["active_identity"] is None
+        assert persisted["active_credentials"] is None
+        assert persisted["active_profiles"] == {}
+        assert persisted[
+            "last_seen_token_fingerprint"
+        ] == await provider.session_api_key_fingerprint(token_b)
+    finally:
+        reset_all_session_state()

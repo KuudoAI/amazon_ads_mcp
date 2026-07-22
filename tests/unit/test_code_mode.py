@@ -562,6 +562,98 @@ class DummyContext:
 
 class TestSessionAwareCodeMode:
     @pytest.mark.asyncio
+    async def test_nested_call_tool_reconciles_bearer_swap_after_hydration(self):
+        from datetime import datetime, timedelta, timezone
+
+        from fastmcp.experimental.transforms import code_mode as fm_code_mode
+        from fastmcp.tools.base import ToolResult
+
+        from amazon_ads_mcp.auth.session_state import (
+            bind_request_tenant_fingerprint,
+            get_active_credentials,
+            get_active_identity,
+            get_active_profiles,
+            get_last_seen_token_fingerprint,
+            get_state_reset_reason,
+            reconcile_request_tenant_state,
+            reset_all_session_state,
+            reset_request_tenant_token,
+        )
+        from amazon_ads_mcp.middleware.auth_session_bridge import (
+            AUTH_SESSION_STATE_KEY,
+        )
+        from amazon_ads_mcp.models import AuthCredentials, Identity
+        from amazon_ads_mcp.server.code_mode import (
+            create_auth_bridging_sandbox_provider,
+        )
+
+        reset_all_session_state()
+        transform = fm_code_mode.CodeMode(
+            sandbox_provider=create_auth_bridging_sandbox_provider(ScriptedSandbox()),
+            discovery_tools=[],
+        )
+        transform.get_tool_catalog = AsyncMock(
+            return_value=[SimpleNamespace(name="page_profiles")]
+        )
+
+        async def fake_call_tool(name, params):
+            del name, params
+            identity = get_active_identity()
+            credentials = get_active_credentials()
+            return ToolResult(
+                structured_content={
+                    "identity_id": identity.id if identity else None,
+                    "credentials_identity_id": (
+                        credentials.identity_id if credentials else None
+                    ),
+                    "profiles": get_active_profiles(),
+                    "fingerprint": get_last_seen_token_fingerprint(),
+                    "state_reason": get_state_reset_reason(),
+                }
+            )
+
+        ctx = DummyContext(fastmcp=SimpleNamespace(call_tool=fake_call_tool))
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        ctx.state[AUTH_SESSION_STATE_KEY] = {
+            "active_identity": Identity(
+                id="tenant-a", type="kuudo", attributes={}
+            ).model_dump(mode="json"),
+            "active_credentials": AuthCredentials(
+                identity_id="tenant-a",
+                access_token="tenant-a-access-token",
+                expires_at=expires_at,
+                base_url="https://example.com",
+                headers={},
+            ).model_dump(mode="json"),
+            "active_profiles": {"tenant-a": "profile-a"},
+            "last_seen_token_fingerprint": "fingerprint-a",
+            "active_region": None,
+        }
+
+        request_token = bind_request_tenant_fingerprint("fingerprint-b")
+        try:
+            assert reconcile_request_tenant_state() is False
+            execute_tool = transform._get_execute_tool()
+            with patch("amazon_ads_mcp.server.code_mode.get_context", return_value=ctx):
+                result = await execute_tool.fn(
+                    code=json.dumps(
+                        {"ops": [{"tool": "page_profiles", "params": {}}]}
+                    ),
+                    ctx=ctx,
+                )
+
+            assert result == {
+                "identity_id": None,
+                "credentials_identity_id": None,
+                "profiles": {},
+                "fingerprint": "fingerprint-b",
+                "state_reason": "token_swapped",
+            }
+        finally:
+            reset_request_tenant_token(request_token)
+            reset_all_session_state()
+
+    @pytest.mark.asyncio
     async def test_nested_call_tool_persists_and_rehydrates_identity(self):
         from fastmcp.experimental.transforms import code_mode as fm_code_mode
         from fastmcp.tools.base import ToolResult

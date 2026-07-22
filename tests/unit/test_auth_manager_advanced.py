@@ -66,6 +66,12 @@ class DirectIdentityProvider(MultiIdentityProvider):
         return "direct"
 
 
+class KuudoIdentityProvider(MultiIdentityProvider):
+    @property
+    def provider_type(self) -> str:
+        return "kuudo"
+
+
 class SingleIdentityProvider(BaseAmazonAdsProvider):
     def __init__(self, token_value="single-token"):
         self._token = Token(
@@ -459,6 +465,41 @@ class TestCredentialsFingerprintGuard:
         # Identity preserved, credentials returned
         assert get_active_identity() is identity
         assert creds.identity_id == "id-a"
+
+    @pytest.mark.asyncio
+    async def test_request_fingerprint_preserves_selected_identity(
+        self, auth_manager
+    ):
+        """A bound provider fingerprint permits initial credential loading."""
+        from amazon_ads_mcp.auth.session_state import (
+            bind_request_tenant_fingerprint,
+            get_active_identity,
+            reset_request_tenant_token,
+            set_last_seen_token_fingerprint,
+        )
+
+        request_fingerprint = "kuudo-provider-derived-fingerprint"
+        request_token = bind_request_tenant_fingerprint(request_fingerprint)
+        set_last_seen_token_fingerprint(request_fingerprint)
+        auth_manager.provider = KuudoIdentityProvider(
+            [
+                Identity(id="id-a", type="kuudo", attributes={}),
+                Identity(id="id-b", type="kuudo", attributes={}),
+            ]
+        )
+
+        try:
+            await auth_manager.set_active_identity("id-b")
+
+            credentials = await auth_manager.get_active_credentials()
+
+            active_identity = get_active_identity()
+            assert active_identity is not None
+            assert active_identity.id == "id-b"
+            assert credentials.identity_id == "id-b"
+            assert auth_manager.provider.identity_credentials_calls == 1
+        finally:
+            reset_request_tenant_token(request_token)
 
     @pytest.mark.asyncio
     async def test_no_request_token_uses_provider_fallback_fingerprint(self, auth_manager):

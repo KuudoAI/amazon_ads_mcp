@@ -26,6 +26,7 @@ from .session_state import (
     get_active_identity as _ctx_get_identity,
     get_active_profiles as _ctx_get_profiles,
     get_last_seen_token_fingerprint,
+    get_request_tenant_fingerprint,
     get_refresh_token_override,
     reset_session_state,
     set_active_credentials as _ctx_set_credentials,
@@ -493,18 +494,29 @@ class AuthManager:
             # Even if the middleware cleared state on token change, this guard
             # catches races, middleware ordering issues, and future regressions.
             #
-            # Two cases trigger invalidation:
-            #   1. Token present but fingerprint differs from last_seen
+            # Three cases trigger invalidation:
+            #   1. A provider-derived request fingerprint differs from last_seen
+            #      or has no prior session binding.
+            #   2. Token present but fingerprint differs from last_seen
             #      → mid-session tenant swap.
-            #   2. No token on this request but last_seen fingerprint exists
+            #   3. No token on this request but last_seen fingerprint exists
             #      → identity was established under a specific token we can
             #        no longer verify; clear to prevent silent reuse.
             if active_identity:
+                request_fp = get_request_tenant_fingerprint()
                 current_token = get_refresh_token_override()
                 last_fp = get_last_seen_token_fingerprint()
 
                 should_clear = False
-                if current_token:
+                if request_fp is not None:
+                    if last_fp != request_fp:
+                        should_clear = True
+                        logger.warning(
+                            "Request tenant fingerprint mismatches session state — "
+                            "clearing stale tenant state (identity=%s)",
+                            active_identity.id,
+                        )
+                elif current_token:
                     current_fp = token_fingerprint(current_token)
                     if last_fp and current_fp != last_fp:
                         should_clear = True

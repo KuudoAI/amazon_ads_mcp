@@ -151,6 +151,10 @@ class KuudoAmazonAdsProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
             "kuudo_current_api_key",
             default=None,
         )
+        self._current_api_key_fingerprint: ContextVar[str | None] = ContextVar(
+            "kuudo_current_api_key_fingerprint",
+            default=None,
+        )
         self._client: httpx.AsyncClient | None = self.config.http_client
         self._owns_client = self.config.http_client is None
         self._fingerprint_salt = secrets.token_bytes(32)
@@ -350,6 +354,21 @@ class KuudoAmazonAdsProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
 
         return self._current_api_key.set(api_key)
 
+    async def session_api_key_fingerprint(self, api_key: str) -> str:
+        """Return the provider-local PBKDF2 discriminator for an API key."""
+        return await self._fingerprint_for(api_key)
+
+    def set_current_api_key_fingerprint(
+        self, fingerprint: str
+    ) -> ContextToken[str | None]:
+        """Set a derived API-key fingerprint for the current async context."""
+        return self._current_api_key_fingerprint.set(fingerprint)
+
+    def reset_current_api_key_fingerprint(
+        self, token: ContextToken[str | None]
+    ) -> None:
+        self._current_api_key_fingerprint.reset(token)
+
     def reset_current_api_key(self, token: ContextToken[str | None]) -> None:
         self._current_api_key.reset(token)
 
@@ -448,6 +467,15 @@ class KuudoAmazonAdsProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
         ).hex()
 
     async def _fingerprint_for(self, value: str) -> str:
+        current_api_key = self._current_api_key.get()
+        current_fingerprint = self._current_api_key_fingerprint.get()
+        if (
+            current_api_key
+            and current_fingerprint
+            and secrets.compare_digest(value, current_api_key)
+        ):
+            return current_fingerprint
+
         if value != self.config.api_key:
             return await asyncio.to_thread(self._fingerprint, value)
 
