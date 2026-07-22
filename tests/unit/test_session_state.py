@@ -10,12 +10,16 @@ import asyncio
 import pytest
 
 from amazon_ads_mcp.auth.session_state import (
+    bind_request_tenant_fingerprint,
     get_active_credentials,
     get_active_identity,
     get_active_profiles,
     get_last_seen_token_fingerprint,
     get_refresh_token_override,
+    get_state_reset_reason,
+    reconcile_request_tenant_state,
     reset_all_session_state,
+    reset_request_tenant_token,
     reset_session_state,
     set_active_credentials,
     set_active_identity,
@@ -281,3 +285,21 @@ class TestTokenFingerprint:
 
         assert get_last_seen_token_fingerprint() is None
         assert get_active_identity() is None
+
+    def test_unfingerprinted_tenant_state_is_cleared_before_binding(self):
+        reset_all_session_state()
+        set_active_identity(_make_identity("legacy-tenant"))
+        set_active_credentials(_make_credentials("legacy-tenant"))
+        set_active_profiles({"legacy-tenant": "profile-1"})
+        request_token = bind_request_tenant_fingerprint("new-tenant-fingerprint")
+
+        try:
+            assert reconcile_request_tenant_state() is True
+            assert get_active_identity() is None
+            assert get_active_credentials() is None
+            assert get_active_profiles() == {}
+            assert get_last_seen_token_fingerprint() == "new-tenant-fingerprint"
+            assert get_state_reset_reason() == "token_swapped"
+        finally:
+            reset_request_tenant_token(request_token)
+            reset_all_session_state()

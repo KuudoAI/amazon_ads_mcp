@@ -50,6 +50,7 @@ import jwt
 from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 
+from ..auth.session_state import reconcile_request_tenant_state
 from ..utils.http import get_http_client
 from ..utils.security import sanitize_string
 from .auth_session_bridge import (
@@ -599,34 +600,15 @@ class RefreshTokenMiddleware(Middleware):
                 # vars hold stale tenant state. Detect the swap via fingerprint
                 # and clear tenant-scoped state before proceeding.
                 from ..auth.session_state import (
-                    get_last_seen_token_fingerprint,
-                    set_active_credentials,
-                    set_active_identity,
-                    set_active_profiles,
-                    set_last_seen_token_fingerprint,
+                    reconcile_tenant_state_for_token,
                     set_refresh_token_override,
-                    set_state_reset_reason,
-                    token_fingerprint,
                 )
 
-                new_fp = token_fingerprint(token)
-                previous_fp = get_last_seen_token_fingerprint()
-
-                if previous_fp and previous_fp != new_fp:
+                if reconcile_tenant_state_for_token(token):
                     self.logger.info(
                         "Refresh token changed mid-session — "
                         "clearing tenant identity/credentials/profiles"
                     )
-                    set_active_identity(None)
-                    set_active_credentials(None)
-                    set_active_profiles(None)
-                    # Surface the reset reason to tool wrappers so the
-                    # ``state_reason`` response field tells agents to
-                    # re-establish context. Cleared in the finally
-                    # block below so it does not leak across requests.
-                    set_state_reset_reason("token_swapped")
-
-                set_last_seen_token_fingerprint(new_fp)
 
                 # Set per-request ContextVar for session isolation.
                 # We intentionally do NOT call provider.set_refresh_token()
@@ -824,6 +806,11 @@ class AuthSessionStateMiddleware(Middleware):
     async def on_request(self, context: MiddlewareContext, call_next):
         fastmcp_context = getattr(context, "fastmcp_context", None)
         await self._hydrate(fastmcp_context)
+        if reconcile_request_tenant_state():
+            self.logger.info(
+                "Tenant token changed mid-session — clearing "
+                "identity/credentials/profiles"
+            )
         try:
             return await call_next(context)
         finally:

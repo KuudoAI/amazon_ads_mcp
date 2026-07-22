@@ -19,6 +19,11 @@ from starlette.middleware import Middleware as StarletteMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
+from ..auth.session_state import (
+    bind_request_tenant_fingerprint,
+    reset_request_tenant_token,
+    set_state_reset_reason,
+)
 from ..exceptions import AuthenticationError
 from ..middleware.error_envelope import build_envelope_from_exception, envelope_to_json
 
@@ -210,7 +215,6 @@ def authorize_inbound_http(
         return InboundAuthResult(
             True,
             "kuudo_bearer",
-            token_fingerprint=token_fingerprint(bearer),
         )
     if provider_type == "direct" and request_is_loopback(request, configured_host):
         return InboundAuthResult(True, "direct_loopback")
@@ -261,11 +265,16 @@ class InboundHTTPAuthMiddleware(Middleware):
         if result.reason != "kuudo_bearer" or not bearer:
             return await call_next(context)
 
-        context_token = provider.set_current_api_key(bearer)
+        api_key_context_token = provider.set_current_api_key(bearer)
+        tenant_context_token = bind_request_tenant_fingerprint(
+            provider.session_api_key_fingerprint(bearer)
+        )
         try:
             return await call_next(context)
         finally:
-            provider.reset_current_api_key(context_token)
+            reset_request_tenant_token(tenant_context_token)
+            provider.reset_current_api_key(api_key_context_token)
+            set_state_reset_reason(None)
 
     async def on_request(self, context: MiddlewareContext, call_next: Any) -> Any:
         method = getattr(context, "method", None)

@@ -13,15 +13,19 @@ All defaults are ``None`` to avoid shared mutable state. The profiles
 accessor returns an empty dict when the underlying var is ``None``.
 
 Token change detection:
-- ``_last_seen_token_fingerprint_var`` tracks the SHA-256 fingerprint
-  of the last refresh token seen in this session. Unlike other ContextVars,
-  it is NOT cleared per-request — it persists across tool calls so the
-  middleware can detect when a different tenant token arrives and invalidate
-  stale identity/credential/profile state.
+- ``_last_seen_token_fingerprint_var`` tracks a provider-appropriate
+  fingerprint of the last tenant-scoping token seen in this session. Unlike
+  other ContextVars, it is NOT cleared per-request — it persists across tool
+  calls so middleware can detect when a different tenant token arrives and
+  invalidate stale identity/credential/profile state. Kuudo supplies a
+  provider-instance-keyed discriminator; raw API keys never enter this state.
+- ``_request_token_fingerprint_var`` carries the current request's
+  fingerprint across middleware ordering boundaries. Its owner must restore
+  the returned ContextVar token in a ``finally`` block.
 """
 
 import hashlib
-from contextvars import ContextVar
+from contextvars import ContextVar, Token as ContextToken
 from typing import Dict, Optional
 
 from ..models import AuthCredentials, Identity
@@ -52,12 +56,15 @@ _last_seen_token_fingerprint_var: ContextVar[Optional[str]] = ContextVar(
     "last_seen_token_fingerprint", default=None
 )
 
+_request_token_fingerprint_var: ContextVar[Optional[str]] = ContextVar(
+    "request_token_fingerprint", default=None
+)
+
 # Per-request: explains why tenant state was just cleared (or why
 # state would not be session-sticky). Read by tool wrappers via
 # ``compute_session_state`` to populate the ``state_reason`` field
-# on responses. Set by ``RefreshTokenMiddleware`` on token swap and
-# cleared in its ``finally`` block so it does not leak across
-# requests.
+# on responses. Set by tenant-token reconciliation on token swap and
+# cleared by request auth middleware so it does not leak across requests.
 _state_reset_reason_var: ContextVar[Optional[str]] = ContextVar(
     "state_reset_reason", default=None
 )
@@ -143,7 +150,7 @@ def set_refresh_token_override(token: Optional[str]) -> None:
 
 
 def token_fingerprint(token: str) -> str:
-    """Compute SHA-256 fingerprint for a refresh token.
+    """Compute a SHA-256 fingerprint for a tenant-scoping token.
 
     Consistent with ``OpenBridgeAuthProvider._token_fingerprint()`` so the
     same token produces the same digest everywhere.
@@ -152,13 +159,74 @@ def token_fingerprint(token: str) -> str:
 
 
 def get_last_seen_token_fingerprint() -> Optional[str]:
-    """Return the fingerprint of the last refresh token seen in this session."""
+    """Return the last tenant-token fingerprint seen in this session."""
     return _last_seen_token_fingerprint_var.get()
 
 
 def set_last_seen_token_fingerprint(fingerprint: Optional[str]) -> None:
-    """Set the fingerprint of the last refresh token seen in this session."""
+    """Set the last tenant-token fingerprint seen in this session."""
     _last_seen_token_fingerprint_var.set(fingerprint)
+
+
+def bind_request_tenant_fingerprint(
+    fingerprint: str,
+) -> ContextToken[Optional[str]]:
+    """Bind a tenant fingerprint to the current middleware context.
+
+    The provider derives the discriminator before calling this function, so
+    the raw tenant token never enters session persistence. Callers must pass
+    the returned token to :func:`reset_request_tenant_token` in a ``finally``
+    block.
+    """
+    return _request_token_fingerprint_var.set(fingerprint)
+
+
+def reset_request_tenant_token(token: ContextToken[Optional[str]]) -> None:
+    """Restore the previous request tenant-token fingerprint."""
+    _request_token_fingerprint_var.reset(token)
+
+
+def reconcile_request_tenant_state() -> bool:
+    """Bind hydrated tenant state to the current request's token.
+
+    Returns ``True`` when existing tenant state was cleared. State without a
+    prior fingerprint is also cleared before binding: it may have been
+    persisted by a version that did not fingerprint this provider's bearer,
+    so preserving it would silently assign unknown credentials to the current
+    caller.
+    """
+    new_fp = _request_token_fingerprint_var.get()
+    if new_fp is None:
+        return False
+
+    return _reconcile_tenant_state(new_fp)
+
+
+def reconcile_tenant_state_for_token(token: str) -> bool:
+    """Reconcile hydrated tenant state against a raw request token."""
+    return _reconcile_tenant_state(token_fingerprint(token))
+
+
+def _reconcile_tenant_state(new_fp: str) -> bool:
+    """Clear tenant state when ``new_fp`` does not own hydrated state."""
+
+    previous_fp = get_last_seen_token_fingerprint()
+    has_unbound_state = (
+        get_active_identity() is not None
+        or get_active_credentials() is not None
+        or bool(get_active_profiles())
+    )
+    token_changed = previous_fp is not None and previous_fp != new_fp
+    unbound_state = previous_fp is None and has_unbound_state
+
+    if token_changed or unbound_state:
+        set_active_identity(None)
+        set_active_credentials(None)
+        set_active_profiles(None)
+        set_state_reset_reason("token_swapped")
+
+    set_last_seen_token_fingerprint(new_fp)
+    return token_changed or unbound_state
 
 
 # ---------------------------------------------------------------------------
@@ -169,8 +237,8 @@ def set_last_seen_token_fingerprint(fingerprint: Optional[str]) -> None:
 def get_state_reset_reason() -> Optional[str]:
     """Return the reason tenant state was just cleared, if any.
 
-    Set by ``RefreshTokenMiddleware`` when it detects a mid-session
-    token swap (value: ``"token_swapped"``) and cleared in the
+    Set by tenant-token reconciliation when it detects a mid-session token
+    swap (value: ``"token_swapped"``) and cleared by the request auth
     middleware's ``finally`` block. Tool wrappers read this via
     :func:`amazon_ads_mcp.middleware.auth_session_bridge.compute_session_state`
     to populate the ``state_reason`` response field so agent clients
@@ -205,7 +273,24 @@ def reset_session_state() -> None:
     _active_credentials_var.set(None)
     _active_profiles_var.set(None)
     _refresh_token_override_var.set(None)
+    _request_token_fingerprint_var.set(None)
     _state_reset_reason_var.set(None)
+
+
+def reset_hydrated_session_state() -> None:
+    """Clear hydrated auth state while preserving current request binding.
+
+    Session hydration uses this when no saved state exists or state loading
+    fails. The request-token fingerprint may already have been bound by an
+    outer authorization middleware and must remain available for
+    reconciliation after hydration.
+    """
+    _active_identity_var.set(None)
+    _active_credentials_var.set(None)
+    _active_profiles_var.set(None)
+    _refresh_token_override_var.set(None)
+    _state_reset_reason_var.set(None)
+    _last_seen_token_fingerprint_var.set(None)
 
 
 def reset_all_session_state() -> None:

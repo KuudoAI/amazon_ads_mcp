@@ -297,6 +297,22 @@ def test_kuudo_fingerprint_is_stable_within_instance_and_scoped_between_instance
     assert first_fingerprint != second_provider._fingerprint("client-supplied-token")
 
 
+def test_kuudo_session_fingerprint_is_keyed_and_provider_local():
+    config = ProviderConfig(
+        base_url="https://app.kuudo.test",
+        provider="amazon_ads",
+    )
+    first_provider = KuudoAmazonAdsProvider(config)
+    second_provider = KuudoAmazonAdsProvider(config)
+    api_key = "client-supplied-token"
+
+    first_fingerprint = first_provider.session_api_key_fingerprint(api_key)
+
+    assert first_fingerprint == first_provider.session_api_key_fingerprint(api_key)
+    assert first_fingerprint != second_provider.session_api_key_fingerprint(api_key)
+    assert first_fingerprint != hashlib.sha256(api_key.encode("utf-8")).hexdigest()
+
+
 def _kuudo_cache_miss_handler(request: httpx.Request) -> httpx.Response:
     if request.url.path == "/api/auth/token-exchange":
         return httpx.Response(

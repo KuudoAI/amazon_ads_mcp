@@ -29,6 +29,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import hashlib
+import hmac
 import json
 import os
 import secrets
@@ -154,6 +155,7 @@ class KuudoAmazonAdsProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
         self._client: httpx.AsyncClient | None = self.config.http_client
         self._owns_client = self.config.http_client is None
         self._fingerprint_salt = secrets.token_bytes(32)
+        self._session_fingerprint_key = secrets.token_bytes(32)
         self._configured_api_key_fingerprint: str | None = None
         self._configured_api_key_fingerprint_lock = asyncio.Lock()
         self._tokens: OrderedDict[str, Token] = OrderedDict()
@@ -349,6 +351,14 @@ class KuudoAmazonAdsProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
         """Set an API-key override for the current async context."""
 
         return self._current_api_key.set(api_key)
+
+    def session_api_key_fingerprint(self, api_key: str) -> str:
+        """Return a provider-local session discriminator for an API key."""
+        return hmac.new(
+            self._session_fingerprint_key,
+            api_key.encode("utf-8"),
+            hashlib.sha256,
+        ).hexdigest()
 
     def reset_current_api_key(self, token: ContextToken[str | None]) -> None:
         self._current_api_key.reset(token)
