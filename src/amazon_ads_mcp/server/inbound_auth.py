@@ -206,6 +206,12 @@ def authorize_inbound_http(
             "openbridge_bearer",
             token_fingerprint=token_fingerprint(bearer or ""),
         )
+    if provider_type == "kuudo" and bearer:
+        return InboundAuthResult(
+            True,
+            "kuudo_bearer",
+            token_fingerprint=token_fingerprint(bearer),
+        )
     if provider_type == "direct" and request_is_loopback(request, configured_host):
         return InboundAuthResult(True, "direct_loopback")
 
@@ -224,7 +230,9 @@ class InboundHTTPAuthMiddleware(Middleware):
         self.configured_host = configured_host
         get_static_bearer_token()
 
-    def _authorize_tool_call(self, context: MiddlewareContext) -> None:
+    def _authorize_tool_call(
+        self, context: MiddlewareContext
+    ) -> tuple[Request | None, InboundAuthResult]:
         request = None
         if context.fastmcp_context:
             request_ctx = getattr(context.fastmcp_context, "request_context", None)
@@ -242,16 +250,31 @@ class InboundHTTPAuthMiddleware(Middleware):
         )
         if not result.allowed:
             raise ToolError(AUTH_REQUIRED_MESSAGE)
+        return request, result
+
+    async def _call_authorized(
+        self, context: MiddlewareContext, call_next: Any
+    ) -> Any:
+        request, result = self._authorize_tool_call(context)
+        provider = getattr(self.auth_manager, "provider", None)
+        bearer = extract_bearer_token(request) if request is not None else None
+        if result.reason != "kuudo_bearer" or not bearer:
+            return await call_next(context)
+
+        context_token = provider.set_current_api_key(bearer)
+        try:
+            return await call_next(context)
+        finally:
+            provider.reset_current_api_key(context_token)
 
     async def on_request(self, context: MiddlewareContext, call_next: Any) -> Any:
         method = getattr(context, "method", None)
         if method == "tools/call":
-            self._authorize_tool_call(context)
+            return await self._call_authorized(context, call_next)
         return await call_next(context)
 
     async def on_call_tool(self, context: MiddlewareContext, call_next: Any) -> Any:
-        self._authorize_tool_call(context)
-        return await call_next(context)
+        return await self._call_authorized(context, call_next)
 
 
 def create_inbound_http_auth_middleware(

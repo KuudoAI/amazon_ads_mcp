@@ -67,6 +67,16 @@ jobs:
         run: |
           python scripts/sync_server_json.py --check
 
+      - name: Validate server.json against MCP Registry
+        if: matrix.python-version == '3.12'
+        run: |
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header 'Content-Type: application/json' \
+            --data-binary @server.json \
+            https://registry.modelcontextprotocol.io/v0.1/validate \
+            | jq -e '.valid == true'
+
       - name: Syntax compile check
         run: |
           python -W error::SyntaxWarning -m compileall -q src tests

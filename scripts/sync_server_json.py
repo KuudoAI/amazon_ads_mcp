@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Synchronize server.json with package metadata and OpenAPI packages."""
+"""Synchronize server.json with project version metadata."""
 
 from __future__ import annotations
 
@@ -15,29 +15,6 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SERVER_JSON = REPO_ROOT / "server.json"
 PYPROJECT = REPO_ROOT / "pyproject.toml"
-PACKAGES_JSON = REPO_ROOT / "openapi" / "resources" / "packages.json"
-STREAMABLE_HTTP_REMOTE: dict[str, Any] = {
-    "type": "streamable-http",
-    "url": "https://{HOSTNAME}/mcp",
-    "variables": {
-        "HOSTNAME": {
-            "description": "Hostname of a running Amazon Ads MCP HTTP deployment.",
-            "isRequired": True,
-            "placeholder": "ads.example.com",
-        }
-    },
-}
-
-
-def _is_streamable_http_remote(remote: Any) -> bool:
-    if not isinstance(remote, dict):
-        return False
-    if remote.get("type") != STREAMABLE_HTTP_REMOTE["type"]:
-        return False
-    url = remote.get("url")
-    return isinstance(url, str) and url.rstrip("/") == STREAMABLE_HTTP_REMOTE[
-        "url"
-    ].rstrip("/")
 
 
 def _project_version(path: Path = PYPROJECT) -> str:
@@ -56,53 +33,18 @@ def _project_version(path: Path = PYPROJECT) -> str:
     raise ValueError(f"{path} has no [project] version")
 
 
-def _catalog_packages(path: Path = PACKAGES_JSON) -> list[str]:
-    data = json.loads(path.read_text())
-    packages = data.get("packages")
-    if not isinstance(packages, dict):
-        raise ValueError(f"{path} has no object at key 'packages'")
-    return sorted(packages)
-
-
-def _sync_data(data: dict[str, Any], version: str, packages: list[str]) -> dict[str, Any]:
+def _sync_data(data: dict[str, Any], version: str) -> dict[str, Any]:
     updated = copy.deepcopy(data)
     updated["version"] = version
 
-    package_entries = updated.get("packages")
-    if not isinstance(package_entries, list) or not package_entries:
-        raise ValueError("server.json must contain a non-empty packages list")
+    package_entries = updated.get("packages", [])
+    if not isinstance(package_entries, list):
+        raise ValueError("server.json packages must be a list when present")
 
     for package in package_entries:
         if not isinstance(package, dict):
             raise ValueError("server.json packages entries must be objects")
         package["version"] = version
-
-    env_vars = package_entries[0].get("environmentVariables")
-    if not isinstance(env_vars, list):
-        raise ValueError("server.json first package must contain environmentVariables")
-
-    for env_var in env_vars:
-        if isinstance(env_var, dict) and env_var.get("name") == "AMAZON_AD_API_PACKAGES":
-            env_var["allowedValues"] = packages
-            break
-    else:
-        raise ValueError("server.json must declare AMAZON_AD_API_PACKAGES")
-
-    remotes = updated.get("remotes", [])
-    if not isinstance(remotes, list):
-        raise ValueError("server.json remotes must be a list when present")
-    synced_remotes: list[Any] = []
-    remote_added = False
-    for remote in remotes:
-        if _is_streamable_http_remote(remote):
-            if not remote_added:
-                synced_remotes.append(copy.deepcopy(STREAMABLE_HTTP_REMOTE))
-                remote_added = True
-            continue
-        synced_remotes.append(remote)
-    if not remote_added:
-        synced_remotes.append(copy.deepcopy(STREAMABLE_HTTP_REMOTE))
-    updated["remotes"] = synced_remotes
 
     return updated
 
@@ -113,7 +55,7 @@ def sync_server_json() -> bool:
     :return: True when the file changed, False when it was already current.
     """
     current = json.loads(SERVER_JSON.read_text())
-    updated = _sync_data(current, _project_version(), _catalog_packages())
+    updated = _sync_data(current, _project_version())
     if current == updated:
         return False
     SERVER_JSON.write_text(json.dumps(updated, indent=2) + "\n")
@@ -123,13 +65,13 @@ def sync_server_json() -> bool:
 def check_server_json() -> bool:
     """Return True when server.json already matches canonical metadata."""
     current = json.loads(SERVER_JSON.read_text())
-    updated = _sync_data(current, _project_version(), _catalog_packages())
+    updated = _sync_data(current, _project_version())
     return current == updated
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Synchronize server.json with pyproject.toml and packages.json."
+        description="Synchronize server.json with the project version."
     )
     parser.add_argument(
         "--check",

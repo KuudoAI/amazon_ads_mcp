@@ -12,6 +12,13 @@
 # Keep Docker metadata.
 !.dockerignore
 !Dockerfile
+!Dockerfile.metering
+
+# Local private metering artifacts are bind-mounted by Dockerfile.metering.
+# They remain ignored by Git and are never copied into an image layer.
+!.build/
+!.build/metering/
+!.build/metering/**
 
 # Keep dependency metadata and package source.
 !pyproject.toml
