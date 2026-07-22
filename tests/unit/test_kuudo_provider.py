@@ -20,6 +20,7 @@ from amazon_ads_mcp.auth.base import (
 from amazon_ads_mcp.auth.providers.kuudo import (
     KuudoAmazonAdsProvider,
     KuudoAuthError,
+    KuudoConfigError,
 )
 from amazon_ads_mcp.auth.registry import ProviderRegistry
 from amazon_ads_mcp.config.settings import Settings
@@ -66,6 +67,23 @@ def test_settings_accept_kuudo_configuration(monkeypatch):
         auth_method="kuudo",
     )
     assert region_response.auth_method == "kuudo"
+
+
+@pytest.mark.asyncio
+async def test_kuudo_provider_initializes_without_server_side_api_key(monkeypatch):
+    monkeypatch.delenv("KUUDO_API_KEY", raising=False)
+    provider = KuudoAmazonAdsProvider(
+        ProviderConfig(
+            base_url="https://app.kuudo.test",
+            provider="amazon_ads",
+        )
+    )
+
+    await provider.initialize()
+
+    with pytest.raises(KuudoConfigError):
+        provider._get_effective_api_key()
+    await provider.close()
 
 
 @pytest.mark.asyncio

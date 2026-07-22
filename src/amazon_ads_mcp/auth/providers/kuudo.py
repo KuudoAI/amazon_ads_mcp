@@ -176,8 +176,8 @@ class KuudoAmazonAdsProvider(BaseAmazonAdsProvider, BaseIdentityProvider):
 
     async def initialize(self) -> None:
         self._require_base_url()
-        effective_api_key = self._get_effective_api_key()
-        await self._fingerprint_for(effective_api_key)
+        if self.config.api_key:
+            await self._fingerprint_for(self.config.api_key)
         await self._get_client()
 
     async def get_token(self, api_key: str | None = None) -> Token:

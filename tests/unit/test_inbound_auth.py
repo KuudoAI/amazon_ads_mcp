@@ -1,10 +1,16 @@
 import hashlib
 import hmac
 import time
+from types import SimpleNamespace
 
 import pytest
 from starlette.requests import Request
 
+from amazon_ads_mcp.auth.base import ProviderConfig
+from amazon_ads_mcp.auth.providers.kuudo import (
+    KuudoAmazonAdsProvider,
+    KuudoConfigError,
+)
 from amazon_ads_mcp.server.inbound_auth import (
     authorize_inbound_http,
     create_inbound_http_auth_middleware,
@@ -92,6 +98,20 @@ def test_openbridge_refresh_token_bearer_is_allowed(monkeypatch):
 
     assert result.allowed is True
     assert result.reason == "openbridge_bearer"
+
+
+def test_kuudo_api_key_bearer_is_allowed(monkeypatch):
+    monkeypatch.delenv("MCP_ALLOW_UNAUTH_HTTP", raising=False)
+    token = "sk_test_client_supplied"
+
+    result = authorize_inbound_http(
+        _request(headers={"Authorization": f"Bearer {token}"}),
+        provider_type="kuudo",
+        configured_host="0.0.0.0",
+    )
+
+    assert result.allowed is True
+    assert result.reason == "kuudo_bearer"
 
 
 def test_static_bearer_token_is_allowed(monkeypatch):
@@ -237,3 +257,37 @@ async def test_inbound_middleware_gates_call_tool_hook(monkeypatch):
 
     with pytest.raises(Exception, match="Authentication required"):
         await middleware.on_call_tool(Context(), call_next)
+
+
+@pytest.mark.asyncio
+async def test_inbound_middleware_scopes_kuudo_bearer_to_tool_call(monkeypatch):
+    monkeypatch.delenv("KUUDO_API_KEY", raising=False)
+    monkeypatch.delenv("MCP_INBOUND_TOKEN", raising=False)
+    provider = KuudoAmazonAdsProvider(
+        ProviderConfig(
+            base_url="https://app.kuudo.test",
+            provider="amazon_ads",
+        )
+    )
+    middleware = create_inbound_http_auth_middleware(
+        auth_manager=SimpleNamespace(provider=provider),
+        configured_host="0.0.0.0",
+    )
+
+    class Context:
+        method = "tools/call"
+        fastmcp_context = None
+
+    token = "sk_test_client_supplied"
+    monkeypatch.setattr(
+        "amazon_ads_mcp.server.inbound_auth.get_http_request",
+        lambda: _request(headers={"Authorization": f"Bearer {token}"}),
+    )
+
+    async def call_next(_context):
+        assert provider._get_effective_api_key() == token
+        return "ok"
+
+    assert await middleware.on_call_tool(Context(), call_next) == "ok"
+    with pytest.raises(KuudoConfigError):
+        provider._get_effective_api_key()
