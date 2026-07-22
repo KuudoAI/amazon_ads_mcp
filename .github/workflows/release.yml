@@ -42,6 +42,12 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
       - name: Install dependencies
         run: |
           pip install --upgrade pip
@@ -56,6 +62,7 @@ jobs:
         id: version
         run: |
           python - <<'EOF'
+          import os
           import re
           import subprocess
           import sys
@@ -72,10 +79,10 @@ jobs:
               bump_type = 'patch'
           else:
               # Check if manual workflow dispatch
-              import os
               bump_type = os.environ.get('INPUT_VERSION', 'patch')
 
-          print(f"::set-output name=bump_type::{bump_type}")
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f"bump_type={bump_type}\n")
           EOF
 
       - name: Get current version
@@ -89,7 +96,8 @@ jobs:
           with open('pyproject.toml', 'r') as f:
               data = toml.load(f)
               current = data['project']['version']
-              print(f"::set-output name=version::{current}")
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+                  output.write(f"version={current}\n")
           EOF
 
       - name: Calculate new version
@@ -109,7 +117,8 @@ jobs:
           else:
               new = current.next_patch()
 
-          print(f"::set-output name=version::{new}")
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f"version={new}\n")
           EOF
         env:
           CURRENT_VERSION: ${{ steps.current_version.outputs.version }}
@@ -149,6 +158,7 @@ jobs:
                   f.write(content)
           EOF
           python scripts/sync_server_json.py
+          uv lock
         env:
           NEW_VERSION: ${{ steps.new_version.outputs.version }}
 
@@ -225,12 +235,12 @@ jobs:
           with open('changelog.md', 'w') as f:
               f.write(changelog)
 
-          print(f"::set-output name=changelog::{changelog[:500]}")  # First 500 chars for summary
+          print(changelog[:500])
           EOF
 
       - name: Commit version bump
         run: |
-          git add pyproject.toml src/amazon_ads_mcp/__init__.py server.json 2>/dev/null || true
+          git add pyproject.toml uv.lock src/amazon_ads_mcp/__init__.py server.json 2>/dev/null || true
           git commit -m "chore: bump version to ${{ steps.new_version.outputs.version }} [skip ci]" || echo "No changes to commit"
 
       - name: Push changes
@@ -248,6 +258,18 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install MCP Registry publisher
+        run: |
+          curl --fail --show-error --location \
+            "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" \
+            | tar xz mcp-publisher
+
+      - name: Authenticate to MCP Registry
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish to MCP Registry
+        run: ./mcp-publisher publish
 
       - name: Build package
         if: success()

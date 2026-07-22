@@ -63,6 +63,15 @@ def _workflow_run_scripts(path: Path) -> list[str]:
     return scripts
 
 
+def _workflow_steps(path: Path, job_name: str) -> list[dict]:
+    """Return steps for one named workflow job."""
+    assert path.exists(), f"expected workflow at {path}"
+    data = yaml.safe_load(path.read_text())
+    jobs = data.get("jobs") or {}
+    assert job_name in jobs, f"expected job {job_name!r} in {path}"
+    return jobs[job_name].get("steps") or []
+
+
 def test_release_preflights_resources_before_building():
     """Release must pre-flight dist resources before building both artifacts.
 
@@ -152,3 +161,65 @@ def test_release_updates_and_commits_server_json():
         "pyproject.toml"
     )
     assert "server.json" in commit_script
+
+
+def test_release_updates_and_commits_uv_lock():
+    """Release version bumps must keep frozen uv installs on the same version."""
+    steps = _workflow_steps(RELEASE_PATH, "release")
+    assert any(step.get("uses") == "astral-sh/setup-uv@v7" for step in steps)
+
+    scripts = _workflow_run_scripts(RELEASE_PATH)
+    update_script = next(
+        script for script in scripts if "NEW_VERSION" in script and "pyproject.toml" in script
+    )
+    commit_script = next(script for script in scripts if "git commit -m" in script)
+
+    assert "uv lock" in update_script
+    assert "uv.lock" in commit_script
+
+
+def test_ci_validates_server_json_against_registry():
+    """CI must catch live Registry schema drift before release."""
+    scripts = _workflow_run_scripts(CI_PATH)
+
+    validation_script = next(
+        script for script in scripts if "/v0.1/validate" in script
+    )
+    assert "--data-binary @server.json" in validation_script
+    assert "--fail-with-body" in validation_script
+    assert "jq -e '.valid == true'" in validation_script
+
+
+def test_release_publishes_registry_with_github_oidc_independently_of_pypi():
+    """Remote metadata publication must not depend on the PyPI channel."""
+    data = yaml.safe_load(RELEASE_PATH.read_text())
+    assert data["permissions"]["id-token"] == "write"
+
+    steps = _workflow_steps(RELEASE_PATH, "release")
+    release_index = next(
+        index
+        for index, step in enumerate(steps)
+        if step.get("uses") == "softprops/action-gh-release@v3"
+    )
+    pypi_index = next(
+        index
+        for index, step in enumerate(steps)
+        if step.get("uses") == "pypa/gh-action-pypi-publish@release/v1"
+    )
+    install_index = next(
+        index
+        for index, step in enumerate(steps)
+        if "releases/latest/download/mcp-publisher_" in (step.get("run") or "")
+    )
+    login_index = next(
+        index
+        for index, step in enumerate(steps)
+        if "mcp-publisher login github-oidc" in (step.get("run") or "")
+    )
+    publish_index = next(
+        index
+        for index, step in enumerate(steps)
+        if "mcp-publisher publish" in (step.get("run") or "")
+    )
+
+    assert release_index < install_index < login_index < publish_index < pypi_index
