@@ -265,14 +265,19 @@ class InboundHTTPAuthMiddleware(Middleware):
         if result.reason != "kuudo_bearer" or not bearer:
             return await call_next(context)
 
+        fingerprint = await provider.session_api_key_fingerprint(bearer)
         api_key_context_token = provider.set_current_api_key(bearer)
+        fingerprint_context_token = provider.set_current_api_key_fingerprint(
+            fingerprint
+        )
         tenant_context_token = bind_request_tenant_fingerprint(
-            provider.session_api_key_fingerprint(bearer)
+            fingerprint
         )
         try:
             return await call_next(context)
         finally:
             reset_request_tenant_token(tenant_context_token)
+            provider.reset_current_api_key_fingerprint(fingerprint_context_token)
             provider.reset_current_api_key(api_key_context_token)
             set_state_reset_reason(None)
 

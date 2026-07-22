@@ -385,10 +385,7 @@ async def test_kuudo_bearer_swap_clears_persisted_tenant_state_before_tool_call(
         assert persisted["active_identity"]["id"] == "tenant-a-identity"
         assert persisted[
             "last_seen_token_fingerprint"
-        ] == provider.session_api_key_fingerprint(token_a)
-        assert persisted["last_seen_token_fingerprint"] != hashlib.sha256(
-            token_a.encode("utf-8")
-        ).hexdigest()
+        ] == await provider.session_api_key_fingerprint(token_a)
 
         # FastMCP may dispatch the next request in a fresh async context.
         reset_all_session_state()
@@ -400,7 +397,7 @@ async def test_kuudo_bearer_swap_clears_persisted_tenant_state_before_tool_call(
             assert get_active_profiles() == {"tenant-a-identity": "profile-a"}
             assert (
                 get_last_seen_token_fingerprint()
-                == provider.session_api_key_fingerprint(token_a)
+                == await provider.session_api_key_fingerprint(token_a)
             )
             assert get_state_reset_reason() is None
             return "preserved"
@@ -416,7 +413,7 @@ async def test_kuudo_bearer_swap_clears_persisted_tenant_state_before_tool_call(
             assert get_active_profiles() == {}
             assert (
                 get_last_seen_token_fingerprint()
-                == provider.session_api_key_fingerprint(token_b)
+                == await provider.session_api_key_fingerprint(token_b)
             )
             assert get_state_reset_reason() == "token_swapped"
             return "ok"
@@ -430,6 +427,6 @@ async def test_kuudo_bearer_swap_clears_persisted_tenant_state_before_tool_call(
         assert persisted["active_profiles"] == {}
         assert persisted[
             "last_seen_token_fingerprint"
-        ] == provider.session_api_key_fingerprint(token_b)
+        ] == await provider.session_api_key_fingerprint(token_b)
     finally:
         reset_all_session_state()

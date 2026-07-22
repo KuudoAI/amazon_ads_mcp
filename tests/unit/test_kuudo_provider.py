@@ -297,7 +297,8 @@ def test_kuudo_fingerprint_is_stable_within_instance_and_scoped_between_instance
     assert first_fingerprint != second_provider._fingerprint("client-supplied-token")
 
 
-def test_kuudo_session_fingerprint_is_keyed_and_provider_local():
+@pytest.mark.asyncio
+async def test_kuudo_session_fingerprint_uses_provider_pbkdf2():
     config = ProviderConfig(
         base_url="https://app.kuudo.test",
         provider="amazon_ads",
@@ -306,11 +307,42 @@ def test_kuudo_session_fingerprint_is_keyed_and_provider_local():
     second_provider = KuudoAmazonAdsProvider(config)
     api_key = "client-supplied-token"
 
-    first_fingerprint = first_provider.session_api_key_fingerprint(api_key)
+    first_fingerprint = await first_provider.session_api_key_fingerprint(api_key)
 
-    assert first_fingerprint == first_provider.session_api_key_fingerprint(api_key)
-    assert first_fingerprint != second_provider.session_api_key_fingerprint(api_key)
-    assert first_fingerprint != hashlib.sha256(api_key.encode("utf-8")).hexdigest()
+    assert first_fingerprint == first_provider._fingerprint(api_key)
+    assert first_fingerprint != await second_provider.session_api_key_fingerprint(
+        api_key
+    )
+
+
+@pytest.mark.asyncio
+async def test_bound_session_fingerprint_is_reused_by_provider_operations(monkeypatch):
+    provider = KuudoAmazonAdsProvider(
+        ProviderConfig(
+            base_url="https://app.kuudo.test",
+            provider="amazon_ads",
+        )
+    )
+    original_fingerprint = provider._fingerprint
+    fingerprint_calls: list[str] = []
+
+    def count_fingerprint(value: str) -> str:
+        fingerprint_calls.append(value)
+        return original_fingerprint(value)
+
+    monkeypatch.setattr(provider, "_fingerprint", count_fingerprint)
+    api_key = "client-supplied-token"
+    fingerprint = await provider.session_api_key_fingerprint(api_key)
+    api_key_token = provider.set_current_api_key(api_key)
+    fingerprint_token = provider.set_current_api_key_fingerprint(fingerprint)
+
+    try:
+        assert await provider._fingerprint_for(api_key) == fingerprint
+    finally:
+        provider.reset_current_api_key_fingerprint(fingerprint_token)
+        provider.reset_current_api_key(api_key_token)
+
+    assert fingerprint_calls == [api_key]
 
 
 def _kuudo_cache_miss_handler(request: httpx.Request) -> httpx.Response:
