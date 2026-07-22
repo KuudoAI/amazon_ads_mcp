@@ -15,6 +15,7 @@ from ..auth.session_state import (
     get_active_profiles,
     get_last_seen_token_fingerprint,
     get_state_reset_reason,
+    reconcile_request_tenant_state,
     reset_hydrated_session_state,
     set_active_credentials,
     set_active_identity,
@@ -131,6 +132,14 @@ async def hydrate_auth_from_mcp_session(
     except Exception as exc:
         reset_hydrated_session_state()
         log.warning("Failed to hydrate auth session state: %s", exc)
+
+
+async def hydrate_and_reconcile_auth_from_mcp_session(
+    fastmcp_context: Any, logger_instance: Optional[logging.Logger] = None
+) -> bool:
+    """Hydrate session auth state and bind it to the current request tenant."""
+    await hydrate_auth_from_mcp_session(fastmcp_context, logger_instance)
+    return reconcile_request_tenant_state()
 
 
 async def persist_auth_to_mcp_session(

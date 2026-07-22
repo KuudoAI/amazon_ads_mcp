@@ -30,7 +30,7 @@ from fastmcp.server.dependencies import get_context
 from ..config.settings import settings
 from ._polling_guidance import SANDBOX_POLLING_GUIDANCE
 from ..middleware.auth_session_bridge import (
-    hydrate_auth_from_mcp_session,
+    hydrate_and_reconcile_auth_from_mcp_session,
     persist_auth_to_mcp_session,
 )
 
@@ -485,9 +485,16 @@ class AuthBridgingSandboxProvider:
                 from .sidecar_middleware import apply_sidecar_input_transforms
 
                 async with call_lock:
-                    await hydrate_auth_from_mcp_session(
-                        parent_ctx, logger_instance=logger
+                    tenant_state_cleared = (
+                        await hydrate_and_reconcile_auth_from_mcp_session(
+                            parent_ctx, logger_instance=logger
+                        )
                     )
+                    if tenant_state_cleared:
+                        logger.info(
+                            "Tenant token changed before nested code-mode call — "
+                            "clearing identity/credentials/profiles"
+                        )
                     try:
                         rewritten = await apply_sidecar_input_transforms(
                             name, params or {}

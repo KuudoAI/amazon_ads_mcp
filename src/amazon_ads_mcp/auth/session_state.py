@@ -168,6 +168,11 @@ def set_last_seen_token_fingerprint(fingerprint: Optional[str]) -> None:
     _last_seen_token_fingerprint_var.set(fingerprint)
 
 
+def get_request_tenant_fingerprint() -> Optional[str]:
+    """Return the provider-derived fingerprint bound to this request."""
+    return _request_token_fingerprint_var.get()
+
+
 def bind_request_tenant_fingerprint(
     fingerprint: str,
 ) -> ContextToken[Optional[str]]:

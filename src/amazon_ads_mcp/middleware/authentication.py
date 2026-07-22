@@ -50,13 +50,12 @@ import jwt
 from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 
-from ..auth.session_state import reconcile_request_tenant_state
 from ..utils.http import get_http_client
 from ..utils.security import sanitize_string
 from .auth_session_bridge import (
     AUTH_SESSION_STATE_KEY as BRIDGE_AUTH_SESSION_STATE_KEY,
     has_auth_session,
-    hydrate_auth_from_mcp_session,
+    hydrate_and_reconcile_auth_from_mcp_session,
     persist_auth_to_mcp_session,
 )
 
@@ -793,8 +792,8 @@ class AuthSessionStateMiddleware(Middleware):
         """
         return has_auth_session(fastmcp_context)
 
-    async def _hydrate(self, fastmcp_context: Any) -> None:
-        await hydrate_auth_from_mcp_session(
+    async def _hydrate(self, fastmcp_context: Any) -> bool:
+        return await hydrate_and_reconcile_auth_from_mcp_session(
             fastmcp_context, logger_instance=self.logger
         )
 
@@ -805,8 +804,7 @@ class AuthSessionStateMiddleware(Middleware):
 
     async def on_request(self, context: MiddlewareContext, call_next):
         fastmcp_context = getattr(context, "fastmcp_context", None)
-        await self._hydrate(fastmcp_context)
-        if reconcile_request_tenant_state():
+        if await self._hydrate(fastmcp_context):
             self.logger.info(
                 "Tenant token changed mid-session — clearing "
                 "identity/credentials/profiles"
