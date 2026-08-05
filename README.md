@@ -2,6 +2,8 @@
 
 # Amazon Ads API MCP SDK
 
+[![MCP Toplist](https://mcptoplist.com/badge/io.github.tspicer%2Famazon_ads_mcp.svg)](https://mcptoplist.com/server/io.github.tspicer%2Famazon_ads_mcp)
+
 **Build AI-powered advertising applications with the Model Context Protocol (MCP) SDK for Amazon Advertising API**
 
 *Made with ❤️ + ☕ by [Openbridge](https://www.openbridge.com/)*
