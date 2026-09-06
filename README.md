@@ -16,6 +16,7 @@
 
 ## Table of contents
 
+- [Where this fits in Kuudo](#where-this-fits-in-kuudo)
 - [What are MCP tools?](#what-are-mcp-tools)
 - [What is Amazon Ads API MCP SDK?](#what-is-amazon-ads-api-mcp-sdk)
 - [Quick start](#quick-start)
@@ -27,8 +28,22 @@
 - [Code mode](#code-mode)
 - [Tool audit](#tool-audit)
 - [Background tasks](#background-tasks)
+- [Frequently asked](#frequently-asked)
 - [Troubleshooting](#troubleshooting)
 - [Documentation map](#documentation-map)
+
+## Where this fits in Kuudo
+
+This repository is the **tool layer** of a broader Amazon agent platform. Kuudo gives Amazon agents tools, knowledge, workflows, and a place to work. This repository is the tools.
+
+| Layer | What it provides | Where |
+| --- | --- | --- |
+| **MCP servers** | The tools an agent calls: Amazon Ads here, plus Selling Partner and Vendor Central | this repo, and the [MCP tool reference](https://www.kuudo.com/docs/mcp-reference/tools/) |
+| **Skills** | The higher-level workflows: reusable, versioned, multi-step Amazon procedures that compose these tools and wait for a human before anything goes live | [Amazon Agent Skills](https://www.kuudo.com/features/skills/) |
+| **Agent Atlas** | The knowledge: indexed Amazon operating knowledge across Ads, Seller Central, and Vendor Central, answered with citations | [Amazon Agent Atlas](https://www.kuudo.com/features/agent-atlas/) |
+| **Agent Flow** | The place to work: your Amazon data landed in your own cloud, so an agent answers with real figures instead of guessing | [Amazon Agent Flow](https://www.kuudo.com/features/amazon-agent-flow/) |
+
+Read this repository as one layer of that platform rather than as the whole of it. The operations below are what an agent can call; Skills are what it runs.
 
 ## What Are MCP Tools?
 Think of MCP (Model Context Protocol) as a translator between an AI model and outside systems (like Amazon Ads). Each MCP tool is like a remote control button that tells the AI how to interact with Amazon Ads. Without MCP tools, the AI would have no idea how to “talk” to Amazon Ads.
@@ -178,6 +193,24 @@ AMAZON_AD_API_PACKAGES="profiles,ads-api-v1-all"
 ```
 
 For more information, see Amazon's [Campaign Management Overview](https://advertising.amazon.com/API/docs/en-us/guides/campaign-management/overview).
+
+## More than an MCP server
+
+Everything above is the tool layer: the Amazon Ads operations an agent can call. Kuudo adds three layers around it, and a comparison that only counts operations misses them.
+
+| Capability | An MCP server alone | Kuudo |
+| --- | --- | --- |
+| Expose Amazon Ads API operations | yes | yes |
+| Higher-level, multi-step workflows | no | yes, as [Skills](https://www.kuudo.com/features/skills/) |
+| Reusable and versioned workflows | no | yes, each Skill carries a version |
+| Human approval before anything goes live | no | yes, activation is approval-gated |
+| Fork a workflow and change it for your account | no | yes, Skills are a plain open format |
+| Indexed Amazon knowledge, answered with citations | no | yes, through [Agent Atlas](https://www.kuudo.com/features/agent-atlas/) |
+| Your own account data, landed in your own cloud | no | yes, through [Agent Flow](https://www.kuudo.com/features/amazon-agent-flow/) |
+| Workflows that span several MCP servers | no | yes, Ads with Selling Partner and Vendor Central |
+| Run from any MCP client | varies | yes, Claude, ChatGPT, Cursor, and others |
+
+**Kuudo provides higher-level workflows above the MCP tool layer through Skills.** A Skill composes these operations into a repeatable Amazon procedure, grounds it with Atlas, and waits for a human before it changes anything.
 
 ## Installation
 
@@ -966,6 +999,20 @@ FASTMCP_DOCKET_URL=redis://localhost:6379
 | Export campaigns | *"Export all my enabled campaigns"* |
 | Run AMC workflow | *"Execute my audience overlap workflow for the last 30 days"* |
 
+## Frequently asked
+
+### Does Kuudo only expose Amazon Ads API operations?
+
+No. This server exposes the Amazon Ads operations themselves. Kuudo Skills package them into higher-level workflows: reusable, versioned, multi-step procedures that can combine tools from several MCP servers, retrieve Amazon and account knowledge through Agent Atlas, use Agent Flow for durable data work in your own cloud, and wait for human approval before anything goes live. Skills run from any MCP client, from code, or from a CLI.
+
+### Do I have to use a prebuilt Skill?
+
+No. An agent can compose these operations directly for one-off work. Skills exist for the procedures you run repeatedly and want to run the same way every time. Pick one, watch it run, then fork it for your account, or write your own against these tools: every Skill is a plain open-format file, not a proprietary one.
+
+### Is this the whole product?
+
+No. This repository is the Amazon Ads tool layer. Kuudo also runs MCP servers for [Selling Partner](https://www.kuudo.com/features/amazon-selling-partner-mcp/) and [Vendor Central](https://www.kuudo.com/features/amazon-vendor-central-mcp/), the Skills workflow layer, Agent Atlas for knowledge, and Agent Flow for durable data work. See [how the pieces fit](https://www.kuudo.com/features/).
+
 ## Troubleshooting
 
 **Server not connecting?**
@@ -991,6 +1038,8 @@ FASTMCP_DOCKET_URL=redis://localhost:6379
 | [**INSTALL.md**](INSTALL.md) | Full install, verification, upgrades, developer setup |
 | [**AGENTS.md**](AGENTS.md) | Environment variables, Docker, MCP tuning, contribution workflow |
 | This README | Overview, auth walkthrough, downloads, clients, code mode |
+| [**Kuudo MCP tool reference**](https://www.kuudo.com/docs/mcp-reference/tools/) | Every Kuudo MCP server and its tools |
+| [**Amazon Agent Skills**](https://www.kuudo.com/features/skills/) | The workflow layer built on these operations |
 
 ## 📄 License
 
