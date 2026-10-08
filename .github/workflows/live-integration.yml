@@ -57,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       # Step 1: Decide whether to run, based on whether all three
       # sandbox secrets are configured. Secrets are NOT directly testable
