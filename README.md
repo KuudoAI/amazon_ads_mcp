@@ -1046,3 +1046,7 @@ No. This repository is the Amazon Ads tool layer. Kuudo also runs MCP servers fo
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
 
 **Security:** report vulnerabilities through [GitHub private security advisories](https://github.com/KuudoAI/amazon-ads-mcp/security/advisories/new) for this repository.
+
+## Smithery listing
+
+See [Smithery publishing](smithery/README.md) for the hosted endpoint, API-key configuration, and discovery prerequisites.

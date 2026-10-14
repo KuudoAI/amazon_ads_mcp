@@ -1,0 +1,26 @@
+{
+  "type": "external",
+  "upstreamUrl": "https://ads.kuudo.com/mcp",
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "kuudoAuthorization": {
+        "type": "string",
+        "title": "Kuudo authorization",
+        "description": "Enter Bearer followed by one space and your Kuudo API key (Bearer sk_...). Get your key from https://app.kuudo.com.",
+        "format": "password",
+        "minLength": 8,
+        "x-from": {
+          "header": "kuudo-api-key"
+        },
+        "x-to": {
+          "header": "Authorization"
+        }
+      }
+    },
+    "required": [
+      "kuudoAuthorization"
+    ],
+    "additionalProperties": false
+  }
+}
