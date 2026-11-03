@@ -2,8 +2,38 @@
 
 from amazon_ads_mcp.server.openapi_utils import (
     _flatten_large_schemas,
+    _truncate_enums,
     slim_openapi_for_tools,
 )
+
+
+def test_truncate_enums_drops_enforced_enum_but_keeps_type():
+    """A large enum must not be left as a *truncated* enforced constraint —
+    the pre-flight validator would reject valid values in the dropped middle
+    (e.g. targetType="KEYWORD"). The enum is removed (type kept) and a sample
+    recorded in the description."""
+    vals = [f"V{i}" for i in range(27)]
+    assert "V13" in vals  # a middle value that truncation would drop
+    spec = {
+        "components": {
+            "schemas": {
+                "BigEnum": {"type": "string", "enum": list(vals)},
+                "SmallEnum": {"type": "string", "enum": ["A", "B", "C"]},
+            }
+        }
+    }
+
+    n = _truncate_enums(spec)
+    assert n == 1
+
+    big = spec["components"]["schemas"]["BigEnum"]
+    assert "enum" not in big  # not enforced any more
+    assert big["type"] == "string"  # type still validates
+    assert "27 values total" in big["description"]
+
+    # Small enums are left fully intact and still enforceable.
+    small = spec["components"]["schemas"]["SmallEnum"]
+    assert small["enum"] == ["A", "B", "C"]
 
 
 def _large_filler(prefix: str, n: int) -> dict:

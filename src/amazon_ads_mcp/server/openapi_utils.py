@@ -186,14 +186,22 @@ def _truncate_enums(
             continue
 
         original_len = len(enum_vals)
-        # Keep first few + last few for representative spread
+        # Keep first few + last few for a representative spread in the
+        # description — but do NOT leave a truncated ``enum`` on the schema.
+        # A pre-flight constraint validator enforces ``enum`` membership, so
+        # a trimmed list would falsely reject valid values that fall in the
+        # dropped middle (e.g. targetType="KEYWORD"). Drop the enum
+        # constraint entirely and surface a sample in the description; the
+        # scalar ``type`` is preserved for type validation.
         head = max_values // 2
         tail = max_values - head
-        kept = enum_vals[:head] + enum_vals[-tail:]
-        schema["enum"] = kept
-        # Append note to description so Claude knows there are more
+        sample = enum_vals[:head] + enum_vals[-tail:]
+        schema.pop("enum", None)
         desc = schema.get("description", "")
-        note = f" [{original_len} values total, showing {max_values}]"
+        note = (
+            f" [enum: {original_len} values total; examples: "
+            f"{', '.join(map(str, sample))}]"
+        )
         schema["description"] = (desc + note).strip()
         truncated += 1
 
