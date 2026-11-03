@@ -1,6 +1,86 @@
 """Unit tests for MCP server OpenAPI slimming utilities."""
 
-from amazon_ads_mcp.server.openapi_utils import slim_openapi_for_tools
+from amazon_ads_mcp.server.openapi_utils import (
+    _flatten_large_schemas,
+    slim_openapi_for_tools,
+)
+
+
+def _large_filler(prefix: str, n: int) -> dict:
+    """Build enough string props to push a schema over the flatten threshold."""
+    return {
+        f"{prefix}{i}": {
+            "type": "string",
+            "description": "x" * 60,
+        }
+        for i in range(n)
+    }
+
+
+def test_flatten_large_schema_preserves_scalar_ref_type_and_enum():
+    """A $ref to a scalar enum must keep its scalar type + enum when its
+    parent schema is flattened — not be mislabeled ``object`` (which would
+    make constraint validation reject the correct scalar value)."""
+    spec = {
+        "components": {
+            "schemas": {
+                "AdProduct": {
+                    "type": "string",
+                    "enum": ["SPONSORED_PRODUCTS", "SPONSORED_BRANDS"],
+                },
+                "SettingsBlob": {  # object ref -> should stay object
+                    "type": "object",
+                    "properties": {"a": {"type": "string"}},
+                },
+                "CampaignCreate": {
+                    "type": "object",
+                    "required": ["adProduct"],
+                    "properties": {
+                        "adProduct": {"$ref": "#/components/schemas/AdProduct"},
+                        "settings": {"$ref": "#/components/schemas/SettingsBlob"},
+                        **_large_filler("pad", 40),
+                    },
+                },
+            }
+        }
+    }
+
+    flattened = _flatten_large_schemas(spec)
+    assert flattened >= 1
+
+    props = spec["components"]["schemas"]["CampaignCreate"]["properties"]
+    # Scalar enum ref keeps its real type and (small) enum.
+    assert props["adProduct"]["type"] == "string"
+    assert props["adProduct"]["enum"] == [
+        "SPONSORED_PRODUCTS",
+        "SPONSORED_BRANDS",
+    ]
+    # Object ref still collapses to object.
+    assert props["settings"]["type"] == "object"
+
+
+def test_flatten_large_schema_keeps_scalar_ref_format():
+    """A $ref to a scalar with a ``format`` (e.g. date-time) keeps type +
+    format when flattened."""
+    spec = {
+        "components": {
+            "schemas": {
+                "Timestamp": {"type": "string", "format": "date-time"},
+                "Big": {
+                    "type": "object",
+                    "properties": {
+                        "when": {"$ref": "#/components/schemas/Timestamp"},
+                        **_large_filler("pad", 40),
+                    },
+                },
+            }
+        }
+    }
+
+    _flatten_large_schemas(spec)
+    when = spec["components"]["schemas"]["Big"]["properties"]["when"]
+    assert when["type"] == "string"
+    assert when["format"] == "date-time"
 
 
 def test_slim_openapi_for_tools_removes_auth_header_params():

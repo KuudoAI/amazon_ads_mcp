@@ -257,6 +257,31 @@ def _simplify_large_oneof(
     return simplified
 
 
+def _resolve_local_schema_ref(
+    spec: Dict[str, Any], ref: Any
+) -> Optional[Dict[str, Any]]:
+    """Resolve a local ``#/...`` JSON-Schema ``$ref`` to its target dict.
+
+    Returns ``None`` for non-local refs (``http(s)://``, relative paths) or
+    unresolvable pointers. Used by :func:`_flatten_large_schemas` to recover
+    the real type of a referenced schema, because a ``$ref`` may point to a
+    scalar enum (e.g. ``AdProduct``, ``CreateState``) and not only to an
+    object.
+
+    :param spec: The complete OpenAPI specification dictionary.
+    :param ref: The ``$ref`` string to resolve.
+    :return: The referenced schema dict, or ``None`` if unresolvable.
+    """
+    if not isinstance(ref, str) or not ref.startswith("#/"):
+        return None
+    cur: Any = spec
+    for part in ref.lstrip("#/").split("/"):
+        if not isinstance(cur, dict) or part not in cur:
+            return None
+        cur = cur[part]
+    return cur if isinstance(cur, dict) else None
+
+
 def _flatten_large_schemas(
     spec: Dict[str, Any],
     max_schema_bytes: int = 1500,
@@ -326,7 +351,28 @@ def _flatten_large_schemas(
             if "type" in pdef:
                 slim["type"] = pdef["type"]
             elif "$ref" in pdef:
-                slim["type"] = "object"
+                # A $ref can point to a scalar enum (e.g. AdProduct,
+                # CreateState, MarketplaceScope) as well as to an object.
+                # Resolve it so scalar-typed refs keep their real type and
+                # enum instead of being mislabeled "object" — otherwise
+                # constraint validation rejects the correct scalar value
+                # (e.g. adProduct="SPONSORED_PRODUCTS") as "not of type
+                # object", blocking create calls.
+                ref_target = _resolve_local_schema_ref(spec, pdef["$ref"])
+                ref_type = (
+                    ref_target.get("type")
+                    if isinstance(ref_target, dict)
+                    else None
+                )
+                if ref_type in ("string", "integer", "number", "boolean"):
+                    slim["type"] = ref_type
+                    ref_enum = ref_target.get("enum")
+                    if isinstance(ref_enum, list) and len(ref_enum) <= 8:
+                        slim["enum"] = ref_enum
+                    if "format" in ref_target:
+                        slim["format"] = ref_target["format"]
+                else:
+                    slim["type"] = "object"
             elif "oneOf" in pdef or "anyOf" in pdef:
                 slim["type"] = "object"
             elif "items" in pdef:
