@@ -161,17 +161,20 @@ def _truncate_enums(
     max_values: int = 8,
     min_values_to_truncate: int = 12,
 ) -> int:
-    """Phase 5: Truncate large enum arrays in component schemas.
+    """Phase 5: Replace large enum constraints with descriptive samples.
 
     Enums with many values (e.g. LanguageLocale with 166 entries) get
     dereferenced inline by FastMCP, bloating every tool that references
-    them.  We keep *max_values* representative samples plus a
-    ``description`` note indicating the total count was trimmed.
+    them. Remove the ``enum`` constraint and retain *max_values*
+    representative samples plus the total count in ``description``.
+    Keep the scalar type so local validation still checks types; Amazon
+    validates membership in these large enums. Enforcing a sampled subset
+    locally would reject valid values omitted from the sample.
 
     Only modifies enum arrays with more than *min_values_to_truncate*
     entries to avoid touching small enums that are useful in full.
 
-    :return: Number of enums truncated.
+    :return: Number of enum constraints replaced with descriptive samples.
     """
     schemas = spec.get("components", {}).get("schemas", {})
     truncated = 0
@@ -530,7 +533,7 @@ def slim_openapi_for_tools(spec: Dict[str, Any], max_desc: int = 200) -> None:
     **Phase 1** (always): Auth header removal + description truncation.
     **Phase 2** (on by default, ``SLIM_OPENAPI_STRIP_RESPONSES=false`` to disable): Strip response bodies.
     **Phase 3-7** (on by default, ``SLIM_OPENAPI_AGGRESSIVE=false`` to disable): Dead schema elimination,
-    metadata cleanup, enum truncation, oneOf simplification, and large schema flattening.
+    metadata cleanup, large-enum sampling, oneOf simplification, and large schema flattening.
 
     :param spec: OpenAPI specification to slim
     :type spec: Dict[str, Any]

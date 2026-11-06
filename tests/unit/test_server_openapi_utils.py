@@ -1,5 +1,15 @@
 """Unit tests for MCP server OpenAPI slimming utilities."""
 
+import json
+from collections.abc import AsyncIterator
+from typing import Any
+
+import httpx
+import pytest
+import pytest_asyncio
+from fastmcp import Client, FastMCP
+
+from amazon_ads_mcp.middleware.schema_validation import SchemaValidationMiddleware
 from amazon_ads_mcp.server.openapi_utils import (
     _flatten_large_schemas,
     _truncate_enums,
@@ -45,6 +55,135 @@ def _large_filler(prefix: str, n: int) -> dict:
         }
         for i in range(n)
     }
+
+
+@pytest_asyncio.fixture
+async def slimmed_campaign_client(
+    monkeypatch: pytest.MonkeyPatch,
+) -> AsyncIterator[tuple[Client, list[dict[str, Any]]]]:
+    """Exercise the mounting, MCP validation, and mocked HTTP request path."""
+    monkeypatch.setenv("SLIM_OPENAPI_AGGRESSIVE", "true")
+    requests: list[dict[str, Any]] = []
+
+    def handle_request(request: httpx.Request) -> httpx.Response:
+        requests.append(json.loads(request.content))
+        return httpx.Response(200, json={"campaignId": "test-campaign"})
+
+    spec = {
+        "openapi": "3.0.3",
+        "info": {"title": "Campaign regression", "version": "1.0"},
+        "paths": {
+            "/campaigns": {
+                "post": {
+                    "operationId": "CreateCampaign",
+                    "requestBody": {
+                        "required": True,
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CampaignCreate"
+                                }
+                            }
+                        },
+                    },
+                    "responses": {"200": {"description": "Created"}},
+                }
+            }
+        },
+        "components": {
+            "schemas": {
+                "AdProduct": {
+                    "type": "string",
+                    "enum": ["SPONSORED_PRODUCTS", "SPONSORED_BRANDS"],
+                },
+                "CreateState": {"type": "string", "enum": ["ENABLED", "PAUSED"]},
+                "MarketplaceScope": {
+                    "type": "string",
+                    "enum": ["GLOBAL", "SINGLE_MARKETPLACE"],
+                },
+                "TargetType": {
+                    "type": "string",
+                    "enum": [f"TYPE_{i}" for i in range(13)]
+                    + ["KEYWORD"]
+                    + [f"TYPE_{i}" for i in range(14, 27)],
+                },
+                "CampaignCreate": {
+                    "type": "object",
+                    "required": ["adProduct", "state", "marketplaceScope", "targetType"],
+                    "properties": {
+                        "adProduct": {"$ref": "#/components/schemas/AdProduct"},
+                        "state": {"$ref": "#/components/schemas/CreateState"},
+                        "marketplaceScope": {
+                            "$ref": "#/components/schemas/MarketplaceScope"
+                        },
+                        "targetType": {"$ref": "#/components/schemas/TargetType"},
+                        **_large_filler("pad", 40),
+                    },
+                },
+            }
+        },
+    }
+    slim_openapi_for_tools(spec)
+    async with httpx.AsyncClient(
+        base_url="https://ads.example.test",
+        transport=httpx.MockTransport(handle_request),
+    ) as http_client:
+        server = FastMCP.from_openapi(openapi_spec=spec, client=http_client)
+        server.add_middleware(SchemaValidationMiddleware())
+        async with Client(server) as client:
+            yield client, requests
+
+
+@pytest.mark.asyncio
+async def test_slimmed_campaign_accepts_scalar_refs_and_middle_enum_value(
+    slimmed_campaign_client: tuple[Client, list[dict[str, Any]]],
+) -> None:
+    """Valid scalar values survive every slimming phase and reach the API."""
+    client, requests = slimmed_campaign_client
+    payload = {
+        "adProduct": "SPONSORED_PRODUCTS",
+        "state": "PAUSED",
+        "marketplaceScope": "SINGLE_MARKETPLACE",
+        "targetType": "KEYWORD",
+    }
+    result = await client.call_tool("CreateCampaign", payload)
+    assert not result.is_error
+    assert requests == [payload]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("adProduct", {}),
+        ("state", {}),
+        ("marketplaceScope", {}),
+        ("adProduct", "UNKNOWN_PRODUCT"),
+        ("state", "UNKNOWN_STATE"),
+        ("marketplaceScope", "UNKNOWN_SCOPE"),
+        ("targetType", 123),
+    ],
+)
+async def test_slimmed_campaign_rejects_invalid_values_before_http(
+    slimmed_campaign_client: tuple[Client, list[dict[str, Any]]],
+    field: str,
+    value: Any,
+) -> None:
+    """Preserved scalar types and small enums still reject invalid input."""
+    client, requests = slimmed_campaign_client
+    payload = {
+        "adProduct": "SPONSORED_PRODUCTS",
+        "state": "PAUSED",
+        "marketplaceScope": "SINGLE_MARKETPLACE",
+        "targetType": "KEYWORD",
+    }
+    result = await client.call_tool(
+        "CreateCampaign", {**payload, field: value}, raise_on_error=False
+    )
+    assert result.is_error
+    message = result.content[0].text
+    assert "not one of" in message or "not of type" in message
+    assert requests == []
 
 
 def test_flatten_large_schema_preserves_scalar_ref_type_and_enum():
