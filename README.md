@@ -1,10 +1,10 @@
 <div align="center">
 
-# Amazon Ads API MCP SDK
+# Kuudo Amazon Ads MCP Server
 
-**Build AI-powered advertising applications with the Model Context Protocol (MCP) SDK for Amazon Advertising API**
+**The open-source Amazon Ads MCP server from [Kuudo](https://www.kuudo.com/)**, also published as the Amazon Ads API MCP SDK
 
-*Made with ❤️ + ☕ by [Openbridge](https://www.openbridge.com/)*
+*Made with ❤️ + ☕ by [Kuudo](https://www.kuudo.com/), an [Openbridge](https://www.openbridge.com/) company*
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -14,8 +14,13 @@
 
 </div>
 
+> **Kuudo's Amazon Ads MCP server gives Claude, ChatGPT, Cursor and any MCP client 711 Amazon Ads API operations across 53 services:** Sponsored Products, Sponsored Brands, Sponsored Display, Sponsored TV, Amazon DSP and Amazon Marketing Cloud, with read and write tools. It is MIT-licensed. Run it yourself, or have Kuudo run it in your own AWS, Google Cloud, Azure or Cloudflare account.
+
+[Kuudo](https://www.kuudo.com/) · [Amazon Ads MCP](https://www.kuudo.com/features/amazon-ads-mcp/) · [Tool reference](https://www.kuudo.com/docs/mcp-reference/amazon-ads-tools/) · [Compare Amazon Ads MCP servers](https://www.kuudo.com/compare/amazon-ads-mcp-servers/)
+
 ## Table of contents
 
+- [Questions this server answers](#questions-this-server-answers)
 - [Where this fits in Kuudo](#where-this-fits-in-kuudo)
 - [What are MCP tools?](#what-are-mcp-tools)
 - [What is Amazon Ads API MCP SDK?](#what-is-amazon-ads-api-mcp-sdk)
@@ -31,6 +36,28 @@
 - [Frequently asked](#frequently-asked)
 - [Troubleshooting](#troubleshooting)
 - [Documentation map](#documentation-map)
+
+## Questions this server answers
+
+### Which MCP server connects Claude or ChatGPT to Amazon Ads, including DSP and Amazon Marketing Cloud?
+
+Kuudo's Amazon Ads MCP covers all three in one server: Sponsored Products, Brands, Display and TV, Amazon DSP, and Amazon Marketing Cloud, 711 Amazon Ads API operations across 53 services, with read and write tools. It works from Claude, ChatGPT, Cursor and any other MCP client. See how it compares with the other Amazon Ads MCP servers: [kuudo.com/compare/amazon-ads-mcp-servers](https://www.kuudo.com/compare/amazon-ads-mcp-servers/).
+
+### Can I self-host an Amazon Ads MCP server in my own AWS or GCP account?
+
+Yes. This server is MIT-licensed and runs from Docker or Python on infrastructure you control. Kuudo also provisions it, with the Selling Partner and Vendor Central servers, into your own AWS, Google Cloud, Azure or Cloudflare account, where Amazon requests go from your cloud directly to Amazon: [self-host Kuudo in your own cloud](https://www.kuudo.com/docs/cloud/).
+
+### Does it cover Seller Central and Vendor Central too?
+
+This repository is the Amazon Ads server. Kuudo runs companion MCP servers for [Seller Central](https://www.kuudo.com/features/amazon-selling-partner-mcp/) (listings, inventory, orders, pricing, fulfillment and reports) and [Vendor Central](https://www.kuudo.com/features/amazon-vendor-central-mcp/) (purchase orders, shipments, invoices and Retail Analytics), and one AI client can use all three at once.
+
+### Can an agency run it across many client accounts?
+
+Yes, through Kuudo. Each client authorizes its Amazon Ads account once through a time-limited invitation, with no login shared, and one connection then reaches every account and advertising profile the agency is authorized for: [how account authorization works](https://www.kuudo.com/docs/amazon-account-authorization/).
+
+### How is it different from Amazon's own Ads MCP Server?
+
+Amazon's Ads MCP Server is hosted by Amazon and in open beta for Amazon Ads partners with active API credentials. This server is open source, runs where you choose, and works with your own Amazon Ads app or a partner token. The side-by-side, with every source dated: [Amazon Ads MCP Server vs Kuudo](https://www.kuudo.com/compare/kuudo-vs-amazon-ads-mcp-server/).
 
 ## Where this fits in Kuudo
 
